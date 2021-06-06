@@ -1,0 +1,5 @@
+dist/
+build/
+README.md
+env/
+node_modules/
