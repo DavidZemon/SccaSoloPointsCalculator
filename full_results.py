@@ -1,7 +1,7 @@
-import os
 import argparse
 import csv
-from typing import List
+import os
+from typing import List, Dict
 
 HEADER = [
     "TR",
@@ -15,6 +15,34 @@ HEADER = [
     "Course 1",
     "Score"
 ]
+
+
+class LapTime:
+    time: float
+    cones: int
+    dnf: bool
+
+    def __cmp__(self, other):
+        pass  # TODO
+
+
+class IndividualResults:
+    id: str
+    name: str
+    car_number: int
+    car_class: str
+    times: List[LapTime]
+    trophy: bool
+    rookie: bool
+    position: int
+
+
+class ClassResults:
+    trophy_count: int
+    results: List[IndividualResults]
+
+
+EventResults = Dict[str, ClassResults]
 
 
 def main() -> None:
