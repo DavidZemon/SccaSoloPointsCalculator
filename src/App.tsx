@@ -11,6 +11,7 @@ import {
 
 interface AppState {
   eventResultsFile?: File;
+  championshipResultsFile?: File;
   results?: EventResults;
 }
 
@@ -43,6 +44,34 @@ class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
                   if (event.target.files && event.target.files.length) {
                     this.setState({
                       eventResultsFile: event.target.files[0],
+                    });
+                  }
+                }}
+              />
+            )}
+          </Col>
+          <Col>
+            {this.state.championshipResultsFile ? (
+              this.state.eventResultsFile ? (
+                <p>
+                  Ready to process{' '}
+                  <code>{this.state.championshipResultsFile.name}</code>
+                </p>
+              ) : (
+                <p>
+                  <code>{this.state.championshipResultsFile.name}</code> set as
+                  championship standings. Please add event results to begin
+                  processing.
+                </p>
+              )
+            ) : (
+              <Form.File
+                label="Championship standings"
+                custom
+                onChange={(event: ChangeEvent<HTMLInputElement>) => {
+                  if (event.target.files && event.target.files.length) {
+                    this.setState({
+                      championshipResultsFile: event.target.files[0],
                     });
                   }
                 }}
