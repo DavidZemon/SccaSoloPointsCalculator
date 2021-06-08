@@ -14,8 +14,6 @@ HEADER = [
     "Car, Sponsor",
     "Tire Mfg",
     "Rgn,Div",
-    "Course 1",
-    "Score"
 ]
 
 
@@ -109,13 +107,9 @@ def main() -> None:
 
             final_lines.append(HEADER)
 
-            first_half = row[15:27]
-            second_half = row[33:-4]
-            final_lines.append(process_results_row(current_class, first_half + second_half))
+            final_lines.append(process_results_row(current_class, row[15:]))
         elif row[0] == 'Results':
-            first_half = row[11:23]
-            second_half = row[29:-4]
-            final_lines.append(process_results_row(current_class, first_half + second_half))
+            final_lines.append(process_results_row(current_class, row[11:]))
         else:
             # Class + table header + first row (when missing extra header prefix)
             class_header = row[0:4]
@@ -124,7 +118,7 @@ def main() -> None:
             final_lines.append(class_header)
 
             final_lines.append(HEADER)
-            final_lines.append(process_results_row(current_class, row[4:16] + row[22:-4]))
+            final_lines.append(process_results_row(current_class, row[4:]))
 
     print(jsonpickle.encode(results))
 
@@ -136,18 +130,24 @@ def process_results_row(class_results: Optional[ClassResults], row: List[str]) -
     if class_results is None:
         raise Exception(f'Class results object is uninitialized for row {",".join(row)}')
     else:
-        index_of_fastest = 11
-        index_of_difference = 15
-        fastest = row[index_of_fastest]
-        difference = row[index_of_difference]
+        meta = row[:len(HEADER)]
+        times = row[len(HEADER):]
 
-        fixed_row = row[:index_of_fastest] + \
-                    row[index_of_fastest + 1:index_of_difference] + \
-                    row[index_of_difference + 1:24]
+        index_of_fastest = 3
+        index_of_difference = 13
+        fastest = times[index_of_fastest]
+        difference = times[index_of_difference]
 
-        fixed_row[20] = fastest
-        fixed_row[21] = difference
+        fixed_time = times[:index_of_fastest] + \
+                     times[index_of_fastest + 1:index_of_difference] + \
+                     times[index_of_difference + 1:-4]
+        fixed_time = [data for data in fixed_time if data]
+        fixed_time += [''] * (12 - len(fixed_time))
 
+        fixed_time[-2] = fastest
+        fixed_time[-1] = difference
+
+        fixed_row = meta + fixed_time
         append_individual_results(class_results, fixed_row)
 
         return fixed_row
@@ -164,7 +164,7 @@ def append_individual_results(class_results: ClassResults, fixed_row: List[str])
     individual_results.car_number = int(fixed_row[3])
     individual_results.name = fixed_row[4]
     individual_results.car_description = fixed_row[5]
-    individual_results.times = [LapTime(lap_time) for lap_time in fixed_row[8:20] if lap_time.strip()]
+    individual_results.times = [LapTime(lap_time) for lap_time in fixed_row[6:18] if lap_time.strip()]
     if len(individual_results.times):
         class_results.results.append(individual_results)
 
