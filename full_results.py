@@ -131,7 +131,7 @@ def process_results_row(class_results: Optional[ClassResults], row: List[str]) -
         raise Exception(f'Class results object is uninitialized for row {",".join(row)}')
     else:
         meta = row[:len(HEADER)]
-        times = row[len(HEADER):]
+        times = row[len(HEADER):-4]
 
         index_of_fastest = 3
         index_of_difference = 13
@@ -140,31 +140,27 @@ def process_results_row(class_results: Optional[ClassResults], row: List[str]) -
 
         fixed_times = times[:index_of_fastest] + \
                       times[index_of_fastest + 1:index_of_difference] + \
-                      times[index_of_difference + 1:-4]
+                      times[index_of_difference + 1:]
         fixed_times = [data for data in fixed_times if data]
         fixed_times += [''] * (12 - len(fixed_times))
 
-        fixed_times[-2] = fastest
-        fixed_times[-1] = difference
+        append_individual_results(class_results, meta, fixed_times)
 
-        fixed_row = meta + fixed_times
-        append_individual_results(class_results, fixed_row)
-
-        return fixed_row
+        return meta + fixed_times + [fastest, difference]
 
 
-def append_individual_results(class_results: ClassResults, fixed_row: List[str]) -> None:
-    if fixed_row[0] == 'T':
+def append_individual_results(class_results: ClassResults, meta: List[str], times: List[str]) -> None:
+    if meta[0] == 'T':
         class_results.trophy_count += 1
     individual_results = IndividualResults()
     individual_results.car_class = class_results.car_class
-    individual_results.trophy = fixed_row[0] == 'T'
-    individual_results.rookie = fixed_row[1] == 'R'
-    individual_results.position = int(float(fixed_row[2]))
-    individual_results.car_number = int(fixed_row[3])
-    individual_results.name = fixed_row[4]
-    individual_results.car_description = fixed_row[5]
-    individual_results.times = [LapTime(lap_time) for lap_time in fixed_row[6:18] if lap_time.strip()]
+    individual_results.trophy = meta[0] == 'T'
+    individual_results.rookie = meta[1] == 'R'
+    individual_results.position = int(float(meta[2]))
+    individual_results.car_number = int(meta[3])
+    individual_results.name = meta[4]
+    individual_results.car_description = meta[5]
+    individual_results.times = [LapTime(lap_time) for lap_time in times if lap_time.strip()]
     if len(individual_results.times):
         class_results.results.append(individual_results)
 

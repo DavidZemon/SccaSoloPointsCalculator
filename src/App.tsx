@@ -158,7 +158,7 @@ class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
       LapTime.compare,
     )[0].time;
     return classResults.results.map((driver, index) => {
-      const driverBestLap = [...driver.times].sort(LapTime.compare)[0].time;
+      const driverBestLap = [...driver.times].sort(LapTime.compare)[0];
       return (
         <tr key={index}>
           <td>{driver.trophy ? 'T' : ''}</td>
@@ -173,11 +173,11 @@ class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
           {new Array(12 - driver.times.length).fill(null).map((_, index) => (
             <td key={index} />
           ))}
-          <td>{driverBestLap}</td>
+          <td>{App.displayLapTime(driverBestLap)}</td>
           <td>
-            {bestLapInClass === driverBestLap
+            {bestLapInClass === driverBestLap.time
               ? ''
-              : `(${(bestLapInClass! - driverBestLap!).toFixed(3)})`}
+              : `(${(bestLapInClass! - driverBestLap.time!).toFixed(3)})`}
           </td>
         </tr>
       );

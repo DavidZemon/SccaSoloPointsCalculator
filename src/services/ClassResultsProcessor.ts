@@ -17,8 +17,6 @@ export class ClassResultsProcessor {
     'Car, Sponsor',
     'Tire Mfg',
     'Rgn,Div',
-    'Course 1',
-    'Score',
   ];
 
   async process(fileContents: string): Promise<EventResults> {
@@ -82,48 +80,44 @@ export class ClassResultsProcessor {
       );
     else {
       const meta = row.slice(0, this.HEADER.length);
-      const times = row.slice(this.HEADER.length);
+      const times = row.slice(this.HEADER.length, row.length - 4);
 
       const indexOfFastest = 3;
       const indexOfDifference = 13;
       const fastest = times[indexOfFastest];
       const difference = times[indexOfDifference];
 
-      const fixedTimes = times
-        .slice(0, indexOfFastest)
-        .concat(times.slice(indexOfFastest + 1, indexOfDifference))
-        .concat(times.slice(indexOfDifference + 1, times.length - 4))
-        .filter((t) => !!t);
+      const fixedTimes = [
+        ...times.slice(0, indexOfFastest),
+        ...times.slice(indexOfFastest + 1, indexOfDifference),
+        ...times.slice(indexOfDifference + 1),
+      ].filter((t) => !!t.trim());
 
-      fixedTimes[20] = fastest;
-      fixedTimes[21] = difference;
+      this.appendIndividualResults(meta, fixedTimes, classResults);
 
-      const fixedRow = meta.concat(fixedTimes);
-      this.appendIndividualResults(fixedRow, classResults);
-
-      return fixedRow;
+      return [...meta, ...fixedTimes, fastest, difference];
     }
   }
 
   static appendIndividualResults(
-    fixedRow: string[],
+    meta: string[],
+    times: string[],
     classResults: ClassResults,
   ): void {
-    if (fixedRow[0] === 'T') {
+    if (meta[0] === 'T') {
       classResults.trophyCount += 1;
     }
     const individualResults: IndividualResults = {
-      id: fixedRow[4], // FIXME
+      id: meta[4], // FIXME
       carClass: classResults.carClass,
-      trophy: fixedRow[0] === 'T',
-      rookie: fixedRow[1] === 'R',
-      position: parseFloat(fixedRow[2]),
-      carNumber: parseInt(fixedRow[3]),
-      name: fixedRow[4],
-      carDescription: fixedRow[5],
-      times: fixedRow
-        .slice(8, 20)
-        .filter((lapTime) => lapTime.trim())
+      trophy: meta[0] === 'T',
+      rookie: meta[1] === 'R',
+      position: parseFloat(meta[2]),
+      carNumber: parseInt(meta[3]),
+      name: meta[4],
+      carDescription: meta[5],
+      times: times
+        .filter((lapTime) => !!lapTime.trim())
         .map((lapTime) => new LapTime(lapTime)),
     };
     if (individualResults.times.length) {
