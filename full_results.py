@@ -138,16 +138,16 @@ def process_results_row(class_results: Optional[ClassResults], row: List[str]) -
         fastest = times[index_of_fastest]
         difference = times[index_of_difference]
 
-        fixed_time = times[:index_of_fastest] + \
-                     times[index_of_fastest + 1:index_of_difference] + \
-                     times[index_of_difference + 1:-4]
-        fixed_time = [data for data in fixed_time if data]
-        fixed_time += [''] * (12 - len(fixed_time))
+        fixed_times = times[:index_of_fastest] + \
+                      times[index_of_fastest + 1:index_of_difference] + \
+                      times[index_of_difference + 1:-4]
+        fixed_times = [data for data in fixed_times if data]
+        fixed_times += [''] * (12 - len(fixed_times))
 
-        fixed_time[-2] = fastest
-        fixed_time[-1] = difference
+        fixed_times[-2] = fastest
+        fixed_times[-1] = difference
 
-        fixed_row = meta + fixed_time
+        fixed_row = meta + fixed_times
         append_individual_results(class_results, fixed_row)
 
         return fixed_row

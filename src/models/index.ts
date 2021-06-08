@@ -19,9 +19,12 @@ export class LapTime {
       default:
         this.dnf = false;
         this.rerun = false;
-        const time_parts = lap_time_str.split('(');
-        this.time = parseFloat(time_parts[0]);
-        this.cones = time_parts.length === 1 ? parseInt(time_parts[1]) : 0;
+        const timeParts = lap_time_str.split('(');
+        this.time = parseFloat(timeParts[0]);
+        this.cones =
+          timeParts.length === 2
+            ? parseInt(timeParts[1].slice(0, timeParts[1].length - 1))
+            : 0;
     }
   }
 

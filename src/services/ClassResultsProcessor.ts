@@ -47,25 +47,13 @@ export class ClassResultsProcessor {
         currentClass = new ClassResults(className);
         classCategoryResults[className] = currentClass;
         finalLines.push(classHeader);
-
         finalLines.push(ClassResultsProcessor.HEADER);
-
-        const firstHalf = row.slice(15, 27);
-        const secondHalf = row.slice(33, row.length - 4);
         finalLines.push(
-          ClassResultsProcessor.processResultsRow(
-            firstHalf.concat(secondHalf),
-            currentClass,
-          ),
+          ClassResultsProcessor.processResultsRow(row.slice(15), currentClass),
         );
       } else if (row[0] === 'Results') {
-        const firstHalf = row.slice(11, 23);
-        const secondHalf = row.slice(29, row.length - 4);
         finalLines.push(
-          ClassResultsProcessor.processResultsRow(
-            firstHalf.concat(secondHalf),
-            currentClass,
-          ),
+          ClassResultsProcessor.processResultsRow(row.slice(11), currentClass),
         );
       } else {
         // Class + table header + first row (when missing extra header prefix)
@@ -76,13 +64,8 @@ export class ClassResultsProcessor {
         finalLines.push(classHeader);
 
         finalLines.push(ClassResultsProcessor.HEADER);
-        const firstHalf = row.slice(4, 16);
-        const secondHalf = row.slice(22, row.length - 4);
         finalLines.push(
-          ClassResultsProcessor.processResultsRow(
-            firstHalf.concat(secondHalf),
-            currentClass,
-          ),
+          ClassResultsProcessor.processResultsRow(row.slice(4), currentClass),
         );
       }
     });
@@ -98,19 +81,24 @@ export class ClassResultsProcessor {
         `Class results object is uninitialized for row ${row.join(',')}`,
       );
     else {
-      const indexOfFastest = 11;
-      const indexOfDifference = 15;
-      const fastest = row[indexOfFastest];
-      const difference = row[indexOfDifference];
+      const meta = row.slice(0, this.HEADER.length);
+      const times = row.slice(this.HEADER.length);
 
-      const fixedRow = row
+      const indexOfFastest = 3;
+      const indexOfDifference = 13;
+      const fastest = times[indexOfFastest];
+      const difference = times[indexOfDifference];
+
+      const fixedTimes = times
         .slice(0, indexOfFastest)
-        .concat(row.slice(indexOfFastest + 1, indexOfDifference))
-        .concat(row.slice(indexOfDifference + 1, 24));
+        .concat(times.slice(indexOfFastest + 1, indexOfDifference))
+        .concat(times.slice(indexOfDifference + 1, times.length - 4))
+        .filter((t) => !!t);
 
-      fixedRow[20] = fastest;
-      fixedRow[21] = difference;
+      fixedTimes[20] = fastest;
+      fixedTimes[21] = difference;
 
+      const fixedRow = meta.concat(fixedTimes);
       this.appendIndividualResults(fixedRow, classResults);
 
       return fixedRow;

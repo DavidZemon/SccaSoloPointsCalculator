@@ -23,7 +23,7 @@ class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
 
   render() {
     return (
-      <Container>
+      <Container fluid>
         <Row>
           <Col>
             <h1>SCCA Solo Points Calculator</h1>
@@ -114,7 +114,7 @@ class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
               {ClassResultsProcessor.HEADER.slice(0, 6).map((header, index) => (
                 <th key={index}>{header}</th>
               ))}
-              <th colSpan={7}>Lap Times</th>
+              <th colSpan={12}>Lap Times</th>
               <th>Fastest</th>
               <th>Difference</th>
             </tr>
@@ -141,7 +141,7 @@ class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
           {driver.times.map((lapTime, index) => (
             <td key={index}>{App.displayLapTime(lapTime)}</td>
           ))}
-          {new Array(7 - driver.times.length).fill(null).map((_, index) => (
+          {new Array(12 - driver.times.length).fill(null).map((_, index) => (
             <td key={index} />
           ))}
           <td>{driverBestLap}</td>
@@ -161,7 +161,7 @@ class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
     } else if (lapTime.rerun) {
       return 'Re-run';
     } else {
-      return `${lapTime.time}` + (lapTime.cones ? `(${lapTime.cones})` : '');
+      return `${lapTime.time}` + (lapTime.cones ? ` (${lapTime.cones})` : '');
     }
   }
 }
