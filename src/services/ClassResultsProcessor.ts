@@ -2,9 +2,8 @@ import parse from 'csv-parse/lib/sync';
 import {
   ClassCategoryResults,
   ClassResults,
+  Driver,
   EventResults,
-  IndividualResults,
-  LapTime,
 } from '../models';
 
 export class ClassResultsProcessor {
@@ -27,46 +26,47 @@ export class ClassResultsProcessor {
       relaxColumnCount: true,
     });
 
-    const finalLines = [];
     const eventResults: EventResults = {};
     let classCategoryResults: ClassCategoryResults;
     let currentClass: ClassResults;
     rows.forEach((row) => {
       if (row[row.length - 1].endsWith('Category')) {
         // Just the class category
-        const categoryName = row[row.length - 1];
         classCategoryResults = {};
-        eventResults[categoryName] = classCategoryResults;
-        finalLines.push([categoryName]);
+        eventResults[row[row.length - 1]] = classCategoryResults;
       } else if (row.length === 65) {
         // Class + table header + first row
-        const classHeader = row.slice(11, 15);
-        const className = classHeader[0];
+        const className = row[11];
         currentClass = new ClassResults(className);
         classCategoryResults[className] = currentClass;
-        finalLines.push(classHeader);
-        finalLines.push(ClassResultsProcessor.HEADER);
-        finalLines.push(
-          ClassResultsProcessor.processResultsRow(row.slice(15), currentClass),
-        );
+        ClassResultsProcessor.processResultsRow(row.slice(15), currentClass);
       } else if (row[0] === 'Results') {
-        finalLines.push(
-          ClassResultsProcessor.processResultsRow(row.slice(11), currentClass),
-        );
+        ClassResultsProcessor.processResultsRow(row.slice(11), currentClass);
       } else {
         // Class + table header + first row (when missing extra header prefix)
-        const classHeader = row.slice(0, 4);
-        const classname = classHeader[0];
+        const classname = row[0];
         currentClass = new ClassResults(classname);
         classCategoryResults[classname] = currentClass;
-        finalLines.push(classHeader);
-
-        finalLines.push(ClassResultsProcessor.HEADER);
-        finalLines.push(
-          ClassResultsProcessor.processResultsRow(row.slice(4), currentClass),
-        );
+        ClassResultsProcessor.processResultsRow(row.slice(4), currentClass);
       }
     });
+
+    const categoriesToRemove: string[] = [];
+    Object.entries(eventResults).forEach(([category, categoryResults]) => {
+      const classesToRemove: string[] = [];
+      Object.values(categoryResults).forEach((classResults) => {
+        if (!classResults.drivers.length) {
+          classesToRemove.push(classResults.carClass);
+        }
+      });
+      classesToRemove.forEach((carClass) => delete categoryResults[carClass]);
+
+      if (!Object.keys(categoryResults).length) {
+        categoriesToRemove.push(category);
+      }
+    });
+    categoriesToRemove.forEach((category) => delete eventResults[category]);
+
     return eventResults;
   }
 
@@ -93,35 +93,15 @@ export class ClassResultsProcessor {
         ...times.slice(indexOfDifference + 1),
       ].filter((t) => !!t.trim());
 
-      this.appendIndividualResults(meta, fixedTimes, classResults);
+      if (meta[0] === 'T') {
+        classResults.trophyCount += 1;
+      }
+      const driver = new Driver(classResults.carClass, meta, fixedTimes);
+      if (driver.times.length) {
+        classResults.drivers.push(driver);
+      }
 
       return [...meta, ...fixedTimes, fastest, difference];
-    }
-  }
-
-  static appendIndividualResults(
-    meta: string[],
-    times: string[],
-    classResults: ClassResults,
-  ): void {
-    if (meta[0] === 'T') {
-      classResults.trophyCount += 1;
-    }
-    const individualResults: IndividualResults = {
-      id: meta[4], // FIXME
-      carClass: classResults.carClass,
-      trophy: meta[0] === 'T',
-      rookie: meta[1] === 'R',
-      position: parseFloat(meta[2]),
-      carNumber: parseInt(meta[3]),
-      name: meta[4],
-      carDescription: meta[5],
-      times: times
-        .filter((lapTime) => !!lapTime.trim())
-        .map((lapTime) => new LapTime(lapTime)),
-    };
-    if (individualResults.times.length) {
-      classResults.results.push(individualResults);
     }
   }
 }
