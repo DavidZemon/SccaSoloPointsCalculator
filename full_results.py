@@ -83,42 +83,38 @@ def main() -> None:
     input_file = args.file
     output_file = args.output
 
-    with open(input_file, 'rb') as f:
-        raw_text = f.read(10000000)
+    with open(input_file, 'r') as f:
+        reader = csv.reader(f, quotechar='"')
 
-    no_cr = raw_text.replace('\x0d'.encode(), ''.encode()).decode()
-    lines = no_cr.splitlines(keepends=False)
+        final_lines = []
+        results: EventResults = {}
+        current_class: Optional[ClassResults] = None
+        for row in reader:
+            row = [word.strip() for word in row]
+            if row[-1].endswith('Category'):
+                # Just the class category
+                final_lines.append([row[-1]])
+            elif len(row) == 65:
+                # Class + table header + first row
+                class_header = row[11:15]
+                current_class = ClassResults(class_header[0])
+                results[class_header[0]] = current_class
+                final_lines.append(class_header)
 
-    reader = csv.reader(lines, quotechar='"')
-    final_lines = []
-    results: EventResults = {}
-    current_class: Optional[ClassResults] = None
-    for row in reader:
-        row = [word.strip() for word in row]
-        if row[-1].endswith('Category'):
-            # Just the class category
-            final_lines.append([row[-1]])
-        elif len(row) == 65:
-            # Class + table header + first row
-            class_header = row[11:15]
-            current_class = ClassResults(class_header[0])
-            results[class_header[0]] = current_class
-            final_lines.append(class_header)
+                final_lines.append(HEADER)
 
-            final_lines.append(HEADER)
+                final_lines.append(process_results_row(current_class, row[15:]))
+            elif row[0] == 'Results':
+                final_lines.append(process_results_row(current_class, row[11:]))
+            else:
+                # Class + table header + first row (when missing extra header prefix)
+                class_header = row[0:4]
+                current_class = ClassResults(class_header[0])
+                results[class_header[0]] = current_class
+                final_lines.append(class_header)
 
-            final_lines.append(process_results_row(current_class, row[15:]))
-        elif row[0] == 'Results':
-            final_lines.append(process_results_row(current_class, row[11:]))
-        else:
-            # Class + table header + first row (when missing extra header prefix)
-            class_header = row[0:4]
-            current_class = ClassResults(class_header[0])
-            results[class_header[0]] = current_class
-            final_lines.append(class_header)
-
-            final_lines.append(HEADER)
-            final_lines.append(process_results_row(current_class, row[4:]))
+                final_lines.append(HEADER)
+                final_lines.append(process_results_row(current_class, row[4:]))
 
     print(jsonpickle.encode(results))
 
