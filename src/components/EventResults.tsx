@@ -30,54 +30,71 @@ export class EventResults extends Component<
 
   public render() {
     if (this.props.results) {
-      return (
+      return [
         <Row>
           <Col>
-            <h2>
-              Event Results{' '}
-              <Button variant={'secondary'}>
-                <FontAwesomeIcon
-                  className={'clickable'}
-                  icon={faDownload}
-                  onClick={() => this.exportCsv()}
-                />
-              </Button>
-            </h2>
-            <RamDownload
-              filename={'event_results.csv'}
-              content={this.state.csvContent}
-              contentType={'text/csv'}
-              downloadComplete={() => {
-                this.setState({ csvContent: undefined });
-                console.log('Download is complete');
-              }}
-            />
+            <h2>Event Results</h2>
 
             <Accordion>
-              {Object.entries(this.props.results).map(
-                ([classCategory, categoryResults], index) => (
-                  <Card key={index}>
-                    <Card.Header>
-                      <Accordion.Toggle
-                        eventKey={`${index}`}
-                        as={Button}
-                        variant={'link'}
-                      >
-                        {classCategory}
-                      </Accordion.Toggle>
-                    </Card.Header>
-                    <Accordion.Collapse eventKey={`${index}`}>
-                      <Card.Body>
-                        {this.displayCategoryResults(categoryResults)}
-                      </Card.Body>
-                    </Accordion.Collapse>
-                  </Card>
-                ),
-              )}
+              <Card>
+                <Card.Header key={'class'}>
+                  <Accordion.Toggle
+                    eventKey={'class'}
+                    as={Button}
+                    variant={'link'}
+                  >
+                    Results by Class
+                  </Accordion.Toggle>
+                  <Button variant={'secondary'}>
+                    <FontAwesomeIcon
+                      className={'clickable'}
+                      icon={faDownload}
+                      onClick={() => this.exportCsv()}
+                    />
+                  </Button>
+                </Card.Header>
+
+                <Accordion.Collapse eventKey={'class'}>
+                  <Card.Body>
+                    <Accordion>
+                      {Object.entries(this.props.results).map(
+                        ([classCategory, categoryResults], index) => (
+                          <Card key={index}>
+                            <Card.Header>
+                              <Accordion.Toggle
+                                eventKey={`${index}`}
+                                as={Button}
+                                variant={'link'}
+                              >
+                                {classCategory}
+                              </Accordion.Toggle>
+                            </Card.Header>
+
+                            <Accordion.Collapse eventKey={`${index}`}>
+                              <Card.Body>
+                                {this.displayCategoryResults(categoryResults)}
+                              </Card.Body>
+                            </Accordion.Collapse>
+                          </Card>
+                        ),
+                      )}
+                    </Accordion>
+                  </Card.Body>
+                </Accordion.Collapse>
+              </Card>
             </Accordion>
           </Col>
-        </Row>
-      );
+        </Row>,
+        <RamDownload
+          filename={'event_results.csv'}
+          content={this.state.csvContent}
+          contentType={'text/csv'}
+          downloadComplete={() => {
+            this.setState({ csvContent: undefined });
+            console.log('Download is complete');
+          }}
+        />,
+      ];
     } else {
       return null;
     }

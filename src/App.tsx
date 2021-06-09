@@ -26,6 +26,7 @@ class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
             <h1>SCCA Solo Points Calculator</h1>
           </Col>
         </Row>
+
         <Row>
           <Col>
             {this.state.eventResultsFile ? (
@@ -46,6 +47,7 @@ class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
               />
             )}
           </Col>
+
           <Col>
             {this.state.championshipResultsFile ? (
               this.state.eventResultsFile ? (
