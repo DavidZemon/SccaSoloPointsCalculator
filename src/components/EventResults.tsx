@@ -49,7 +49,7 @@ export class EventResults extends Component<
                     <FontAwesomeIcon
                       className={'clickable'}
                       icon={faDownload}
-                      onClick={() => this.exportCsv()}
+                      onClick={() => this.exportResultsByClassCsv()}
                     />
                   </Button>
                 </Card.Header>
@@ -79,6 +79,68 @@ export class EventResults extends Component<
                         ),
                       )}
                     </Accordion>
+                  </Card.Body>
+                </Accordion.Collapse>
+              </Card>
+
+              <Card>
+                <Card.Header key={'raw'}>
+                  <Accordion.Toggle
+                    eventKey={'raw'}
+                    as={Button}
+                    variant={'link'}
+                  >
+                    Raw Results
+                  </Accordion.Toggle>
+                  <Button variant={'secondary'} disabled>
+                    <FontAwesomeIcon
+                      className={'clickable'}
+                      icon={faDownload}
+                      onClick={() => this.exportRawResultsCsv()}
+                    />
+                    &nbsp;&lt;&mdash; This button doesn't do anything yet
+                  </Button>
+                </Card.Header>
+
+                <Accordion.Collapse eventKey={'raw'}>
+                  <Card.Body>
+                    <Table striped hover borderless>
+                      <thead>
+                        <tr>
+                          <th>Position</th>
+                          <th>Class</th>
+                          <th>Car #</th>
+                          <th>Name</th>
+                          <th>Car</th>
+                          <th>Raw Corrected Time</th>
+                        </tr>
+                      </thead>
+
+                      <tbody>
+                        {Object.values(this.props.results)
+                          .map((categoryResults) =>
+                            Object.values(categoryResults),
+                          )
+                          .flat()
+                          .map((classResults) => classResults.drivers)
+                          .flat()
+                          .sort(
+                            (a, b) =>
+                              (a.bestLap().time || Infinity) -
+                              (b.bestLap().time || Infinity),
+                          )
+                          .map((driver, index) => (
+                            <tr>
+                              <td>{index + 1}</td>
+                              <td>{driver.carClass}</td>
+                              <td>{driver.carNumber}</td>
+                              <td>{driver.name}</td>
+                              <td>{driver.carDescription}</td>
+                              <td>{driver.bestLap()?.toString()}</td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </Table>
                   </Card.Body>
                 </Accordion.Collapse>
               </Card>
@@ -153,7 +215,7 @@ export class EventResults extends Component<
     });
   }
 
-  private exportCsv() {
+  private exportResultsByClassCsv() {
     const lines = Object.entries(this.props.results!)
       .map(([classCategory, categoryResults]) => [
         [classCategory],
@@ -164,6 +226,8 @@ export class EventResults extends Component<
       csvContent: lines.map((line) => `"${line.join('","')}"`).join(EOL),
     });
   }
+
+  private exportRawResultsCsv() {}
 
   private static exportCategoryResultsToCsv(
     categoryResults: ClassCategoryResults,

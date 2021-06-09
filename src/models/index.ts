@@ -31,7 +31,10 @@ export class LapTime {
   toString(): string {
     if (this.dnf) return 'DNF';
     else if (this.rerun) return 'Re-run';
-    else return `${this.time}` + (this.cones ? ` (${this.cones})` : '');
+    else
+      return (
+        `${this.time?.toFixed(3)}` + (this.cones ? ` (${this.cones})` : '')
+      );
   }
 
   static compare(lhs: LapTime, rhs: LapTime): number {
