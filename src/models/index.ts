@@ -28,13 +28,14 @@ export class LapTime {
     }
   }
 
-  toString(): string {
+  toString(paxMultiplier?: number): string {
     if (this.dnf) return 'DNF';
     else if (this.rerun) return 'Re-run';
-    else
-      return (
-        `${this.time?.toFixed(3)}` + (this.cones ? ` (${this.cones})` : '')
-      );
+    else {
+      let time = this.time!;
+      if (paxMultiplier) time *= paxMultiplier;
+      return `${time.toFixed(3)}` + (this.cones ? ` (${this.cones})` : '');
+    }
   }
 
   static compare(lhs: LapTime, rhs: LapTime): number {

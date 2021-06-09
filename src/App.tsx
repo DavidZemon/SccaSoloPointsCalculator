@@ -4,6 +4,7 @@ import { Button, Col, Container, Form, Row } from 'react-bootstrap';
 import { ClassResultsProcessor } from './services';
 import { EventResults } from './models';
 import { EventResults as EventResultsComponent } from './components/EventResults';
+import { PaxService } from './services/PaxService';
 
 interface AppState {
   eventResultsFile?: File;
@@ -13,9 +14,18 @@ interface AppState {
 
 class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
   private readonly processor = new ClassResultsProcessor();
+  private readonly paxService = new PaxService();
   constructor(props: Readonly<ComponentPropsWithoutRef<any>>) {
     super(props);
     this.state = {};
+  }
+
+  async componentDidMount() {
+    try {
+      await this.paxService.init();
+    } catch (e) {
+      console.error(e);
+    }
   }
 
   render() {
@@ -95,7 +105,10 @@ class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
           </Col>
         </Row>
 
-        <EventResultsComponent results={this.state.results} />
+        <EventResultsComponent
+          paxService={this.paxService}
+          results={this.state.results}
+        />
       </Container>
     );
   }

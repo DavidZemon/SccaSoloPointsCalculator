@@ -10,8 +10,10 @@ import {
 } from '../models';
 import { ClassResultsProcessor } from '../services';
 import { RamDownload } from './DownloadButton';
+import { PaxService } from '../services/PaxService';
 
 interface EventResultsProps extends ComponentPropsWithoutRef<any> {
+  paxService: PaxService;
   results?: EventResultsData;
 }
 
@@ -79,6 +81,91 @@ export class EventResults extends Component<
                         ),
                       )}
                     </Accordion>
+                  </Card.Body>
+                </Accordion.Collapse>
+              </Card>
+
+              <Card>
+                <Card.Header key={'pax'}>
+                  <Accordion.Toggle
+                    eventKey={'pax'}
+                    as={Button}
+                    variant={'link'}
+                  >
+                    PAX Results
+                  </Accordion.Toggle>
+                  <Button variant={'secondary'} disabled>
+                    <FontAwesomeIcon
+                      className={'clickable'}
+                      icon={faDownload}
+                      onClick={() => this.exportPaxResultsCsv()}
+                    />
+                    &nbsp;&lt;&mdash; This button doesn't do anything yet
+                  </Button>
+                </Card.Header>
+
+                <Accordion.Collapse eventKey={'pax'}>
+                  <Card.Body>
+                    <Table striped hover borderless>
+                      <thead>
+                        <tr>
+                          <th>Position</th>
+                          <th>Class</th>
+                          <th>Car #</th>
+                          <th>Name</th>
+                          <th>Car</th>
+                          <th>
+                            {/* eslint-disable-next-line react/jsx-no-target-blank */}
+                            <a
+                              href={'https://www.solotime.info/pax/'}
+                              target={'_blank'}
+                              rel={'help'}
+                            >
+                              PAX Time
+                            </a>
+                          </th>
+                        </tr>
+                      </thead>
+
+                      <tbody>
+                        {Object.values(this.props.results)
+                          .map((categoryResults) =>
+                            Object.values(categoryResults),
+                          )
+                          .flat()
+                          .map((classResults) => classResults.drivers)
+                          .flat()
+                          .sort(
+                            (a, b) =>
+                              (a.bestLap().time || Infinity) *
+                                this.props.paxService.getMultiplierFromLongName(
+                                  a.carClass,
+                                ) -
+                              (b.bestLap().time || Infinity) *
+                                this.props.paxService.getMultiplierFromLongName(
+                                  b.carClass,
+                                ),
+                          )
+                          .map((driver, index) => (
+                            <tr>
+                              <td>{index + 1}</td>
+                              <td>{driver.carClass}</td>
+                              <td>{driver.carNumber}</td>
+                              <td>{driver.name}</td>
+                              <td>{driver.carDescription}</td>
+                              <td>
+                                {driver
+                                  .bestLap()
+                                  ?.toString(
+                                    this.props.paxService.getMultiplierFromLongName(
+                                      driver.carClass,
+                                    ),
+                                  )}
+                              </td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </Table>
                   </Card.Body>
                 </Accordion.Collapse>
               </Card>
@@ -227,6 +314,8 @@ export class EventResults extends Component<
     });
   }
 
+  private exportPaxResultsCsv() {}
+
   private exportRawResultsCsv() {}
 
   private static exportCategoryResultsToCsv(
@@ -240,7 +329,7 @@ export class EventResults extends Component<
           `Drivers: ${classResults.drivers.length}`,
           `Trophies: ${classResults.trophyCount}`,
         ],
-        ['TR', 'RK', 'Pos', 'Nbr', "Driver's name, Town", 'Car, Sponsor'],
+        ClassResultsProcessor.HEADER.slice(0, 6),
         ...classResults.drivers.map((driver) => {
           const driverBestLap = driver.bestLap();
           return [
