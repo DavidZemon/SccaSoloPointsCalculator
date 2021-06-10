@@ -8,9 +8,8 @@ import {
   ClassResults,
   EventResults as EventResultsData,
 } from '../models';
-import { ClassResultsProcessor } from '../services';
+import { EventResultsParser, PaxService } from '../services';
 import { RamDownload } from './DownloadButton';
-import { PaxService } from '../services/PaxService';
 
 interface EventResultsProps extends ComponentPropsWithoutRef<any> {
   paxService: PaxService;
@@ -263,7 +262,7 @@ export class EventResults extends Component<
               </th>
             </tr>
             <tr>
-              {ClassResultsProcessor.HEADER.slice(0, 6).map((header, index) => (
+              {EventResultsParser.HEADER.slice(0, 6).map((header, index) => (
                 <th key={index}>{header}</th>
               ))}
               <th colSpan={12}>Lap Times</th>
@@ -329,7 +328,7 @@ export class EventResults extends Component<
           `Drivers: ${classResults.drivers.length}`,
           `Trophies: ${classResults.trophyCount}`,
         ],
-        ClassResultsProcessor.HEADER.slice(0, 6),
+        EventResultsParser.HEADER.slice(0, 6),
         ...classResults.drivers.map((driver) => {
           const driverBestLap = driver.bestLap();
           return [

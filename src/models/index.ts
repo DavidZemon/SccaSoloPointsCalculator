@@ -111,3 +111,34 @@ export class ClassResults {
 export type ClassCategoryResults = Record<string, ClassResults>;
 
 export type EventResults = Record<string, ClassCategoryResults>;
+
+export type ChampionshipType = 'Class' | 'PAX' | 'Novice' | 'Ladies';
+
+export interface ChampionshipDriver {
+  position: number;
+  name: string;
+  points: (number | undefined)[];
+}
+
+export interface ClassChampionshipDriver extends ChampionshipDriver {
+  carClass: string;
+}
+
+export interface IndexedChampionshipResults {
+  year: number;
+  organization: string;
+  results: ChampionshipDriver[];
+}
+
+export interface ClassChampionshipResults {
+  year: number;
+  organization: string;
+  results: Record<string, ChampionshipDriver[]>;
+}
+
+export interface ChampionshipResults {
+  Class?: ClassChampionshipResults;
+  PAX?: IndexedChampionshipResults;
+  Novice?: IndexedChampionshipResults;
+  Ladies?: IndexedChampionshipResults;
+}

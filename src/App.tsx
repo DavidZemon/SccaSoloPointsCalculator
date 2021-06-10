@@ -1,28 +1,43 @@
-import { ChangeEvent, Component, ComponentPropsWithoutRef } from 'react';
-import 'react-toastify/dist/ReactToastify.css';
-import 'bootswatch/dist/darkly/bootstrap.css';
-import { Button, Col, Container, Form, Row } from 'react-bootstrap';
-import { toast } from 'react-toastify';
-import { ClassResultsProcessor } from './services';
-import { EventResults } from './models';
-import { EventResults as EventResultsComponent } from './components/EventResults';
-import { PaxService } from './services/PaxService';
 import { EOL } from 'os';
 import assert from 'assert';
-import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import 'bootswatch/dist/darkly/bootstrap.css';
+import { Component, ComponentPropsWithoutRef } from 'react';
+import { Button, Col, Container, Row } from 'react-bootstrap';
+import { toast, ToastContainer } from 'react-toastify';
+import {
+  ChampionshipResultsParser,
+  EventResultsParser,
+  PaxService,
+} from './services';
+import { ChampionshipResults, ChampionshipType, EventResults } from './models';
+import { EventResults as EventResultsComponent } from './components/EventResults';
+import { FileUploadBox } from './components/FileUploadBox';
+import { ChampionshipResults as ChampionshipResultsComponent } from './components/ChampionshipResults';
 
 interface AppState {
   eventResultsFile?: File;
-  championshipResultsFile?: File;
-  results?: EventResults;
+  championshipResultsFiles: Record<ChampionshipType, File | undefined>;
+
+  eventResults?: EventResults;
+  championshipResults?: ChampionshipResults;
 }
 
 class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
-  private readonly processor = new ClassResultsProcessor();
+  private readonly eventResultsParser = new EventResultsParser();
+  private readonly championshipResultsProcessor =
+    new ChampionshipResultsParser();
   private readonly paxService = new PaxService();
   constructor(props: Readonly<ComponentPropsWithoutRef<any>>) {
     super(props);
-    this.state = {};
+    this.state = {
+      championshipResultsFiles: {
+        Class: undefined,
+        PAX: undefined,
+        Novice: undefined,
+        Ladies: undefined,
+      },
+    };
   }
 
   async componentDidMount() {
@@ -38,82 +53,93 @@ class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
       <div>
         <ToastContainer pauseOnHover />
         <Container fluid>
+          {/* Page header */}
           <Row>
             <Col>
               <h1>SCCA Solo Points Calculator</h1>
             </Col>
           </Row>
 
+          {/* File upload boxes */}
           <Row>
             <Col>
-              {this.state.eventResultsFile ? (
-                <p>
-                  Ready to process{' '}
-                  <code>{this.state.eventResultsFile.name}</code>
-                </p>
-              ) : (
-                <Form.File
-                  label="Event Class Results"
-                  custom
-                  onChange={async (event: ChangeEvent<HTMLInputElement>) => {
-                    if (event.target.files && event.target.files.length) {
-                      try {
-                        await this.validateUploadedFile(event.target.files[0]);
-                        this.setState({
-                          eventResultsFile: event.target.files[0],
-                        });
-                      } catch (e) {
-                        console.error(e.message);
-                        toast.error(
-                          'File format does not match expected. Please export event results with raw times, grouped by class.',
-                        );
-                      }
-                    }
-                  }}
-                />
-              )}
+              <FileUploadBox
+                label={'Full Event Results (by class)'}
+                file={this.state.eventResultsFile}
+                onFileSelect={async (f) => {
+                  try {
+                    await this.validateUploadedEventResultsFile(f);
+                    this.setState({ eventResultsFile: f });
+                    return true;
+                  } catch (e) {
+                    console.error(e.message);
+                    toast.error(
+                      'File format does not match expected. Please export event results with raw times, grouped by class.',
+                    );
+                    return false;
+                  }
+                }}
+                fileSelectedMessage={(f) => (
+                  <p>
+                    Ready to process <code>{f.name}</code>
+                  </p>
+                )}
+              />
             </Col>
 
             <Col>
-              {this.state.championshipResultsFile ? (
-                this.state.eventResultsFile ? (
-                  <p>
-                    Ready to process{' '}
-                    <code>{this.state.championshipResultsFile.name}</code>
-                  </p>
-                ) : (
-                  <p>
-                    <code>{this.state.championshipResultsFile.name}</code> set
-                    as championship standings. Please add event results to begin
-                    processing.
-                  </p>
-                )
-              ) : (
-                <Form.File
-                  label="Championship standings"
-                  custom
-                  onChange={(event: ChangeEvent<HTMLInputElement>) => {
-                    if (event.target.files && event.target.files.length) {
-                      this.setState({
-                        championshipResultsFile: event.target.files[0],
-                      });
+              {Object.keys(this.state.championshipResultsFiles).map(
+                (championshipType, index) => (
+                  <FileUploadBox
+                    key={index}
+                    label={`${championshipType} Championship Standings`}
+                    file={
+                      this.state.championshipResultsFiles[
+                        championshipType as ChampionshipType
+                      ]
                     }
-                  }}
-                />
+                    onFileSelect={(f) => {
+                      const newResults = {
+                        ...this.state.championshipResultsFiles,
+                      };
+                      newResults[championshipType as ChampionshipType] = f;
+                      this.setState({ championshipResultsFiles: newResults });
+                      return true;
+                    }}
+                    fileSelectedMessage={(f) =>
+                      this.state.eventResultsFile ? (
+                        <p>
+                          Ready to process <code>{f.name}</code>
+                        </p>
+                      ) : (
+                        <p>
+                          <code>{f.name}</code> set as {championshipType}{' '}
+                          Championship standings. Please add event results to
+                          begin processing.
+                        </p>
+                      )
+                    }
+                  />
+                ),
               )}
             </Col>
           </Row>
 
+          {/* Process button */}
           <Row>
             <Col>
               <Button
                 disabled={this.state.eventResultsFile === undefined}
                 variant={'primary'}
                 onClick={async () => {
-                  const results = await this.processor.process(
+                  const eventResults = await this.eventResultsParser.parse(
                     await this.state.eventResultsFile!.text(),
                   );
-                  this.setState({ results });
+                  const championshipResults =
+                    await this.championshipResultsProcessor.parse(
+                      this.state.championshipResultsFiles,
+                    );
+                  this.setState({ eventResults, championshipResults });
                 }}
               >
                 Process
@@ -123,14 +149,19 @@ class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
 
           <EventResultsComponent
             paxService={this.paxService}
-            results={this.state.results}
+            results={this.state.eventResults}
+          />
+
+          <ChampionshipResultsComponent
+            paxService={this.paxService}
+            results={this.state.championshipResults}
           />
         </Container>
       </div>
     );
   }
 
-  async validateUploadedFile(f: File) {
+  async validateUploadedEventResultsFile(f: File) {
     const content = await f.text();
     const firstLine = content.split(EOL)[0];
     const firstLineWords = firstLine.split(',');

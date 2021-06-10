@@ -6,7 +6,7 @@ import {
   EventResults,
 } from '../models';
 
-export class ClassResultsProcessor {
+export class EventResultsParser {
   public static readonly HEADER = [
     'TR',
     'RK',
@@ -18,7 +18,7 @@ export class ClassResultsProcessor {
     'Rgn,Div',
   ];
 
-  async process(fileContents: string): Promise<EventResults> {
+  async parse(fileContents: string): Promise<EventResults> {
     const rows: string[][] = parse(fileContents, {
       columns: false,
       ltrim: true,
@@ -39,15 +39,15 @@ export class ClassResultsProcessor {
         const className = row[11];
         currentClass = new ClassResults(className);
         classCategoryResults[className] = currentClass;
-        ClassResultsProcessor.processResultsRow(row.slice(15), currentClass);
+        EventResultsParser.processResultsRow(row.slice(15), currentClass);
       } else if (row[0] === 'Results') {
-        ClassResultsProcessor.processResultsRow(row.slice(11), currentClass);
+        EventResultsParser.processResultsRow(row.slice(11), currentClass);
       } else {
         // Class + table header + first row (when missing extra header prefix)
         const classname = row[0];
         currentClass = new ClassResults(classname);
         classCategoryResults[classname] = currentClass;
-        ClassResultsProcessor.processResultsRow(row.slice(4), currentClass);
+        EventResultsParser.processResultsRow(row.slice(4), currentClass);
       }
     });
 
