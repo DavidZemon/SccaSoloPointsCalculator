@@ -82,7 +82,7 @@ class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
                 }}
                 fileSelectedMessage={(f) => (
                   <p>
-                    Ready to process <code>{f.name}</code>
+                    Ready to process <code>{f.name}</code> as new event results
                   </p>
                 )}
               />
@@ -110,13 +110,16 @@ class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
                     fileSelectedMessage={(f) =>
                       this.state.eventResultsFile ? (
                         <p>
-                          Ready to process <code>{f.name}</code>
+                          Ready to process <code>{f.name}</code> as{' '}
+                          <strong>{championshipType}</strong> championship
+                          standings
                         </p>
                       ) : (
                         <p>
-                          <code>{f.name}</code> set as {championshipType}{' '}
-                          Championship standings. Please add event results to
-                          begin processing.
+                          <code>{f.name}</code> set as{' '}
+                          <strong>{championshipType}</strong> championship
+                          standings. Please add event results to begin
+                          processing.
                         </p>
                       )
                     }
