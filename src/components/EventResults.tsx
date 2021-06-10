@@ -32,7 +32,7 @@ export class EventResults extends Component<
   public render() {
     if (this.props.results) {
       return [
-        <Row>
+        <Row key={0}>
           <Col>
             <h2>Event Results</h2>
 
@@ -146,7 +146,7 @@ export class EventResults extends Component<
                                 ),
                           )
                           .map((driver, index) => (
-                            <tr>
+                            <tr key={index}>
                               <td>{index + 1}</td>
                               <td>{driver.carClass}</td>
                               <td>{driver.carNumber}</td>
@@ -216,7 +216,7 @@ export class EventResults extends Component<
                               (b.bestLap().time || Infinity),
                           )
                           .map((driver, index) => (
-                            <tr>
+                            <tr key={index}>
                               <td>{index + 1}</td>
                               <td>{driver.carClass}</td>
                               <td>{driver.carNumber}</td>
@@ -234,6 +234,7 @@ export class EventResults extends Component<
           </Col>
         </Row>,
         <RamDownload
+          key={1}
           filename={'event_results.csv'}
           content={this.state.csvContent}
           contentType={'text/csv'}
