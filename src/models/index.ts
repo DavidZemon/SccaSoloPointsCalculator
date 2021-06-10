@@ -118,7 +118,7 @@ export type ChampionshipType = 'Class' | IndexedChampionshipType;
 export interface ChampionshipDriver {
   position: number;
   name: string;
-  points: (number | undefined)[];
+  points: number[];
 }
 
 export interface ClassChampionshipDriver extends ChampionshipDriver {
