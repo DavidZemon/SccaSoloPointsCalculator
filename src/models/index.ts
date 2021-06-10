@@ -112,7 +112,8 @@ export type ClassCategoryResults = Record<string, ClassResults>;
 
 export type EventResults = Record<string, ClassCategoryResults>;
 
-export type ChampionshipType = 'Class' | 'PAX' | 'Novice' | 'Ladies';
+export type IndexedChampionshipType = 'PAX' | 'Novice' | 'Ladies';
+export type ChampionshipType = 'Class' | IndexedChampionshipType;
 
 export interface ChampionshipDriver {
   position: number;
