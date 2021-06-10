@@ -5,7 +5,7 @@ import {
   ChampionshipType,
   IndexedChampionshipResults,
 } from '../models';
-import { PaxService } from '../services';
+import { ChampionshipResultsParser, PaxService } from '../services';
 import { RamDownload } from './DownloadButton';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faDownload } from '@fortawesome/free-solid-svg-icons';
@@ -37,19 +37,20 @@ export class ChampionshipResults extends Component<
       return [
         <Row key={0}>
           <Col>
-            <h2>Championship Results</h2>
+            <h2>Championship Standings</h2>
 
             <Accordion>
               {Object.entries(this.props.results)
                 // Class results need to be displayed separately
                 .filter(([championshipType, _]) => championshipType !== 'Class')
                 // Get some nice type hints going
-                .map(([key, value]) => {
-                  return [key, value] as [
-                    ChampionshipType,
-                    IndexedChampionshipResults,
-                  ];
-                })
+                .map(
+                  ([key, value]) =>
+                    [key, value] as [
+                      ChampionshipType,
+                      IndexedChampionshipResults,
+                    ],
+                )
                 .map(([championshipType, results]) => (
                   <Card key={championshipType}>
                     <Card.Header key={championshipType}>
@@ -58,7 +59,7 @@ export class ChampionshipResults extends Component<
                         as={Button}
                         variant={'link'}
                       >
-                        {results.year} {championshipType} Championship Standings
+                        {results.year} {championshipType}
                       </Accordion.Toggle>
                       <Button variant={'secondary'} disabled>
                         <FontAwesomeIcon
@@ -79,7 +80,7 @@ export class ChampionshipResults extends Component<
                             <tr>
                               <th>Rank</th>
                               <th>Driver</th>
-                              {new Array(results.results[0].points.length)
+                              {new Array(results.drivers[0].points.length)
                                 .fill(null)
                                 .map((_, index) => (
                                   <th key={index}>Event #{index + 1}</th>
@@ -87,20 +88,21 @@ export class ChampionshipResults extends Component<
                               <th>Total Points</th>
                               <th>
                                 Best{' '}
-                                {ChampionshipResults.calculateEventsToCount(
-                                  results.results[0].points,
+                                {ChampionshipResultsParser.calculateEventsToCount(
+                                  results.drivers[0].points,
                                 )}{' '}
-                                of {results.results[0].points.length}
+                                of {results.drivers[0].points.length}
                               </th>
                             </tr>
                           </thead>
 
                           <tbody>
-                            {results.results
-                              .sort((d1, d2) => d1.position - d2.position)
+                            {results.drivers
+                              // Reverse sort by doing `d2 - d1`, so top points shows up at the top
+                              .sort((d1, d2) => d2.totalPoints - d1.totalPoints)
                               .map((driver, index) => (
                                 <tr key={index}>
-                                  <td>{driver.position}</td>
+                                  <td>{index + 1}</td>
                                   <td>{driver.name}</td>
                                   {driver.points.map((points, index) => (
                                     <td key={index}>{points}</td>
@@ -113,11 +115,7 @@ export class ChampionshipResults extends Component<
                                     )}
                                   </td>
 
-                                  <td>
-                                    {ChampionshipResults.calculateChampionshipPoints(
-                                      driver.points,
-                                    )}
-                                  </td>
+                                  <td>{driver.totalPoints}</td>
                                 </tr>
                               ))}
                           </tbody>
@@ -143,37 +141,5 @@ export class ChampionshipResults extends Component<
     } else {
       return null;
     }
-  }
-
-  private static calculateClassPoints(fastest: number, actual: number): number {
-    if (fastest === actual) {
-      return 10000;
-    } else {
-      return Math.round((fastest / actual) * 10_000);
-    }
-  }
-
-  private static calculateChampionshipPoints(
-    points: (number | undefined)[],
-  ): number {
-    const eventCount = points.length;
-    const fleshedOutPoints = points.map((p) => p || 0);
-    if (eventCount < 4) {
-      return fleshedOutPoints.reduce((sum, p) => sum + p, 0);
-    } else {
-      const eventsToCount = this.calculateEventsToCount(points);
-      return fleshedOutPoints
-        .sort()
-        .reverse()
-        .slice(0, eventsToCount)
-        .reduce((sum, p) => sum + p, 0);
-    }
-  }
-
-  private static calculateEventsToCount(
-    points: (number | undefined)[],
-  ): number {
-    if (points.length < 4) return points.length;
-    else return Math.round(points.length / 2) + 2;
   }
 }

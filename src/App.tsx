@@ -24,10 +24,11 @@ interface AppState {
 }
 
 class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
-  private readonly eventResultsParser = new EventResultsParser();
-  private readonly championshipResultsProcessor =
-    new ChampionshipResultsParser();
   private readonly paxService = new PaxService();
+  private readonly eventResultsParser = new EventResultsParser();
+  private readonly championshipResultsProcessor = new ChampionshipResultsParser(
+    this.paxService,
+  );
   constructor(props: Readonly<ComponentPropsWithoutRef<any>>) {
     super(props);
     this.state = {
@@ -138,6 +139,7 @@ class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
                   const championshipResults =
                     await this.championshipResultsProcessor.parse(
                       this.state.championshipResultsFiles,
+                      eventResults,
                     );
                   this.setState({ eventResults, championshipResults });
                 }}

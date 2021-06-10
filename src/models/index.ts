@@ -67,7 +67,7 @@ export class Driver {
     [trophy, rookie, position, carNumber, name, carDescription]: string[],
     times: string[],
   ) {
-    this.id = 'N/A'; // FIXME
+    this.id = name.toLowerCase().trim(); // FIXME
     this.trophy = trophy === 'T';
     this.rookie = rookie === 'R';
     this.position = parseFloat(position);
@@ -116,9 +116,10 @@ export type IndexedChampionshipType = 'PAX' | 'Novice' | 'Ladies';
 export type ChampionshipType = 'Class' | IndexedChampionshipType;
 
 export interface ChampionshipDriver {
-  position: number;
+  id: string;
   name: string;
   points: number[];
+  totalPoints: number;
 }
 
 export interface ClassChampionshipDriver extends ChampionshipDriver {
@@ -128,13 +129,13 @@ export interface ClassChampionshipDriver extends ChampionshipDriver {
 export interface IndexedChampionshipResults {
   year: number;
   organization: string;
-  results: ChampionshipDriver[];
+  drivers: ChampionshipDriver[];
 }
 
 export interface ClassChampionshipResults {
   year: number;
   organization: string;
-  results: Record<string, ChampionshipDriver[]>;
+  driversByClass: Record<string, ChampionshipDriver[]>;
 }
 
 export interface ChampionshipResults {
