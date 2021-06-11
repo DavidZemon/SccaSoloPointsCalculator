@@ -3,7 +3,7 @@ import assert from 'assert';
 import 'react-toastify/dist/ReactToastify.css';
 import 'bootswatch/dist/darkly/bootstrap.css';
 import { Component, ComponentPropsWithoutRef } from 'react';
-import { Button, Col, Container, Row } from 'react-bootstrap';
+import { Button, Col, Container, Row, Spinner } from 'react-bootstrap';
 import { toast, ToastContainer } from 'react-toastify';
 import {
   ChampionshipResultsParser,
@@ -18,6 +18,8 @@ import { ChampionshipResults as ChampionshipResultsComponent } from './component
 interface AppState {
   eventResultsFile?: File;
   championshipResultsFiles: Record<ChampionshipType, File | undefined>;
+
+  processing: boolean;
 
   eventResults?: EventResults;
   championshipResults?: ChampionshipResults;
@@ -38,6 +40,7 @@ class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
         Novice: undefined,
         Ladies: undefined,
       },
+      processing: false,
     };
   }
 
@@ -133,9 +136,11 @@ class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
           <Row>
             <Col>
               <Button
+                style={{ width: '150px' }}
                 disabled={this.state.eventResultsFile === undefined}
                 variant={'primary'}
                 onClick={async () => {
+                  this.setState({ processing: true });
                   const eventResults = await this.eventResultsParser.parse(
                     await this.state.eventResultsFile!.text(),
                   );
@@ -144,10 +149,18 @@ class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
                       this.state.championshipResultsFiles,
                       eventResults,
                     );
-                  this.setState({ eventResults, championshipResults });
+                  this.setState({
+                    eventResults,
+                    championshipResults,
+                    processing: false,
+                  });
                 }}
               >
-                Process
+                {this.state.processing ? (
+                  <Spinner animation={'border'} />
+                ) : (
+                  <span>Process</span>
+                )}
               </Button>
             </Col>
           </Row>
