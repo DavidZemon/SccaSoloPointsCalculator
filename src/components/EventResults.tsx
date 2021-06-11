@@ -6,6 +6,7 @@ import { faDownload } from '@fortawesome/free-solid-svg-icons';
 import {
   ClassCategoryResults,
   ClassResults,
+  Driver,
   EventResults as EventResultsData,
 } from '../models';
 import { EventResultsParser, PaxService } from '../services';
@@ -18,6 +19,7 @@ interface EventResultsProps extends ComponentPropsWithoutRef<any> {
 
 interface EventResultsState {
   csvContent?: string;
+  exportFilename?: string;
 }
 
 export class EventResults extends Component<
@@ -93,13 +95,14 @@ export class EventResults extends Component<
                   >
                     PAX Results
                   </Accordion.Toggle>
-                  <Button variant={'secondary'} disabled>
+                  <Button
+                    variant={'secondary'}
+                    onClick={() => this.exportNonGroupedResultsToCsv(true)}
+                  >
                     <FontAwesomeIcon
                       className={'clickable'}
                       icon={faDownload}
-                      onClick={() => this.exportPaxResultsCsv()}
                     />
-                    &nbsp;&lt;&mdash; This button doesn't do anything yet
                   </Button>
                 </Card.Header>
 
@@ -178,13 +181,14 @@ export class EventResults extends Component<
                   >
                     Raw Results
                   </Accordion.Toggle>
-                  <Button variant={'secondary'} disabled>
+                  <Button
+                    variant={'secondary'}
+                    onClick={() => this.exportNonGroupedResultsToCsv(false)}
+                  >
                     <FontAwesomeIcon
                       className={'clickable'}
                       icon={faDownload}
-                      onClick={() => this.exportRawResultsCsv()}
                     />
-                    &nbsp;&lt;&mdash; This button doesn't do anything yet
                   </Button>
                 </Card.Header>
 
@@ -235,13 +239,12 @@ export class EventResults extends Component<
         </Row>,
         <RamDownload
           key={1}
-          filename={'event_results.csv'}
+          filename={this.state.exportFilename}
           content={this.state.csvContent}
           contentType={'text/csv'}
-          downloadComplete={() => {
-            this.setState({ csvContent: undefined });
-            console.log('Download is complete');
-          }}
+          downloadComplete={() =>
+            this.setState({ csvContent: undefined, exportFilename: undefined })
+          }
         />,
       ];
     } else {
@@ -310,13 +313,10 @@ export class EventResults extends Component<
       ])
       .flat();
     this.setState({
+      exportFilename: 'event_results.csv',
       csvContent: lines.map((line) => `"${line.join('","')}"`).join(EOL),
     });
   }
-
-  private exportPaxResultsCsv() {}
-
-  private exportRawResultsCsv() {}
 
   private static exportCategoryResultsToCsv(
     categoryResults: ClassCategoryResults,
@@ -361,5 +361,52 @@ export class EventResults extends Component<
         else return 0;
       })
       .map(converter);
+  }
+
+  private exportNonGroupedResultsToCsv(pax: boolean): void {
+    const drivers = Object.values(this.props.results!)
+      .map((categoryResults) => Object.values(categoryResults))
+      .flat()
+      .map((classResults) => classResults.drivers)
+      .flat();
+    const sortedDrivers = drivers
+      .map(
+        (driver) =>
+          [
+            driver,
+            (driver.bestLap().time || Infinity) *
+              (pax
+                ? this.props.paxService.getMultiplierFromLongName(
+                    driver.carClass,
+                  )
+                : 1),
+          ] as [Driver, number],
+      )
+      .sort(([_1, d1Time], [_2, d2Time]) => d1Time - d2Time);
+    const fastestOfDay = sortedDrivers[0][1];
+    const results = [
+      [
+        'Position',
+        'Class',
+        'Car #',
+        'Name',
+        'Car',
+        `${pax ? 'PAX' : 'Raw'} Time`,
+        'Difference',
+      ],
+      ...sortedDrivers.map(([driver, time], index) => [
+        `${index + 1}`,
+        driver.carClass,
+        `${driver.carNumber}`,
+        driver.name,
+        driver.carDescription,
+        `${time.toFixed(3)}`,
+        time === fastestOfDay ? '' : `(${(fastestOfDay - time).toFixed(3)})`,
+      ]),
+    ];
+    this.setState({
+      exportFilename: `event_${pax ? 'pax' : 'raw'}_results.csv`,
+      csvContent: results.map((row) => `"${row.join('","')}"`).join(EOL),
+    });
   }
 }
