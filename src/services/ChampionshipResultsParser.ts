@@ -85,7 +85,7 @@ export class ChampionshipResultsParser {
                 break;
             }
           } catch (e) {
-            console.log(e);
+            console.error(e);
             toast.error(e.message ? e.message : e.toString());
           }
         }),
@@ -105,28 +105,23 @@ export class ChampionshipResultsParser {
       string,
       Record<string, Omit<ClassChampionshipDriver, 'totalPoints'>>
     > = {};
-    {
-      let classRows: Record<
-        string,
-        Omit<ClassChampionshipDriver, 'totalPoints'>
-      >;
-      let currentClass: string;
-      rows.slice(4).forEach((row) => {
-        // If the first cell is non-numeric, it is a class header
-        if (isNaN(parseInt(row[0]))) {
-          currentClass = row[0].split(' - ')[1];
-          rowsByClassAndDriverId[currentClass] = classRows = {};
-        } else {
-          const id = row[1].toLowerCase().trim();
-          classRows[id] = {
-            carClass: currentClass,
-            id,
-            name: row[1],
-            points: row.slice(2, row.length - 2).map((p) => parseInt(p)),
-          };
-        }
-      });
-    }
+    let classRows: Record<string, Omit<ClassChampionshipDriver, 'totalPoints'>>;
+    let currentClass: string;
+    rows.slice(4).forEach((row) => {
+      // If the first cell is non-numeric, it is a class header
+      if (isNaN(parseInt(row[0]))) {
+        currentClass = row[0].split(' – ')[1];
+        rowsByClassAndDriverId[currentClass] = classRows = {};
+      } else {
+        const id = row[1].toLowerCase().trim();
+        classRows[id] = {
+          carClass: currentClass,
+          id,
+          name: row[1],
+          points: row.slice(2, row.length - 2).map((p) => parseInt(p)),
+        };
+      }
+    });
 
     const newEventDriversByClassAndId: Record<
       string,
@@ -166,10 +161,15 @@ export class ChampionshipResultsParser {
     Object.entries(allDriverIdsByClass).forEach(([carClass, driverIds]) => {
       const classHistory = rowsByClassAndDriverId[carClass] || [];
       const newEventDriversById = newEventDriversByClassAndId[carClass] || [];
-      const bestTimeOfDay = Math.min(
-        ...Object.values(newEventDriversById).map(
-          (driver) => driver.bestLap().time || Infinity,
-        ),
+
+      const bestTimeOfDay =
+        Math.min(
+          ...Object.values(newEventDriversById).map(
+            (driver) => driver.bestLap().time!,
+          ),
+        ) * this.paxService.getMultiplierFromLongName(carClass);
+      console.log(
+        `Fastest time of day for ${carClass} is ${bestTimeOfDay.toFixed(3)}`,
       );
       driversByClass[carClass] = driverIds.map(
         (driverId): ClassChampionshipDriver => ({
@@ -272,7 +272,7 @@ export class ChampionshipResultsParser {
     driverId: string,
     previousDrivers: Record<string, T>,
     driversForEventById: Record<string, Driver>,
-    bestTimeOfDay: number,
+    bestPaxTimeOfDay: number,
     totalEvents: number,
   ): ChampionshipDriver {
     const driverHistory = previousDrivers[driverId];
@@ -280,7 +280,7 @@ export class ChampionshipResultsParser {
     if (driverHistory && driverNewResults) {
       const newPoints = [
         ...driverHistory.points,
-        this.calculatePointsForDriver(bestTimeOfDay, driverNewResults),
+        this.calculatePointsForDriver(bestPaxTimeOfDay, driverNewResults),
       ];
       return {
         ...driverHistory,
@@ -298,7 +298,7 @@ export class ChampionshipResultsParser {
       const newDriver = driversForEventById[driverId];
       const newPoints = [
         ...new Array(totalEvents - 1).fill(0),
-        this.calculatePointsForDriver(bestTimeOfDay, newDriver),
+        this.calculatePointsForDriver(bestPaxTimeOfDay, newDriver),
       ];
       return {
         id: driverId,
@@ -326,7 +326,7 @@ export class ChampionshipResultsParser {
     if (eventCount < 4) {
       return fleshedOutPoints.reduce((sum, p) => sum + p, 0);
     } else {
-      const eventsToCount = this.calculateEventsToCount(points);
+      const eventsToCount = this.calculateEventsToCount(points.length);
       return fleshedOutPoints
         .sort()
         .reverse()
@@ -335,8 +335,8 @@ export class ChampionshipResultsParser {
     }
   }
 
-  static calculateEventsToCount(points: (number | undefined)[]): number {
-    if (points.length < 4) return points.length;
-    else return Math.round(points.length / 2) + 2;
+  static calculateEventsToCount(totalEventCount: number): number {
+    if (totalEventCount < 4) return totalEventCount;
+    else return Math.round(totalEventCount / 2) + 2;
   }
 }

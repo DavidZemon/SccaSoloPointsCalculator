@@ -1,6 +1,8 @@
 export class PaxService {
   private static readonly SPECIAL_MAP: Record<string, string> = {
     'Fun Class': 'FUN',
+    'Street Touring Extreme': 'STX',
+    'Street Touring Extreme Ladies': 'STXL',
   };
 
   private paxMultipliers: Record<string, number> = { FUN: 4 };
