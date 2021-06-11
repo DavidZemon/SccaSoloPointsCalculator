@@ -1,7 +1,7 @@
 import { EOL } from 'os';
 import assert from 'assert';
 import 'react-toastify/dist/ReactToastify.css';
-import 'bootswatch/dist/darkly/bootstrap.css';
+import 'bootswatch/dist/slate/bootstrap.css';
 import { Component, ComponentPropsWithoutRef } from 'react';
 import { Button, Col, Container, Row, Spinner } from 'react-bootstrap';
 import { toast, ToastContainer } from 'react-toastify';
