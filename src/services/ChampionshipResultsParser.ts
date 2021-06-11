@@ -5,6 +5,8 @@ import {
   ChampionshipDriver,
   ChampionshipResults,
   ChampionshipType,
+  ClassChampionshipDriver,
+  ClassChampionshipResults,
   Driver,
   EventResults,
   IndexedChampionshipResults,
@@ -43,6 +45,7 @@ export class ChampionshipResultsParser {
             );
             switch (championshipType as ChampionshipType) {
               case 'Class':
+                results['Class'] = this.parseClassResults(rows, eventResults);
                 break;
               case 'PAX':
                 const bestPaxTimeOfDay = Math.min(
@@ -82,11 +85,111 @@ export class ChampionshipResultsParser {
                 break;
             }
           } catch (e) {
+            console.log(e);
             toast.error(e.message ? e.message : e.toString());
           }
         }),
     );
     return results;
+  }
+
+  private parseClassResults(
+    rows: string[][],
+    eventResults: EventResults,
+  ): ClassChampionshipResults {
+    // Two header rows (rank + driver), plus two total rows (points + "Best N of M")
+    const eventCount = rows[5].length - 4;
+
+    // Start by grouping rows by class
+    const rowsByClassAndDriverId: Record<
+      string,
+      Record<string, Omit<ClassChampionshipDriver, 'totalPoints'>>
+    > = {};
+    {
+      let classRows: Record<
+        string,
+        Omit<ClassChampionshipDriver, 'totalPoints'>
+      >;
+      let currentClass: string;
+      rows.slice(4).forEach((row) => {
+        // If the first cell is non-numeric, it is a class header
+        if (isNaN(parseInt(row[0]))) {
+          currentClass = row[0].split(' - ')[1];
+          rowsByClassAndDriverId[currentClass] = classRows = {};
+        } else {
+          const id = row[1].toLowerCase().trim();
+          classRows[id] = {
+            carClass: currentClass,
+            id,
+            name: row[1],
+            points: row.slice(2, row.length - 2).map((p) => parseInt(p)),
+          };
+        }
+      });
+    }
+
+    const newEventDriversByClassAndId: Record<
+      string,
+      Record<string, Driver>
+    > = {};
+
+    // Get this event's driver IDs
+    Object.values(eventResults)
+      .map((classCategory) => Object.entries(classCategory))
+      .flat()
+      .forEach(([carClass, classResults]) => {
+        newEventDriversByClassAndId[carClass] = classResults.drivers.reduce(
+          (o, d) => {
+            o[d.id] = d;
+            return o;
+          },
+          {} as Record<string, Driver>,
+        );
+      });
+
+    const allDriverIdsByClass: Record<string, string[]> = {};
+    [
+      ...new Set([
+        ...Object.keys(rowsByClassAndDriverId),
+        ...Object.keys(newEventDriversByClassAndId),
+      ]),
+    ].forEach((carClass) => {
+      allDriverIdsByClass[carClass] = [
+        ...new Set([
+          ...Object.keys(rowsByClassAndDriverId[carClass] || []),
+          ...Object.keys(newEventDriversByClassAndId[carClass] || []),
+        ]),
+      ];
+    });
+
+    const driversByClass: Record<string, ChampionshipDriver[]> = {};
+    Object.entries(allDriverIdsByClass).forEach(([carClass, driverIds]) => {
+      const classHistory = rowsByClassAndDriverId[carClass] || [];
+      const newEventDriversById = newEventDriversByClassAndId[carClass] || [];
+      const bestTimeOfDay = Math.min(
+        ...Object.values(newEventDriversById).map(
+          (driver) => driver.bestLap().time || Infinity,
+        ),
+      );
+      driversByClass[carClass] = driverIds.map(
+        (driverId): ClassChampionshipDriver => ({
+          ...this.buildDriver(
+            driverId,
+            classHistory,
+            newEventDriversById,
+            bestTimeOfDay,
+            eventCount,
+          ),
+          carClass,
+        }),
+      );
+    });
+
+    return {
+      organization: rows[0][0].trim(),
+      year: parseInt(rows[1][0].split(' ')[0]),
+      driversByClass: driversByClass,
+    };
   }
 
   private parseIndexedResults(
@@ -119,40 +222,15 @@ export class ChampionshipResultsParser {
           ...Object.keys(driversForEventById),
           ...Object.keys(previousDrivers),
         ]),
-      ].map((driverId): ChampionshipDriver => {
-        const driverHistory = previousDrivers[driverId];
-        const driverNewResults = driversForEventById[driverId];
-        if (driverHistory && driverNewResults) {
-          const newPoints = [
-            ...driverHistory.points,
-            this.calculatePointsForDriver(bestIndexTimeOfDay, driverNewResults),
-          ];
-          return {
-            ...driverHistory,
-            points: newPoints,
-            totalPoints: ChampionshipResultsParser.sumPoints(newPoints),
-          };
-        } else if (driverHistory) {
-          const newPoints = [...driverHistory.points, 0];
-          return {
-            ...driverHistory,
-            points: newPoints,
-            totalPoints: ChampionshipResultsParser.sumPoints(newPoints),
-          };
-        } else {
-          const newDriver = driversForEventById[driverId];
-          const newPoints = [
-            ...new Array(totalEvents - 1).fill(0),
-            this.calculatePointsForDriver(bestIndexTimeOfDay, newDriver),
-          ];
-          return {
-            id: driverId,
-            name: newDriver.name,
-            points: newPoints,
-            totalPoints: ChampionshipResultsParser.sumPoints(newPoints),
-          };
-        }
-      }),
+      ].map((driverId) =>
+        this.buildDriver(
+          driverId,
+          previousDrivers,
+          driversForEventById,
+          bestIndexTimeOfDay,
+          totalEvents,
+        ),
+      ),
     };
   }
 
@@ -187,6 +265,47 @@ export class ChampionshipResultsParser {
       );
     } else {
       throw new Error(`File ${filename} contains no non-empty sheets`);
+    }
+  }
+
+  private buildDriver<T extends Omit<ChampionshipDriver, 'totalPoints'>>(
+    driverId: string,
+    previousDrivers: Record<string, T>,
+    driversForEventById: Record<string, Driver>,
+    bestTimeOfDay: number,
+    totalEvents: number,
+  ): ChampionshipDriver {
+    const driverHistory = previousDrivers[driverId];
+    const driverNewResults = driversForEventById[driverId];
+    if (driverHistory && driverNewResults) {
+      const newPoints = [
+        ...driverHistory.points,
+        this.calculatePointsForDriver(bestTimeOfDay, driverNewResults),
+      ];
+      return {
+        ...driverHistory,
+        points: newPoints,
+        totalPoints: ChampionshipResultsParser.sumPoints(newPoints),
+      };
+    } else if (driverHistory) {
+      const newPoints = [...driverHistory.points, 0];
+      return {
+        ...driverHistory,
+        points: newPoints,
+        totalPoints: ChampionshipResultsParser.sumPoints(newPoints),
+      };
+    } else {
+      const newDriver = driversForEventById[driverId];
+      const newPoints = [
+        ...new Array(totalEvents - 1).fill(0),
+        this.calculatePointsForDriver(bestTimeOfDay, newDriver),
+      ];
+      return {
+        id: driverId,
+        name: newDriver.name,
+        points: newPoints,
+        totalPoints: ChampionshipResultsParser.sumPoints(newPoints),
+      };
     }
   }
 
