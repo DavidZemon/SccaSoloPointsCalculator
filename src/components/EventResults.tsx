@@ -34,7 +34,7 @@ export class EventResults extends Component<
   public render() {
     if (this.props.results) {
       return [
-        <Row key={0}>
+        <Row key={0} className={'top-buffer'}>
           <Col>
             <h2>Event Results</h2>
 

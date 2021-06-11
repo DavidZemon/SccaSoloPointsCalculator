@@ -35,7 +35,7 @@ export class ChampionshipResults extends Component<
       Object.values(this.props.results).some((v) => !!v)
     ) {
       return [
-        <Row key={0}>
+        <Row key={0} className={'top-buffer'}>
           <Col>
             <h2>Championship Standings</h2>
 
