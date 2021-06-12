@@ -98,7 +98,7 @@ export class ChampionshipResultsParser {
     eventResults: EventResults,
   ): ClassChampionshipResults {
     // Two header rows (rank + driver), plus two total rows (points + "Best N of M")
-    const eventCount = rows[5].length - 4;
+    const pastEventCount = rows[5].length - 4;
 
     // Start by grouping rows by class
     const rowsByClassAndDriverId: Record<
@@ -178,7 +178,7 @@ export class ChampionshipResultsParser {
             classHistory,
             newEventDriversById,
             bestTimeOfDay,
-            eventCount,
+            pastEventCount,
           ),
           carClass,
         }),
@@ -213,7 +213,7 @@ export class ChampionshipResultsParser {
         return o;
       }, {} as Record<string, ChampionshipDriver>);
 
-    const totalEvents = Object.values(previousDrivers)[0].points.length + 1;
+    const pastEventCount = Object.values(previousDrivers)[0].points.length;
     return {
       organization: rows[0][0],
       year: parseInt(rows[1][0].split(' ')[0]),
@@ -228,7 +228,7 @@ export class ChampionshipResultsParser {
           previousDrivers,
           driversForEventById,
           bestIndexTimeOfDay,
-          totalEvents,
+          pastEventCount,
         ),
       ),
     };
@@ -273,7 +273,7 @@ export class ChampionshipResultsParser {
     previousDrivers: Record<string, T>,
     driversForEventById: Record<string, Driver>,
     bestPaxTimeOfDay: number,
-    totalEvents: number,
+    pastEventCount: number,
   ): ChampionshipDriver {
     const driverHistory = previousDrivers[driverId];
     const driverNewResults = driversForEventById[driverId];
@@ -297,7 +297,7 @@ export class ChampionshipResultsParser {
     } else {
       const newDriver = driversForEventById[driverId];
       const newPoints = [
-        ...new Array(totalEvents - 1).fill(0),
+        ...new Array(pastEventCount).fill(0),
         this.calculatePointsForDriver(bestPaxTimeOfDay, newDriver),
       ];
       return {
