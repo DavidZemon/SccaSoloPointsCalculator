@@ -25,8 +25,6 @@ export class RamDownload extends Component<RamDownloadProps, RamDownloadState> {
   ) {
     // Don't bother taking any action if we don't have all the info we need
     if (this.props.filename && this.props.content && this.props.contentType) {
-      console.log('Triggering download');
-
       // If content or content type changed, update the download URL
       if (
         this.props.content !== prevProps.content ||

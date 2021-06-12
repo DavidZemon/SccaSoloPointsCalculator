@@ -9,6 +9,7 @@ import { ChampionshipResultsParser, PaxService } from '../services';
 import { RamDownload } from './DownloadButton';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faDownload } from '@fortawesome/free-solid-svg-icons';
+import { EOL } from 'os';
 
 interface ChampionshipResultsProps extends PropsWithoutRef<any> {
   paxService: PaxService;
@@ -116,10 +117,9 @@ export class ChampionshipResults extends Component<
           filename={this.state.downloadName}
           content={this.state.downloadData}
           contentType={'application/vnd.ms-excel'}
-          downloadComplete={() => {
-            this.setState({ downloadData: undefined });
-            console.log('Download is complete');
-          }}
+          downloadComplete={() =>
+            this.setState({ downloadData: undefined, downloadName: undefined })
+          }
         />,
       ];
     } else {
@@ -202,17 +202,67 @@ export class ChampionshipResults extends Component<
         >
           {year} {championshipType}
         </Accordion.Toggle>
-        <Button variant={'secondary'} disabled>
-          <FontAwesomeIcon
-            className={'clickable'}
-            icon={faDownload}
-            onClick={() => {
-              /* TODO */
-            }}
-          />
-          &nbsp;&lt;&mdash; This button doesn't do anything yet
+        <Button
+          variant={'secondary'}
+          onClick={() =>
+            championshipType === 'Class' ? this.exportClassesAsCsv() : undefined
+          }
+        >
+          <FontAwesomeIcon className={'clickable'} icon={faDownload} />
         </Button>
       </Card.Header>
     );
+  }
+
+  private exportClassesAsCsv() {
+    console.log('Starting export');
+    const results = this.props.results!.Class!;
+    const totalEventCount = Object.values(results.driversByClass)[0][0].points
+      .length;
+    const eventsToCount =
+      ChampionshipResultsParser.calculateEventsToCount(totalEventCount);
+
+    const rows = [
+      [results.organization],
+      [
+        `${results.year} Class Championship -- Best ${eventsToCount} of ${totalEventCount}`,
+      ],
+      [],
+      [
+        'Rank',
+        'Driver',
+        ...new Array(totalEventCount)
+          .fill(null)
+          .map((_, index) => `Event #${index + 1}`),
+        'Total Points',
+        `Best ${eventsToCount} of ${totalEventCount}`,
+      ],
+      ...Object.entries(results.driversByClass)
+        .map(([carClass, drivers]) => {
+          return [
+            [
+              `${carClass
+                .split(' ')
+                .map((word) => word[0])
+                .join('')} - ${carClass}`,
+            ],
+            ...drivers
+              .sort((d1, d2) => d2.totalPoints - d1.totalPoints)
+              .map((driver, index) => [
+                `${index + 1}`,
+                driver.name,
+                ...driver.points.map((p) => `${p}`),
+                `${driver.points.reduce((sum, p) => sum + p, 0)}`,
+                `${driver.totalPoints}`,
+              ]),
+          ];
+        })
+        .flat(),
+    ];
+    console.log(JSON.stringify(rows, null, 2));
+    this.setState({
+      downloadData: rows.map((row) => `"${row.join('","')}"`).join(EOL),
+      downloadName: `${results.year}_StL_Class_Championship.csv`,
+    });
   }
 }
