@@ -1,6 +1,7 @@
 import { Component, PropsWithoutRef } from 'react';
 import { Accordion, Button, Card, Col, Row, Table } from 'react-bootstrap';
 import {
+  ChampionshipDriver,
   ChampionshipResults as ChampionshipResultsData,
   ChampionshipType,
   IndexedChampionshipResults,
@@ -205,7 +206,9 @@ export class ChampionshipResults extends Component<
         <Button
           variant={'secondary'}
           onClick={() =>
-            championshipType === 'Class' ? this.exportClassesAsCsv() : undefined
+            championshipType === 'Class'
+              ? this.exportClassesAsCsv()
+              : this.exportIndexAsCsv(championshipType)
           }
         >
           <FontAwesomeIcon className={'clickable'} icon={faDownload} />
@@ -215,28 +218,10 @@ export class ChampionshipResults extends Component<
   }
 
   private exportClassesAsCsv() {
-    console.log('Starting export');
     const results = this.props.results!.Class!;
-    const totalEventCount = Object.values(results.driversByClass)[0][0].points
-      .length;
-    const eventsToCount =
-      ChampionshipResultsParser.calculateEventsToCount(totalEventCount);
-
+    const { header, eventsToCount, totalEventCount } = this.startCsv('Class');
     const rows = [
-      [results.organization],
-      [
-        `${results.year} Class Championship -- Best ${eventsToCount} of ${totalEventCount}`,
-      ],
-      [],
-      [
-        'Rank',
-        'Driver',
-        ...new Array(totalEventCount)
-          .fill(null)
-          .map((_, index) => `Event #${index + 1}`),
-        'Total Points',
-        `Best ${eventsToCount} of ${totalEventCount}`,
-      ],
+      ...header,
       ...Object.entries(results.driversByClass)
         .map(([carClass, drivers]) => {
           return [
@@ -248,21 +233,74 @@ export class ChampionshipResults extends Component<
             ],
             ...drivers
               .sort((d1, d2) => d2.totalPoints - d1.totalPoints)
-              .map((driver, index) => [
-                `${index + 1}`,
-                driver.name,
-                ...driver.points.map((p) => `${p}`),
-                `${driver.points.reduce((sum, p) => sum + p, 0)}`,
-                `${driver.totalPoints}`,
-              ]),
+              .map(ChampionshipResults.driverToCsv),
           ];
         })
         .flat(),
     ];
-    console.log(JSON.stringify(rows, null, 2));
     this.setState({
       downloadData: rows.map((row) => `"${row.join('","')}"`).join(EOL),
       downloadName: `${results.year}_StL_Class_Championship.csv`,
     });
+  }
+
+  private exportIndexAsCsv(
+    championshipType: Exclude<ChampionshipType, 'Class'>,
+  ) {
+    const results = this.props.results![championshipType]!;
+    const { header } = this.startCsv(championshipType);
+
+    const rows = results.drivers
+      .sort((d1, d2) => d2.totalPoints - d1.totalPoints)
+      .map(ChampionshipResults.driverToCsv);
+
+    this.setState({
+      downloadData: [...header, ...rows]
+        .map((row) => `"${row.join('","')}"`)
+        .join(EOL),
+      downloadName: `${results.year}_StL_${championshipType}_Championship.csv`,
+    });
+  }
+
+  private startCsv(championshipType: ChampionshipType) {
+    const results = this.props.results!.Class!;
+    const totalEventCount = Object.values(results.driversByClass)[0][0].points
+      .length;
+    const eventsToCount =
+      ChampionshipResultsParser.calculateEventsToCount(totalEventCount);
+
+    return {
+      header: [
+        [results.organization],
+        [
+          `${results.year} Class Championship -- Best ${eventsToCount} of ${totalEventCount}`,
+        ],
+        [],
+        [
+          'Rank',
+          'Driver',
+          ...new Array(totalEventCount)
+            .fill(null)
+            .map((_, index) => `Event #${index + 1}`),
+          'Total Points',
+          `Best ${eventsToCount} of ${totalEventCount}`,
+        ],
+      ],
+      eventsToCount,
+      totalEventCount,
+    };
+  }
+
+  private static driverToCsv(
+    driver: ChampionshipDriver,
+    index: number,
+  ): string[] {
+    return [
+      `${index + 1}`,
+      driver.name,
+      ...driver.points.map((p) => `${p}`),
+      `${driver.points.reduce((sum, p) => sum + p, 0)}`,
+      `${driver.totalPoints}`,
+    ];
   }
 }
