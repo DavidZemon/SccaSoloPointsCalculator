@@ -57,6 +57,7 @@ export class Driver {
   readonly carNumber: number;
   readonly carClass: string;
   readonly carDescription: string;
+  readonly region: string;
   readonly times: LapTime[];
   readonly trophy: boolean;
   readonly rookie: boolean;
@@ -64,7 +65,16 @@ export class Driver {
 
   constructor(
     carClass: string,
-    [trophy, rookie, position, carNumber, name, carDescription]: string[],
+    [
+      trophy,
+      rookie,
+      position,
+      carNumber,
+      name,
+      carDescription,
+      tireManufacturer,
+      region,
+    ]: string[],
     times: string[],
   ) {
     this.id = name.toLowerCase().trim(); // FIXME
@@ -75,6 +85,7 @@ export class Driver {
     this.carClass = carClass;
     this.name = name;
     this.carDescription = carDescription;
+    this.region = region;
     this.times = times
       .filter((lapTime) => !!lapTime.trim())
       .map((lapTime) => new LapTime(lapTime));
@@ -84,12 +95,13 @@ export class Driver {
     return [...this.times].sort(LapTime.compare)[0];
   }
 
-  difference(fastestOfDay?: number): string {
+  difference(fastestOfDay?: number, paxMultiplier: number = 1): string {
     const myBestLap = this.bestLap();
+    const myTimeToCompare = paxMultiplier * (myBestLap.time || Infinity);
     return myBestLap.time
-      ? myBestLap.time === fastestOfDay
+      ? myTimeToCompare === fastestOfDay
         ? ''
-        : `(${(fastestOfDay! - myBestLap.time).toFixed(3)})`
+        : `(${(fastestOfDay! - myTimeToCompare).toFixed(3)})`
       : 'N/A';
   }
 }

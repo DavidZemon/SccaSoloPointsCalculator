@@ -86,154 +86,9 @@ export class EventResults extends Component<
                 </Accordion.Collapse>
               </Card>
 
-              <Card>
-                <Card.Header key={'pax'}>
-                  <Accordion.Toggle
-                    eventKey={'pax'}
-                    as={Button}
-                    variant={'link'}
-                  >
-                    PAX Results
-                  </Accordion.Toggle>
-                  <Button
-                    variant={'secondary'}
-                    onClick={() => this.exportNonGroupedResultsToCsv(true)}
-                  >
-                    <FontAwesomeIcon
-                      className={'clickable'}
-                      icon={faDownload}
-                    />
-                  </Button>
-                </Card.Header>
+              {this.displayCombinedResults(true)}
 
-                <Accordion.Collapse eventKey={'pax'}>
-                  <Card.Body>
-                    <Table striped hover borderless>
-                      <thead>
-                        <tr>
-                          <th>Position</th>
-                          <th>Class</th>
-                          <th>Car #</th>
-                          <th>Name</th>
-                          <th>Car</th>
-                          <th>
-                            {/* eslint-disable-next-line react/jsx-no-target-blank */}
-                            <a
-                              href={'https://www.solotime.info/pax/'}
-                              target={'_blank'}
-                              rel={'help'}
-                            >
-                              PAX Time
-                            </a>
-                          </th>
-                        </tr>
-                      </thead>
-
-                      <tbody>
-                        {Object.values(this.props.results)
-                          .map((categoryResults) =>
-                            Object.values(categoryResults),
-                          )
-                          .flat()
-                          .map((classResults) => classResults.drivers)
-                          .flat()
-                          .sort(
-                            (a, b) =>
-                              (a.bestLap().time || Infinity) *
-                                this.props.paxService.getMultiplierFromLongName(
-                                  a.carClass,
-                                ) -
-                              (b.bestLap().time || Infinity) *
-                                this.props.paxService.getMultiplierFromLongName(
-                                  b.carClass,
-                                ),
-                          )
-                          .map((driver, index) => (
-                            <tr key={index}>
-                              <td>{index + 1}</td>
-                              <td>{driver.carClass}</td>
-                              <td>{driver.carNumber}</td>
-                              <td>{driver.name}</td>
-                              <td>{driver.carDescription}</td>
-                              <td>
-                                {driver
-                                  .bestLap()
-                                  .toString(
-                                    this.props.paxService.getMultiplierFromLongName(
-                                      driver.carClass,
-                                    ),
-                                  )}
-                              </td>
-                            </tr>
-                          ))}
-                      </tbody>
-                    </Table>
-                  </Card.Body>
-                </Accordion.Collapse>
-              </Card>
-
-              <Card>
-                <Card.Header key={'raw'}>
-                  <Accordion.Toggle
-                    eventKey={'raw'}
-                    as={Button}
-                    variant={'link'}
-                  >
-                    Raw Results
-                  </Accordion.Toggle>
-                  <Button
-                    variant={'secondary'}
-                    onClick={() => this.exportNonGroupedResultsToCsv(false)}
-                  >
-                    <FontAwesomeIcon
-                      className={'clickable'}
-                      icon={faDownload}
-                    />
-                  </Button>
-                </Card.Header>
-
-                <Accordion.Collapse eventKey={'raw'}>
-                  <Card.Body>
-                    <Table striped hover borderless>
-                      <thead>
-                        <tr>
-                          <th>Position</th>
-                          <th>Class</th>
-                          <th>Car #</th>
-                          <th>Name</th>
-                          <th>Car</th>
-                          <th>Raw Corrected Time</th>
-                        </tr>
-                      </thead>
-
-                      <tbody>
-                        {Object.values(this.props.results)
-                          .map((categoryResults) =>
-                            Object.values(categoryResults),
-                          )
-                          .flat()
-                          .map((classResults) => classResults.drivers)
-                          .flat()
-                          .sort(
-                            (a, b) =>
-                              (a.bestLap().time || Infinity) -
-                              (b.bestLap().time || Infinity),
-                          )
-                          .map((driver, index) => (
-                            <tr key={index}>
-                              <td>{index + 1}</td>
-                              <td>{driver.carClass}</td>
-                              <td>{driver.carNumber}</td>
-                              <td>{driver.name}</td>
-                              <td>{driver.carDescription}</td>
-                              <td>{driver.bestLap().toString()}</td>
-                            </tr>
-                          ))}
-                      </tbody>
-                    </Table>
-                  </Card.Body>
-                </Accordion.Collapse>
-              </Card>
+              {this.displayCombinedResults(false)}
             </Accordion>
           </Col>
         </Row>,
@@ -269,6 +124,7 @@ export class EventResults extends Component<
               {EventResultsParser.HEADER.slice(0, 6).map((header, index) => (
                 <th key={index}>{header}</th>
               ))}
+              <th>Region</th>
               <th colSpan={12}>Lap Times</th>
               <th>Fastest</th>
               <th>Difference</th>
@@ -292,6 +148,7 @@ export class EventResults extends Component<
           <td>{driver.carNumber}</td>
           <td>{driver.name}</td>
           <td>{driver.carDescription}</td>
+          <td>{driver.region}</td>
           {driver.times.map((lapTime, index) => (
             <td key={index}>{lapTime.toString()}</td>
           ))}
@@ -303,6 +160,102 @@ export class EventResults extends Component<
         </tr>
       );
     });
+  }
+
+  private displayCombinedResults(pax: boolean): JSX.Element {
+    const key = pax ? 'pax' : 'raw';
+
+    const drivers = Object.values(this.props.results!)
+      .map((categoryResults) => Object.values(categoryResults))
+      .flat()
+      .map((classResults) => classResults.drivers)
+      .flat();
+    const sortedDrivers = drivers
+      .map(
+        (driver) =>
+          [
+            driver,
+            (driver.bestLap().time || Infinity) *
+              (pax
+                ? this.props.paxService.getMultiplierFromLongName(
+                    driver.carClass,
+                  )
+                : 1),
+          ] as [Driver, number],
+      )
+      .sort(([_1, d1Time], [_2, d2Time]) => d1Time - d2Time);
+    const fastestOfDay = sortedDrivers[0][1];
+
+    return (
+      <Card>
+        <Card.Header key={key}>
+          <Accordion.Toggle eventKey={key} as={Button} variant={'link'}>
+            {pax ? 'PAX' : 'Raw'} Results
+          </Accordion.Toggle>
+          <Button
+            variant={'secondary'}
+            onClick={() =>
+              this.exportCombinedResultsToCsv(sortedDrivers, fastestOfDay, pax)
+            }
+          >
+            <FontAwesomeIcon className={'clickable'} icon={faDownload} />
+          </Button>
+        </Card.Header>
+
+        <Accordion.Collapse eventKey={key}>
+          <Card.Body>
+            <Table striped hover borderless>
+              <thead>
+                <tr>
+                  <th>Position</th>
+                  <th>Class</th>
+                  <th>Car #</th>
+                  <th>Name</th>
+                  <th>Car</th>
+                  <th>Region</th>
+                  <th>{pax ? 'PAX' : 'Raw Corrected'} Time</th>
+                  <th>Difference</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {sortedDrivers.map(([driver, driverBestTime], index) => (
+                  <tr key={index}>
+                    <td>{index + 1}</td>
+                    <td>{driver.carClass}</td>
+                    <td>{driver.carNumber}</td>
+                    <td>{driver.name}</td>
+                    <td>{driver.carDescription}</td>
+                    <td>{driver.region}</td>
+                    <td>
+                      {driver
+                        .bestLap()
+                        .toString(
+                          pax
+                            ? this.props.paxService.getMultiplierFromLongName(
+                                driver.carClass,
+                              )
+                            : undefined,
+                        )}
+                    </td>
+                    <td>
+                      {driver.difference(
+                        fastestOfDay,
+                        pax
+                          ? this.props.paxService.getMultiplierFromLongName(
+                              driver.carClass,
+                            )
+                          : undefined,
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          </Card.Body>
+        </Accordion.Collapse>
+      </Card>
+    );
   }
 
   private exportResultsByClassCsv() {
@@ -329,7 +282,10 @@ export class EventResults extends Component<
           `Drivers: ${classResults.drivers.length}`,
           `Trophies: ${classResults.trophyCount}`,
         ],
-        EventResultsParser.HEADER.slice(0, 6),
+        [
+          ...EventResultsParser.HEADER.slice(0, 6),
+          EventResultsParser.HEADER[7],
+        ],
         ...classResults.drivers.map((driver) => {
           const driverBestLap = driver.bestLap();
           return [
@@ -339,6 +295,7 @@ export class EventResults extends Component<
             `${driver.carNumber}`,
             driver.name,
             driver.carDescription,
+            driver.region,
             ...driver.times.map((t) => t.toString()),
             ...new Array(12 - driver.times.length).fill(''),
             driverBestLap.toString(),
@@ -363,27 +320,11 @@ export class EventResults extends Component<
       .map(converter);
   }
 
-  private exportNonGroupedResultsToCsv(pax: boolean): void {
-    const drivers = Object.values(this.props.results!)
-      .map((categoryResults) => Object.values(categoryResults))
-      .flat()
-      .map((classResults) => classResults.drivers)
-      .flat();
-    const sortedDrivers = drivers
-      .map(
-        (driver) =>
-          [
-            driver,
-            (driver.bestLap().time || Infinity) *
-              (pax
-                ? this.props.paxService.getMultiplierFromLongName(
-                    driver.carClass,
-                  )
-                : 1),
-          ] as [Driver, number],
-      )
-      .sort(([_1, d1Time], [_2, d2Time]) => d1Time - d2Time);
-    const fastestOfDay = sortedDrivers[0][1];
+  private exportCombinedResultsToCsv(
+    sortedDrivers: [Driver, number][],
+    fastestOfDay: number,
+    pax: boolean,
+  ): void {
     const results = [
       [
         'Position',
@@ -400,8 +341,19 @@ export class EventResults extends Component<
         `${driver.carNumber}`,
         driver.name,
         driver.carDescription,
-        `${time.toFixed(3)}`,
-        driver.difference(fastestOfDay),
+        driver
+          .bestLap()
+          .toString(
+            pax
+              ? this.props.paxService.getMultiplierFromLongName(driver.carClass)
+              : undefined,
+          ),
+        driver.difference(
+          fastestOfDay,
+          pax
+            ? this.props.paxService.getMultiplierFromLongName(driver.carClass)
+            : undefined,
+        ),
       ]),
     ];
     this.setState({
