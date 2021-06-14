@@ -51,7 +51,7 @@ class LapTime:
         return not self.__lt__(other)
 
 
-class IndividualResults:
+class Driver:
     id: str
     name: str
     car_number: int
@@ -66,7 +66,7 @@ class IndividualResults:
 class ClassResults:
     trophy_count: int
     car_class: str
-    results: List[IndividualResults]
+    results: List[Driver]
 
     def __init__(self, car_class: str) -> None:
         super().__init__()
@@ -148,7 +148,7 @@ def process_results_row(class_results: Optional[ClassResults], row: List[str]) -
 def append_individual_results(class_results: ClassResults, meta: List[str], times: List[str]) -> None:
     if meta[0] == 'T':
         class_results.trophy_count += 1
-    individual_results = IndividualResults()
+    individual_results = Driver()
     individual_results.car_class = class_results.car_class
     individual_results.trophy = meta[0] == 'T'
     individual_results.rookie = meta[1] == 'R'

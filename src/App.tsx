@@ -5,6 +5,7 @@ import 'bootswatch/dist/slate/bootstrap.css';
 import { Component, ComponentPropsWithoutRef } from 'react';
 import { Button, Col, Container, Row, Spinner } from 'react-bootstrap';
 import { toast, ToastContainer } from 'react-toastify';
+import parse from 'csv-parse/lib/sync';
 import {
   ChampionshipResultsParser,
   EventResultsParser,
@@ -182,18 +183,22 @@ class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
   async validateUploadedEventResultsFile(f: File) {
     const content = await f.text();
     const firstLine = content.split(EOL)[0];
-    const firstLineWords = firstLine.split(',');
+    const rows: string[][] = parse(firstLine, {
+      columns: false,
+      ltrim: true,
+      rtrim: true,
+      relaxColumnCount: true,
+    });
+    const firstLineWords = rows[0];
 
     const errorMessage = `First line does not match expected value. Actual: \`${firstLine}\``;
 
-    assert(firstLineWords[0] === '"Results"', errorMessage);
-    assert(firstLineWords[2] === '"www.ProntoTimingSystem.com"', errorMessage);
-    assert(firstLineWords[3] === '"Pos"', errorMessage);
-    assert(firstLineWords[4] === '"Nbr"', errorMessage);
-    assert(firstLineWords[5] === '"Driver\'s name', errorMessage);
-    assert(firstLineWords[6] === ' Town"', errorMessage);
-    assert(firstLineWords[7] === '"Car', errorMessage);
-    assert(firstLineWords[8] === ' Sponsor"', errorMessage);
+    assert(firstLineWords[0] === 'Results', errorMessage);
+    assert(firstLineWords[2] === 'www.ProntoTimingSystem.com', errorMessage);
+    assert(firstLineWords[3] === 'Pos', errorMessage);
+    assert(firstLineWords[4] === 'Nbr', errorMessage);
+    assert(firstLineWords[5] === "Driver's name, Town", errorMessage);
+    assert(firstLineWords[6] === 'Car, Sponsor', errorMessage);
   }
 }
 

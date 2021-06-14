@@ -51,7 +51,7 @@ export class ChampionshipResultsParser {
                 const bestPaxTimeOfDay = Math.min(
                   ...allDriversForEvent.map(
                     (driver) =>
-                      driver.bestLap().time! *
+                      (driver.bestLap().time || Infinity) *
                       this.paxService.getMultiplierFromLongName(
                         driver.carClass,
                       ),
@@ -67,7 +67,7 @@ export class ChampionshipResultsParser {
                 const fastestNoviceOfDay = Math.min(
                   ...novices.map(
                     (driver) =>
-                      driver.bestLap().time! *
+                      (driver.bestLap().time || Infinity) *
                       this.paxService.getMultiplierFromLongName(
                         driver.carClass,
                       ),
@@ -164,13 +164,10 @@ export class ChampionshipResultsParser {
 
       const bestTimeOfDay =
         Math.min(
-          ...Object.values(newEventDriversById).map(
-            (driver) => driver.bestLap().time!,
-          ),
+          ...(Object.values(newEventDriversById)
+            .map((driver) => driver.bestLap().time)
+            .filter((t) => t) as number[]),
         ) * this.paxService.getMultiplierFromLongName(carClass);
-      console.log(
-        `Fastest time of day for ${carClass} is ${bestTimeOfDay.toFixed(3)}`,
-      );
       driversByClass[carClass] = driverIds.map(
         (driverId): ClassChampionshipDriver => ({
           ...this.buildDriver(

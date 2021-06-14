@@ -84,11 +84,13 @@ export class Driver {
     return [...this.times].sort(LapTime.compare)[0];
   }
 
-  difference(bestLapInClass?: number): string {
+  difference(fastestOfDay?: number): string {
     const myBestLap = this.bestLap();
-    return bestLapInClass === myBestLap.time
-      ? ''
-      : `(${(bestLapInClass! - myBestLap.time!).toFixed(3)})`;
+    return myBestLap.time
+      ? myBestLap.time === fastestOfDay
+        ? ''
+        : `(${(fastestOfDay! - myBestLap.time).toFixed(3)})`
+      : 'N/A';
   }
 }
 

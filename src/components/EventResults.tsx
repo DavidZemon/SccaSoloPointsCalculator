@@ -158,7 +158,7 @@ export class EventResults extends Component<
                               <td>
                                 {driver
                                   .bestLap()
-                                  ?.toString(
+                                  .toString(
                                     this.props.paxService.getMultiplierFromLongName(
                                       driver.carClass,
                                     ),
@@ -226,7 +226,7 @@ export class EventResults extends Component<
                               <td>{driver.carNumber}</td>
                               <td>{driver.name}</td>
                               <td>{driver.carDescription}</td>
-                              <td>{driver.bestLap()?.toString()}</td>
+                              <td>{driver.bestLap().toString()}</td>
                             </tr>
                           ))}
                       </tbody>
@@ -401,7 +401,7 @@ export class EventResults extends Component<
         driver.name,
         driver.carDescription,
         `${time.toFixed(3)}`,
-        time === fastestOfDay ? '' : `(${(fastestOfDay - time).toFixed(3)})`,
+        driver.difference(fastestOfDay),
       ]),
     ];
     this.setState({
