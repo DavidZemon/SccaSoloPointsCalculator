@@ -28,13 +28,15 @@ export class LapTime {
     }
   }
 
-  toString(paxMultiplier?: number): string {
+  toString(paxMultiplier?: number, displayConeCount = true): string {
     if (this.dnf) return 'DNF';
     else if (this.rerun) return 'Re-run';
     else {
       let time = this.time!;
       if (paxMultiplier) time *= paxMultiplier;
-      return `${time.toFixed(3)}` + (this.cones ? ` (${this.cones})` : '');
+      if (displayConeCount)
+        return `${time.toFixed(3)}` + (this.cones ? ` (${this.cones})` : '');
+      else return time.toFixed(3);
     }
   }
 
@@ -101,7 +103,7 @@ export class Driver {
     return myBestLap.time
       ? myTimeToCompare === fastestOfDay
         ? ''
-        : `(${(fastestOfDay! - myTimeToCompare).toFixed(3)})`
+        : `${(fastestOfDay! - myTimeToCompare).toFixed(3)}`
       : 'N/A';
   }
 }

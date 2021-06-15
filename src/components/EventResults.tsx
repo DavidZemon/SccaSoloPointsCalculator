@@ -262,7 +262,7 @@ export class EventResults extends Component<
     const lines = Object.entries(this.props.results!)
       .map(([classCategory, categoryResults]) => [
         [classCategory],
-        ...EventResults.exportCategoryResultsToCsv(categoryResults),
+        ...this.exportCategoryResultsToCsv(categoryResults),
       ])
       .flat();
     this.setState({
@@ -271,39 +271,47 @@ export class EventResults extends Component<
     });
   }
 
-  private static exportCategoryResultsToCsv(
+  private exportCategoryResultsToCsv(
     categoryResults: ClassCategoryResults,
   ): string[][] {
-    return this.convertCategoryResults(categoryResults, (classResults) => {
-      const bestLapInClass = classResults.getBestInClass();
-      return [
-        [
+    return EventResults.convertCategoryResults(
+      categoryResults,
+      (classResults) => {
+        const shortCarClass = classResults.carClass
+          .split(' ')
+          .map((word) => word[0])
+          .join('');
+        const paxMultiplier = this.props.paxService.getMultiplierFromLongName(
           classResults.carClass,
-          `Drivers: ${classResults.drivers.length}`,
-          `Trophies: ${classResults.trophyCount}`,
-        ],
-        [
-          ...EventResultsParser.HEADER.slice(0, 6),
-          EventResultsParser.HEADER[7],
-        ],
-        ...classResults.drivers.map((driver) => {
-          const driverBestLap = driver.bestLap();
-          return [
-            driver.trophy ? 'T' : '',
-            driver.rookie ? 'R' : '',
-            `${driver.position}`,
-            `${driver.carNumber}`,
-            driver.name,
-            driver.carDescription,
-            driver.region,
-            ...driver.times.map((t) => t.toString()),
-            ...new Array(12 - driver.times.length).fill(''),
-            driverBestLap.toString(),
-            driver.difference(bestLapInClass),
-          ];
-        }),
-      ];
-    }).flat();
+        );
+        const bestLapInClass = classResults.getBestInClass();
+        const bestIndexTime = (bestLapInClass || Infinity) * paxMultiplier;
+        return [
+          [`${shortCarClass} - ${classResults.carClass}`],
+          ...classResults.drivers.map((driver, index) => {
+            const driverBestLap = driver.bestLap();
+            return [
+              `${driver.position}`,
+              driver.name,
+              driver.carDescription,
+              shortCarClass,
+              `${driver.carNumber}`,
+              driverBestLap.toString(undefined, false),
+              driverBestLap.toString(paxMultiplier, false),
+              index === 0
+                ? ''
+                : driver.difference(
+                    (classResults.drivers[index - 1].bestLap().time ||
+                      Infinity) * paxMultiplier,
+                    paxMultiplier,
+                  ),
+              driver.difference(bestIndexTime, paxMultiplier),
+              driver.region,
+            ];
+          }),
+        ];
+      },
+    ).flat();
   }
 
   private static convertCategoryResults<T>(
