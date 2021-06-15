@@ -277,10 +277,9 @@ export class EventResults extends Component<
     return EventResults.convertCategoryResults(
       categoryResults,
       (classResults) => {
-        const shortCarClass = classResults.carClass
-          .split(' ')
-          .map((word) => word[0])
-          .join('');
+        const shortCarClass = EventResults.toShortClassName(
+          classResults.carClass,
+        );
         const paxMultiplier = this.props.paxService.getMultiplierFromLongName(
           classResults.carClass,
         );
@@ -345,17 +344,27 @@ export class EventResults extends Component<
       ],
       ...sortedDrivers.map(([driver, time], index) => [
         `${index + 1}`,
-        driver.carClass,
-        `${driver.carNumber}`,
         driver.name,
         driver.carDescription,
+        EventResults.toShortClassName(driver.carClass),
+        `${driver.carNumber}`,
         driver
           .bestLap()
           .toString(
             pax
               ? this.props.paxService.getMultiplierFromLongName(driver.carClass)
               : undefined,
+            false,
           ),
+        index === 0
+          ? ''
+          : driver.difference(
+              (sortedDrivers[index - 1][0].bestLap().time || Infinity) *
+                this.props.paxService.getMultiplierFromLongName(
+                  sortedDrivers[index - 1][0].carClass,
+                ),
+              this.props.paxService.getMultiplierFromLongName(driver.carClass),
+            ),
         driver.difference(
           fastestOfDay,
           pax
@@ -368,5 +377,12 @@ export class EventResults extends Component<
       exportFilename: `event_${pax ? 'pax' : 'raw'}_results.csv`,
       csvContent: results.map((row) => `"${row.join('","')}"`).join(EOL),
     });
+  }
+
+  private static toShortClassName(longClassName: string): string {
+    return longClassName
+      .split(' ')
+      .map((word) => word[0])
+      .join('');
   }
 }
