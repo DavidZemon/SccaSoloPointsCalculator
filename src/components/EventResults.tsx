@@ -9,7 +9,7 @@ import {
   Driver,
   EventResults as EventResultsData,
 } from '../models';
-import { EventResultsParser, PaxService } from '../services';
+import { EventResultsParser, PaxService, toShortClassName } from '../services';
 import { RamDownload } from './DownloadButton';
 
 interface EventResultsProps extends ComponentPropsWithoutRef<any> {
@@ -277,9 +277,7 @@ export class EventResults extends Component<
     return EventResults.convertCategoryResults(
       categoryResults,
       (classResults) => {
-        const shortCarClass = EventResults.toShortClassName(
-          classResults.carClass,
-        );
+        const shortCarClass = toShortClassName(classResults.carClass);
         const paxMultiplier = this.props.paxService.getMultiplierFromLongName(
           classResults.carClass,
         );
@@ -346,7 +344,7 @@ export class EventResults extends Component<
         `${index + 1}`,
         driver.name,
         driver.carDescription,
-        EventResults.toShortClassName(driver.carClass),
+        toShortClassName(driver.carClass),
         `${driver.carNumber}`,
         driver
           .bestLap()
@@ -377,12 +375,5 @@ export class EventResults extends Component<
       exportFilename: `event_${pax ? 'pax' : 'raw'}_results.csv`,
       csvContent: results.map((row) => `"${row.join('","')}"`).join(EOL),
     });
-  }
-
-  private static toShortClassName(longClassName: string): string {
-    return longClassName
-      .split(' ')
-      .map((word) => word[0])
-      .join('');
   }
 }

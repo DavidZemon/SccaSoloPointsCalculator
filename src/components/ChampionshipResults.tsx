@@ -6,7 +6,11 @@ import {
   ChampionshipType,
   IndexedChampionshipResults,
 } from '../models';
-import { ChampionshipResultsParser, PaxService } from '../services';
+import {
+  ChampionshipResultsParser,
+  PaxService,
+  toShortClassName,
+} from '../services';
 import { RamDownload } from './DownloadButton';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faDownload } from '@fortawesome/free-solid-svg-icons';
@@ -226,12 +230,7 @@ export class ChampionshipResults extends Component<
       ...Object.entries(results.driversByClass)
         .map(([carClass, drivers]) => {
           return [
-            [
-              `${carClass
-                .split(' ')
-                .map((word) => word[0])
-                .join('')} - ${carClass}`,
-            ],
+            [`${toShortClassName(carClass)} - ${carClass}`],
             ...drivers
               .sort((d1, d2) => d2.totalPoints - d1.totalPoints)
               .map(ChampionshipResults.driverToCsv),

@@ -1,10 +1,6 @@
-export class PaxService {
-  private static readonly SPECIAL_MAP: Record<string, string> = {
-    'Fun Class': 'FUN',
-    'Street Touring Extreme': 'STX',
-    'Street Touring Extreme Ladies': 'STXL',
-  };
+import { toShortClassName } from './utilities';
 
+export class PaxService {
   private paxMultipliers: Record<string, number> = { FUN: 4 };
 
   async init(): Promise<void> {
@@ -48,18 +44,9 @@ export class PaxService {
     if (longClassName.toLocaleLowerCase().endsWith('ladies'))
       longClassName.substring(0, longClassName.length - 'ladies'.length).trim();
     try {
-      return this.getMultiplierFromAbbrName(
-        longClassName
-          .split(' ')
-          .map((word) => word[0])
-          .join('')
-          .toUpperCase(),
-      );
+      return this.getMultiplierFromAbbrName(toShortClassName(longClassName));
     } catch (_) {
-      const abbreviatedName = PaxService.SPECIAL_MAP[longClassName];
-      if (abbreviatedName)
-        return this.getMultiplierFromAbbrName(abbreviatedName);
-      else throw new Error(`No multiplier found for ${longClassName}`);
+      throw new Error(`No multiplier found for ${longClassName}`);
     }
   }
 
