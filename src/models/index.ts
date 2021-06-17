@@ -1,24 +1,36 @@
 export class LapTime {
+  public static readonly DSQ = new LapTime('DSQ');
+
   public readonly time?: number;
   public readonly cones: number;
   public readonly dnf: boolean;
   public readonly rerun: boolean;
+  public readonly dsq: boolean;
 
   constructor(lap_time_str: string) {
     switch (lap_time_str) {
       case 'DNF':
         this.dnf = true;
         this.rerun = false;
+        this.dsq = false;
         this.cones = 0;
         break;
       case 'RRN':
         this.dnf = false;
         this.rerun = true;
+        this.dsq = false;
+        this.cones = 0;
+        break;
+      case 'DSQ':
+        this.dnf = false;
+        this.rerun = false;
+        this.dsq = true;
         this.cones = 0;
         break;
       default:
         this.dnf = false;
         this.rerun = false;
+        this.dsq = false;
         const timeParts = lap_time_str.split('(');
         this.time = parseFloat(timeParts[0]);
         this.cones =
@@ -31,6 +43,7 @@ export class LapTime {
   toString(paxMultiplier?: number, displayConeCount = true): string {
     if (this.dnf) return 'DNF';
     else if (this.rerun) return 'Re-run';
+    else if (this.dsq) return 'DSQ';
     else {
       let time = this.time!;
       if (paxMultiplier) time *= paxMultiplier;
@@ -64,6 +77,7 @@ export class Driver {
   readonly trophy: boolean;
   readonly rookie: boolean;
   readonly position: number;
+  readonly dsq: boolean;
 
   constructor(
     carClass: string,
@@ -78,6 +92,7 @@ export class Driver {
       region,
     ]: string[],
     times: string[],
+    fastest: string,
   ) {
     this.id = name.toLowerCase().trim(); // FIXME
     this.trophy = trophy === 'T';
@@ -91,10 +106,13 @@ export class Driver {
     this.times = times
       .filter((lapTime) => !!lapTime.trim())
       .map((lapTime) => new LapTime(lapTime));
+    this.dsq =
+      this.times.length !== 0 && fastest.trim().toLowerCase() === 'no time';
   }
 
   bestLap(): LapTime {
-    return [...this.times].sort(LapTime.compare)[0];
+    if (this.dsq) return LapTime.DSQ;
+    else return [...this.times].sort(LapTime.compare)[0];
   }
 
   difference(fastestOfDay?: number, paxMultiplier: number = 1): string {

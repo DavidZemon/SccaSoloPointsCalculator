@@ -24,8 +24,10 @@ export class ChampionshipResultsParser {
     const allDriversForEvent = Object.values(eventResults)
       .map((classCategory) => Object.values(classCategory))
       .flat()
+      .filter((classResults) => classResults.carClass !== 'Fun Class')
       .map((classResults) => classResults.drivers)
-      .flat();
+      .flat()
+      .filter((driver) => !driver.dsq);
     const driversById = allDriversForEvent.reduce((o, driver) => {
       o[driver.id] = driver;
       return o;
@@ -132,14 +134,14 @@ export class ChampionshipResultsParser {
     Object.values(eventResults)
       .map((classCategory) => Object.entries(classCategory))
       .flat()
+      .filter(([carClass, _]) => carClass !== 'Fun Class')
       .forEach(([carClass, classResults]) => {
-        newEventDriversByClassAndId[carClass] = classResults.drivers.reduce(
-          (o, d) => {
+        newEventDriversByClassAndId[carClass] = classResults.drivers
+          .filter((driver) => !driver.dsq)
+          .reduce((o, d) => {
             o[d.id] = d;
             return o;
-          },
-          {} as Record<string, Driver>,
-        );
+          }, {} as Record<string, Driver>);
       });
 
     const allDriverIdsByClass: Record<string, string[]> = {};

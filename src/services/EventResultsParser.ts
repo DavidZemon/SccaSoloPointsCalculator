@@ -29,27 +29,30 @@ export class EventResultsParser {
     const eventResults: EventResults = {};
     let classCategoryResults: ClassCategoryResults;
     let currentClass: ClassResults;
-    rows.forEach((row) => {
-      if (row[row.length - 1].endsWith('Category')) {
-        // Just the class category
-        classCategoryResults = {};
-        eventResults[row[row.length - 1]] = classCategoryResults;
-      } else if (row.length === 65) {
-        // Class + table header + first row
-        const className = row[11];
-        currentClass = new ClassResults(className);
-        classCategoryResults[className] = currentClass;
-        EventResultsParser.processResultsRow(row.slice(15), currentClass);
-      } else if (row[0] === 'Results') {
-        EventResultsParser.processResultsRow(row.slice(11), currentClass);
-      } else {
-        // Class + table header + first row (when missing extra header prefix)
-        const classname = row[0];
-        currentClass = new ClassResults(classname);
-        classCategoryResults[classname] = currentClass;
-        EventResultsParser.processResultsRow(row.slice(4), currentClass);
-      }
-    });
+    rows
+      // Filter out any undefined rows and rows with only empty cells
+      .filter((row) => row && row.filter((cell) => cell.trim().length).length)
+      .forEach((row) => {
+        if (row[row.length - 1].endsWith('Category')) {
+          // Just the class category
+          classCategoryResults = {};
+          eventResults[row[row.length - 1]] = classCategoryResults;
+        } else if (row.length === 65) {
+          // Class + table header + first row
+          const className = row[11];
+          currentClass = new ClassResults(className);
+          classCategoryResults[className] = currentClass;
+          EventResultsParser.processResultsRow(row.slice(15), currentClass);
+        } else if (row[0] === 'Results') {
+          EventResultsParser.processResultsRow(row.slice(11), currentClass);
+        } else {
+          // Class + table header + first row (when missing extra header prefix)
+          const classname = row[0];
+          currentClass = new ClassResults(classname);
+          classCategoryResults[classname] = currentClass;
+          EventResultsParser.processResultsRow(row.slice(4), currentClass);
+        }
+      });
 
     const categoriesToRemove: string[] = [];
     Object.entries(eventResults).forEach(([category, categoryResults]) => {
@@ -96,7 +99,12 @@ export class EventResultsParser {
       if (meta[0] === 'T') {
         classResults.trophyCount += 1;
       }
-      const driver = new Driver(classResults.carClass, meta, fixedTimes);
+      const driver = new Driver(
+        classResults.carClass,
+        meta,
+        fixedTimes,
+        fastest,
+      );
       if (driver.times.length) {
         classResults.drivers.push(driver);
       }
