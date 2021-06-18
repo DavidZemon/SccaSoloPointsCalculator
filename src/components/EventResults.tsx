@@ -9,7 +9,12 @@ import {
   Driver,
   EventResults as EventResultsData,
 } from '../models';
-import { EventResultsParser, PaxService, toShortClassName } from '../services';
+import {
+  calculatePointsForDriver,
+  EventResultsParser,
+  PaxService,
+  toShortClassName,
+} from '../services';
 import { RamDownload } from './DownloadButton';
 
 interface EventResultsProps extends ComponentPropsWithoutRef<any> {
@@ -86,9 +91,11 @@ export class EventResults extends Component<
                 </Accordion.Collapse>
               </Card>
 
-              {this.displayCombinedResults(true)}
+              {this.displayCombinedResults('PAX')}
 
-              {this.displayCombinedResults(false)}
+              {this.displayCombinedResults('Raw')}
+
+              {this.displayCombinedResults('Novice')}
             </Accordion>
           </Col>
         </Row>,
@@ -162,9 +169,9 @@ export class EventResults extends Component<
     });
   }
 
-  private displayCombinedResults(pax: boolean): JSX.Element {
-    const key = pax ? 'pax' : 'raw';
-
+  private displayCombinedResults(
+    resultsType: 'PAX' | 'Raw' | 'Novice',
+  ): JSX.Element {
     const drivers = Object.values(this.props.results!)
       .map((categoryResults) => Object.values(categoryResults))
       .flat()
@@ -176,33 +183,47 @@ export class EventResults extends Component<
           [
             driver,
             (driver.bestLap().time || Infinity) *
-              (pax
-                ? this.props.paxService.getMultiplierFromLongName(
+              (resultsType === 'Raw'
+                ? 1
+                : this.props.paxService.getMultiplierFromLongName(
                     driver.carClass,
-                  )
-                : 1),
+                  )),
           ] as [Driver, number],
       )
-      .sort(([_1, d1Time], [_2, d2Time]) => d1Time - d2Time);
+      .sort(([_1, d1Time], [_2, d2Time]) => d1Time - d2Time)
+      .filter(([driver, _]) => {
+        switch (resultsType) {
+          case 'Novice':
+            return driver.rookie;
+          case 'PAX':
+            return 'Fun Class' !== driver.carClass;
+          case 'Raw':
+            return true;
+        }
+        throw new Error(`Unrecognized eventResultsType: ${resultsType}`);
+      });
     const fastestOfDay = sortedDrivers[0][1];
-
     return (
       <Card>
-        <Card.Header key={key}>
-          <Accordion.Toggle eventKey={key} as={Button} variant={'link'}>
-            {pax ? 'PAX' : 'Raw'} Results
+        <Card.Header key={resultsType}>
+          <Accordion.Toggle eventKey={resultsType} as={Button} variant={'link'}>
+            {resultsType} Results
           </Accordion.Toggle>
           <Button
             variant={'secondary'}
             onClick={() =>
-              this.exportCombinedResultsToCsv(sortedDrivers, fastestOfDay, pax)
+              this.exportCombinedResultsToCsv(
+                sortedDrivers,
+                fastestOfDay,
+                resultsType,
+              )
             }
           >
             <FontAwesomeIcon className={'clickable'} icon={faDownload} />
           </Button>
         </Card.Header>
 
-        <Accordion.Collapse eventKey={key}>
+        <Accordion.Collapse eventKey={resultsType}>
           <Card.Body>
             <Table striped hover borderless>
               <thead>
@@ -213,7 +234,7 @@ export class EventResults extends Component<
                   <th>Name</th>
                   <th>Car</th>
                   <th>Region</th>
-                  <th>{pax ? 'PAX' : 'Raw Corrected'} Time</th>
+                  <th>{resultsType ? 'PAX' : 'Raw Corrected'} Time</th>
                   <th>Difference</th>
                 </tr>
               </thead>
@@ -231,7 +252,7 @@ export class EventResults extends Component<
                       {driver
                         .bestLap()
                         .toString(
-                          pax
+                          resultsType
                             ? this.props.paxService.getMultiplierFromLongName(
                                 driver.carClass,
                               )
@@ -241,7 +262,7 @@ export class EventResults extends Component<
                     <td>
                       {driver.difference(
                         fastestOfDay,
-                        pax
+                        resultsType
                           ? this.props.paxService.getMultiplierFromLongName(
                               driver.carClass,
                             )
@@ -328,51 +349,52 @@ export class EventResults extends Component<
   private exportCombinedResultsToCsv(
     sortedDrivers: [Driver, number][],
     fastestOfDay: number,
-    pax: boolean,
+    resultsType: 'PAX' | 'Raw' | 'Novice',
   ): void {
+    const isRawTime = resultsType === 'Raw';
     const results = [
       [
         'Position',
-        'Class',
-        'Car #',
         'Name',
         'Car',
-        `${pax ? 'PAX' : 'Raw'} Time`,
-        'Difference',
+        'Class',
+        'Car #',
+        `${isRawTime ? 'Best' : 'Index'} Time`,
+        'From Previous',
+        'From Top',
+        ...(isRawTime ? [] : ['Points']),
       ],
-      ...sortedDrivers.map(([driver, time], index) => [
-        `${index + 1}`,
-        driver.name,
-        driver.carDescription,
-        toShortClassName(driver.carClass),
-        `${driver.carNumber}`,
-        driver
-          .bestLap()
-          .toString(
-            pax
-              ? this.props.paxService.getMultiplierFromLongName(driver.carClass)
-              : undefined,
-            false,
-          ),
-        index === 0
-          ? ''
-          : driver.difference(
-              (sortedDrivers[index - 1][0].bestLap().time || Infinity) *
-                this.props.paxService.getMultiplierFromLongName(
-                  sortedDrivers[index - 1][0].carClass,
-                ),
-              this.props.paxService.getMultiplierFromLongName(driver.carClass),
-            ),
-        driver.difference(
-          fastestOfDay,
-          pax
-            ? this.props.paxService.getMultiplierFromLongName(driver.carClass)
-            : undefined,
-        ),
-      ]),
+      ...sortedDrivers.map(([driver, time], index) => {
+        const driverPax = this.props.paxService.getMultiplierFromLongName(
+          driver.carClass,
+        );
+        return [
+          `${index + 1}`,
+          driver.name,
+          driver.carDescription,
+          toShortClassName(driver.carClass),
+          `${driver.carNumber}`,
+          driver.bestLap().toString(isRawTime ? undefined : driverPax, false),
+          index === 0
+            ? ''
+            : driver.difference(
+                (sortedDrivers[index - 1][0].bestLap().time || Infinity) *
+                  (isRawTime
+                    ? 1
+                    : this.props.paxService.getMultiplierFromLongName(
+                        sortedDrivers[index - 1][0].carClass,
+                      )),
+                isRawTime ? undefined : driverPax,
+              ),
+          driver.difference(fastestOfDay, isRawTime ? undefined : driverPax),
+          ...(isRawTime
+            ? []
+            : [calculatePointsForDriver(fastestOfDay, driver, driverPax)]),
+        ];
+      }),
     ];
     this.setState({
-      exportFilename: `event_${pax ? 'pax' : 'raw'}_results.csv`,
+      exportFilename: `event_${resultsType.toLowerCase()}_results.csv`,
       csvContent: results.map((row) => `"${row.join('","')}"`).join(EOL),
     });
   }

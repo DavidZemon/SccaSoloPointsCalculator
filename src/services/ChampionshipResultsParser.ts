@@ -13,6 +13,7 @@ import {
   IndexedChampionshipType,
 } from '../models';
 import { PaxService } from './PaxService';
+import { calculatePointsForDriver } from './utilities';
 
 export class ChampionshipResultsParser {
   constructor(private readonly paxService: PaxService) {}
@@ -279,7 +280,11 @@ export class ChampionshipResultsParser {
     if (driverHistory && driverNewResults) {
       const newPoints = [
         ...driverHistory.points,
-        this.calculatePointsForDriver(bestPaxTimeOfDay, driverNewResults),
+        calculatePointsForDriver(
+          bestPaxTimeOfDay,
+          driverNewResults,
+          this.paxService.getMultiplierFromLongName(driverNewResults.carClass),
+        ),
       ];
       return {
         ...driverHistory,
@@ -297,7 +302,11 @@ export class ChampionshipResultsParser {
       const newDriver = driversForEventById[driverId];
       const newPoints = [
         ...new Array(pastEventCount).fill(0),
-        this.calculatePointsForDriver(bestPaxTimeOfDay, newDriver),
+        calculatePointsForDriver(
+          bestPaxTimeOfDay,
+          newDriver,
+          this.paxService.getMultiplierFromLongName(newDriver.carClass),
+        ),
       ];
       return {
         id: driverId,
@@ -305,17 +314,6 @@ export class ChampionshipResultsParser {
         points: newPoints,
         totalPoints: ChampionshipResultsParser.sumPoints(newPoints),
       };
-    }
-  }
-
-  private calculatePointsForDriver(fastest: number, driver: Driver): number {
-    const actual =
-      (driver.bestLap().time || Infinity) *
-      this.paxService.getMultiplierFromLongName(driver.carClass);
-    if (fastest === actual) {
-      return 10000;
-    } else {
-      return Math.round((fastest / actual) * 10_000);
     }
   }
 
