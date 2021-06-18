@@ -280,12 +280,27 @@ export class EventResults extends Component<
   }
 
   private exportResultsByClassCsv() {
-    const lines = Object.entries(this.props.results!)
-      .map(([classCategory, categoryResults]) => [
-        [classCategory],
-        ...this.exportCategoryResultsToCsv(categoryResults),
-      ])
-      .flat();
+    const lines = [
+      [
+        'Pos',
+        'Name',
+        'Car',
+        'Class',
+        'Number',
+        'Total Time',
+        'Index Time',
+        'From Previous',
+        'From Top',
+        'Points',
+        'Region',
+      ],
+      ...Object.entries(this.props.results!)
+        .map(([classCategory, categoryResults]) => [
+          [classCategory],
+          ...this.exportCategoryResultsToCsv(categoryResults),
+        ])
+        .flat(),
+    ];
     this.setState({
       exportFilename: 'event_results.csv',
       csvContent: lines.map((line) => `"${line.join('","')}"`).join(EOL),
@@ -324,6 +339,11 @@ export class EventResults extends Component<
                     paxMultiplier,
                   ),
               driver.difference(bestIndexTime, paxMultiplier),
+              `${calculatePointsForDriver(
+                bestIndexTime,
+                driver,
+                paxMultiplier,
+              )}`,
               driver.region,
             ];
           }),
