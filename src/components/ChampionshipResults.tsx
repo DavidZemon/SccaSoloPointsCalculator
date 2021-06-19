@@ -223,7 +223,12 @@ export class ChampionshipResults extends Component<
 
   private exportClassesAsCsv() {
     const results = this.props.results!.Class!;
-    const { header } = this.startCsv();
+    const { header } = ChampionshipResults.startCsv(
+      'Class',
+      results.year,
+      results.organization,
+      Object.values(results.driversByClass)[0][0].points.length,
+    );
 
     const rows = [
       ...header,
@@ -248,7 +253,12 @@ export class ChampionshipResults extends Component<
     championshipType: Exclude<ChampionshipType, 'Class'>,
   ) {
     const results = this.props.results![championshipType]!;
-    const { header } = this.startCsv();
+    const { header } = ChampionshipResults.startCsv(
+      championshipType,
+      results.year,
+      results.organization,
+      results.drivers[0].points.length,
+    );
 
     const rows = results.drivers
       .sort((d1, d2) => d2.totalPoints - d1.totalPoints)
@@ -262,18 +272,20 @@ export class ChampionshipResults extends Component<
     });
   }
 
-  private startCsv() {
-    const results = this.props.results!.Class!;
-    const totalEventCount = Object.values(results.driversByClass)[0][0].points
-      .length;
+  private static startCsv(
+    championshipType: ChampionshipType,
+    year: number,
+    organization: string,
+    totalEventCount: number,
+  ) {
     const eventsToCount =
       ChampionshipResultsParser.calculateEventsToCount(totalEventCount);
 
     return {
       header: [
-        [results.organization],
+        [organization],
         [
-          `${results.year} Class Championship -- Best ${eventsToCount} of ${totalEventCount}`,
+          `${year} ${championshipType} Championship -- Best ${eventsToCount} of ${totalEventCount}`,
         ],
         [],
         [

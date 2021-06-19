@@ -2,8 +2,10 @@ import { EOL } from 'os';
 import assert from 'assert';
 import 'react-toastify/dist/ReactToastify.css';
 import 'bootswatch/dist/slate/bootstrap.css';
+import 'react-bootstrap-typeahead/css/Typeahead.css';
 import { Component, ComponentPropsWithoutRef } from 'react';
 import { Button, Col, Container, Row, Spinner } from 'react-bootstrap';
+import { Typeahead } from 'react-bootstrap-typeahead';
 import { toast, ToastContainer } from 'react-toastify';
 import parse from 'csv-parse/lib/sync';
 import {
@@ -24,6 +26,8 @@ interface AppState {
 
   eventResults?: EventResults;
   championshipResults?: ChampionshipResults;
+
+  newLadies: string[];
 }
 
 class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
@@ -42,6 +46,7 @@ class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
         Ladies: undefined,
       },
       processing: false,
+      newLadies: [],
     };
   }
 
@@ -74,7 +79,10 @@ class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
                 onFileSelect={async (f) => {
                   try {
                     await this.validateUploadedEventResultsFile(f);
-                    this.setState({ eventResultsFile: f });
+                    const eventResults = await this.eventResultsParser.parse(
+                      await f.text(),
+                    );
+                    this.setState({ eventResultsFile: f, eventResults });
                     return true;
                   } catch (e) {
                     console.error(e.message);
@@ -89,6 +97,21 @@ class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
                     Ready to process <code>{f.name}</code> as new event results
                   </p>
                 )}
+              />
+
+              <Typeahead
+                placeholder={'Names of first-time ladies championship drivers'}
+                disabled={!this.state.eventResults}
+                options={Object.values(this.state.eventResults || {})
+                  .map((classCategory) => Object.values(classCategory))
+                  .flat()
+                  .map((classResults) => classResults.drivers)
+                  .flat()
+                  .map((driver) => driver.name)}
+                multiple
+                onChange={(newLadies) => {
+                  this.setState({ newLadies });
+                }}
               />
             </Col>
 
@@ -138,7 +161,11 @@ class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
             <Col>
               <Button
                 style={{ width: '150px' }}
-                disabled={this.state.eventResultsFile === undefined}
+                disabled={
+                  Object.values(this.state.championshipResultsFiles).filter(
+                    (v) => v,
+                  ).length === 0
+                }
                 variant={'primary'}
                 onClick={async () => {
                   this.setState({ processing: true });
@@ -149,6 +176,7 @@ class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
                     await this.championshipResultsProcessor.parse(
                       this.state.championshipResultsFiles,
                       eventResults,
+                      this.state.newLadies,
                     );
                   this.setState({
                     eventResults,
@@ -160,7 +188,7 @@ class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
                 {this.state.processing ? (
                   <Spinner animation={'border'} />
                 ) : (
-                  <span>Process</span>
+                  <span>Process Championship</span>
                 )}
               </Button>
             </Col>

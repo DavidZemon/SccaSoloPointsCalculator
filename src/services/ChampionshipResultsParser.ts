@@ -21,6 +21,7 @@ export class ChampionshipResultsParser {
   async parse(
     inputFiles: Record<ChampionshipType, File | undefined>,
     eventResults: EventResults,
+    newLadies: string[],
   ): Promise<ChampionshipResults> {
     const allDriversForEvent = Object.values(eventResults)
       .map((classCategory) => Object.values(classCategory))
@@ -84,6 +85,33 @@ export class ChampionshipResultsParser {
                       return o;
                     }, {} as Record<string, Driver>),
                     fastestNoviceOfDay,
+                  );
+                break;
+              case 'Ladies':
+                const ladiesNames = [
+                  ...rows.slice(3).map((row) => row[1].toLowerCase()),
+                  ...newLadies.map((name) => name.toLowerCase()),
+                ];
+                const ladies = allDriversForEvent.filter((driver) =>
+                  ladiesNames.includes(driver.name.toLowerCase()),
+                );
+                const fastestLadiesOfDay = Math.min(
+                  ...ladies.map(
+                    (driver) =>
+                      (driver.bestLap().time || Infinity) *
+                      this.paxService.getMultiplierFromLongName(
+                        driver.carClass,
+                      ),
+                  ),
+                );
+                results[championshipType as IndexedChampionshipType] =
+                  this.parseIndexedResults(
+                    rows,
+                    ladies.reduce((o, d) => {
+                      o[d.id] = d;
+                      return o;
+                    }, {} as Record<string, Driver>),
+                    fastestLadiesOfDay,
                   );
                 break;
             }
