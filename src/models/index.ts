@@ -6,6 +6,7 @@ export class LapTime {
   public readonly dnf: boolean;
   public readonly rerun: boolean;
   public readonly dsq: boolean;
+  public readonly dns: boolean;
 
   constructor(lap_time_str: string) {
     switch (lap_time_str) {
@@ -13,24 +14,35 @@ export class LapTime {
         this.dnf = true;
         this.rerun = false;
         this.dsq = false;
+        this.dns = false;
         this.cones = 0;
         break;
       case 'RRN':
         this.dnf = false;
         this.rerun = true;
         this.dsq = false;
+        this.dns = false;
         this.cones = 0;
         break;
       case 'DSQ':
         this.dnf = false;
         this.rerun = false;
         this.dsq = true;
+        this.dns = false;
+        this.cones = 0;
+        break;
+      case 'DNS':
+        this.dnf = false;
+        this.rerun = false;
+        this.dsq = false;
+        this.dns = true;
         this.cones = 0;
         break;
       default:
         this.dnf = false;
         this.rerun = false;
         this.dsq = false;
+        this.dns = false;
         const timeParts = lap_time_str.split('(');
         this.time = parseFloat(timeParts[0]);
         this.cones =
@@ -44,6 +56,7 @@ export class LapTime {
     if (this.dnf) return 'DNF';
     else if (this.rerun) return 'Re-run';
     else if (this.dsq) return 'DSQ';
+    else if (this.dns) return 'DNS';
     else {
       let time = this.time!;
       if (paxMultiplier) time *= paxMultiplier;
