@@ -102,8 +102,6 @@ class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
                 placeholder={'Names of first-time ladies championship drivers'}
                 disabled={!this.state.eventResults}
                 options={Object.values(this.state.eventResults || {})
-                  .map((classCategory) => Object.values(classCategory))
-                  .flat()
                   .map((classResults) => classResults.drivers)
                   .flat()
                   .map((driver) => driver.name)}

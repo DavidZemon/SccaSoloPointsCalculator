@@ -1,10 +1,5 @@
 import parse from 'csv-parse/lib/sync';
-import {
-  ClassCategoryResults,
-  ClassResults,
-  Driver,
-  EventResults,
-} from '../models';
+import { ClassResults, Driver, EventResults } from '../models';
 
 export class EventResultsParser {
   public static readonly HEADER = [
@@ -28,48 +23,35 @@ export class EventResultsParser {
     });
 
     const eventResults: EventResults = {};
-    let classCategoryResults: ClassCategoryResults;
     let currentClass: ClassResults;
     rows
       // Filter out any rows with only empty cells
       .filter((row) => row.filter((cell) => cell.trim().length).length)
       .forEach((row) => {
-        if (row[row.length - 1].endsWith('Category')) {
-          // Just the class category
-          classCategoryResults = {};
-          eventResults[row[row.length - 1]] = classCategoryResults;
-        } else if (row.length === 65) {
+        if (row.length === 61) {
           // Class + table header + first row
-          const className = row[11];
+          const className = row[10];
           currentClass = new ClassResults(className);
-          classCategoryResults[className] = currentClass;
-          EventResultsParser.processResultsRow(row.slice(15), currentClass);
+          eventResults[className] = currentClass;
+          EventResultsParser.processResultsRow(row.slice(14), currentClass);
         } else if (row[0] === 'Results') {
-          EventResultsParser.processResultsRow(row.slice(11), currentClass);
+          EventResultsParser.processResultsRow(row.slice(10), currentClass);
         } else {
           // Class + table header + first row (when missing extra header prefix)
           const classname = row[0];
           currentClass = new ClassResults(classname);
-          classCategoryResults[classname] = currentClass;
+          eventResults[classname] = currentClass;
           EventResultsParser.processResultsRow(row.slice(4), currentClass);
         }
       });
 
-    const categoriesToRemove: string[] = [];
-    Object.entries(eventResults).forEach(([category, categoryResults]) => {
-      const classesToRemove: string[] = [];
-      Object.values(categoryResults).forEach((classResults) => {
-        if (!classResults.drivers.length) {
-          classesToRemove.push(classResults.carClass);
-        }
+    const classesToRemove: string[] = [];
+    Object.values(eventResults)
+      .filter((classResults) => !classResults.drivers.length)
+      .forEach((classResults) => {
+        classesToRemove.push(classResults.carClass);
       });
-      classesToRemove.forEach((carClass) => delete categoryResults[carClass]);
-
-      if (!Object.keys(categoryResults).length) {
-        categoriesToRemove.push(category);
-      }
-    });
-    categoriesToRemove.forEach((category) => delete eventResults[category]);
+    classesToRemove.forEach((carClass) => delete eventResults[carClass]);
 
     return eventResults;
   }
@@ -84,20 +66,16 @@ export class EventResultsParser {
       );
     else {
       const meta = row.slice(0, this.HEADER.length);
-      const times = row.slice(this.HEADER.length, row.length - 4);
+      const times = row.slice(this.HEADER.length, row.length - 3);
 
-      const indexOfFastest = 3;
-      const indexOfDifference = 13;
+      const indexOfFastest = 2;
+      const indexOfDifference = 11;
       const fastest = times[indexOfFastest];
       const difference = times[indexOfDifference];
 
-      const fixedTimes = [
-        ...times.slice(0, indexOfFastest),
-        ...times.slice(indexOfFastest + 1, indexOfDifference),
-        ...times.slice(indexOfDifference + 1),
-      ].filter((t) => !!t.trim());
+      const fixedTimes = [times[0], times[3], times[5], times[1], times[2]];
 
-      if (meta[0] === 'T') {
+      if (meta[1] === 'T') {
         classResults.trophyCount += 1;
       }
       const driver = new Driver(

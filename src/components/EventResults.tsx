@@ -4,7 +4,6 @@ import { Accordion, Button, Card, Col, Row, Table } from 'react-bootstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faDownload } from '@fortawesome/free-solid-svg-icons';
 import {
-  ClassCategoryResults,
   ClassResults,
   Driver,
   EventResults as EventResultsData,
@@ -66,7 +65,7 @@ export class EventResults extends Component<
                   <Card.Body>
                     <Accordion>
                       {Object.entries(this.props.results).map(
-                        ([classCategory, categoryResults], index) => (
+                        ([carClass, classResults], index) => (
                           <Card key={index}>
                             <Card.Header>
                               <Accordion.Toggle
@@ -74,13 +73,38 @@ export class EventResults extends Component<
                                 as={Button}
                                 variant={'link'}
                               >
-                                {classCategory}
+                                {carClass}
                               </Accordion.Toggle>
                             </Card.Header>
 
                             <Accordion.Collapse eventKey={`${index}`}>
                               <Card.Body>
-                                {this.displayCategoryResults(categoryResults)}
+                                <Table key={index} striped hover borderless>
+                                  <thead>
+                                    <tr>
+                                      <th colSpan={10}>
+                                        {classResults.carClass} (Trophies:{' '}
+                                        {classResults.trophyCount})
+                                      </th>
+                                    </tr>
+                                    <tr>
+                                      {EventResultsParser.HEADER.slice(
+                                        0,
+                                        6,
+                                      ).map((header, index) => (
+                                        <th key={index}>{header}</th>
+                                      ))}
+                                      <th>Region</th>
+                                      <th colSpan={12}>Lap Times</th>
+                                      <th>Fastest</th>
+                                      <th>Difference</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {' '}
+                                    {this.displayClassResultsRows(classResults)}
+                                  </tbody>
+                                </Table>
                               </Card.Body>
                             </Accordion.Collapse>
                           </Card>
@@ -114,36 +138,7 @@ export class EventResults extends Component<
     }
   }
 
-  private displayCategoryResults(
-    categoryResults: ClassCategoryResults,
-  ): JSX.Element[] {
-    return EventResults.convertCategoryResults(
-      categoryResults,
-      (classResults, index) => (
-        <Table key={index} striped hover borderless>
-          <thead>
-            <tr>
-              <th colSpan={10}>
-                {classResults.carClass} (Trophies: {classResults.trophyCount})
-              </th>
-            </tr>
-            <tr>
-              {EventResultsParser.HEADER.slice(0, 6).map((header, index) => (
-                <th key={index}>{header}</th>
-              ))}
-              <th>Region</th>
-              <th colSpan={12}>Lap Times</th>
-              <th>Fastest</th>
-              <th>Difference</th>
-            </tr>
-          </thead>
-          <tbody>{this.displayClassResults(classResults)}</tbody>
-        </Table>
-      ),
-    );
-  }
-
-  private displayClassResults(classResults: ClassResults): JSX.Element[] {
+  private displayClassResultsRows(classResults: ClassResults): JSX.Element[] {
     const bestLapInClass = classResults.getBestInClass();
     return classResults.drivers.map((driver, index) => {
       const driverBestLap = driver.bestLap();
@@ -173,8 +168,6 @@ export class EventResults extends Component<
     resultsType: 'PAX' | 'Raw' | 'Novice',
   ): JSX.Element {
     const drivers = Object.values(this.props.results!)
-      .map((categoryResults) => Object.values(categoryResults))
-      .flat()
       .map((classResults) => classResults.drivers)
       .flat();
     const sortedDrivers = drivers
@@ -294,11 +287,8 @@ export class EventResults extends Component<
         'Points',
         'Region',
       ],
-      ...Object.entries(this.props.results!)
-        .map(([classCategory, categoryResults]) => [
-          [classCategory],
-          ...this.exportCategoryResultsToCsv(categoryResults),
-        ])
+      ...Object.values(this.props.results!)
+        .map((classResults) => this.exportClassResultsToCsv(classResults))
         .flat(),
     ];
     this.setState({
@@ -307,63 +297,38 @@ export class EventResults extends Component<
     });
   }
 
-  private exportCategoryResultsToCsv(
-    categoryResults: ClassCategoryResults,
-  ): string[][] {
-    return EventResults.convertCategoryResults(
-      categoryResults,
-      (classResults) => {
-        const shortCarClass = toShortClassName(classResults.carClass);
-        const paxMultiplier = this.props.paxService.getMultiplierFromLongName(
-          classResults.carClass,
-        );
-        const bestLapInClass = classResults.getBestInClass();
-        const bestIndexTime = (bestLapInClass || Infinity) * paxMultiplier;
+  private exportClassResultsToCsv(classResults: ClassResults): string[][] {
+    const shortCarClass = toShortClassName(classResults.carClass);
+    const paxMultiplier = this.props.paxService.getMultiplierFromLongName(
+      classResults.carClass,
+    );
+    const bestLapInClass = classResults.getBestInClass();
+    const bestIndexTime = (bestLapInClass || Infinity) * paxMultiplier;
+    return [
+      [`${shortCarClass} - ${classResults.carClass}`],
+      ...classResults.drivers.map((driver, index) => {
+        const driverBestLap = driver.bestLap();
         return [
-          [`${shortCarClass} - ${classResults.carClass}`],
-          ...classResults.drivers.map((driver, index) => {
-            const driverBestLap = driver.bestLap();
-            return [
-              `${driver.position}`,
-              driver.name,
-              driver.carDescription,
-              shortCarClass,
-              `${driver.carNumber}`,
-              driverBestLap.toString(undefined, false),
-              driverBestLap.toString(paxMultiplier, false),
-              index === 0
-                ? ''
-                : driver.difference(
-                    (classResults.drivers[index - 1].bestLap().time ||
-                      Infinity) * paxMultiplier,
-                    paxMultiplier,
-                  ),
-              driver.difference(bestIndexTime, paxMultiplier),
-              `${calculatePointsForDriver(
-                bestIndexTime,
-                driver,
+          `${driver.position}`,
+          driver.name,
+          driver.carDescription,
+          shortCarClass,
+          `${driver.carNumber}`,
+          driverBestLap.toString(undefined, false),
+          driverBestLap.toString(paxMultiplier, false),
+          index === 0
+            ? ''
+            : driver.difference(
+                (classResults.drivers[index - 1].bestLap().time || Infinity) *
+                  paxMultiplier,
                 paxMultiplier,
-              )}`,
-              driver.region,
-            ];
-          }),
+              ),
+          driver.difference(bestIndexTime, paxMultiplier),
+          `${calculatePointsForDriver(bestIndexTime, driver, paxMultiplier)}`,
+          driver.region,
         ];
-      },
-    ).flat();
-  }
-
-  private static convertCategoryResults<T>(
-    categoryResults: ClassCategoryResults,
-    converter: (classResults: ClassResults, index: number) => T,
-  ): T[] {
-    return Object.values(categoryResults)
-      .filter((classResults) => classResults.drivers.length)
-      .sort((a, b) => {
-        if (a.carClass < b.carClass) return -1;
-        if (a.carClass > b.carClass) return 1;
-        else return 0;
-      })
-      .map(converter);
+      }),
+    ];
   }
 
   private exportCombinedResultsToCsv(

@@ -82,27 +82,27 @@ export class Driver {
   constructor(
     carClass: string,
     [
-      trophy,
       rookie,
+      trophy,
       position,
       carNumber,
+      _1,
       name,
       carDescription,
-      tireManufacturer,
-      region,
+      _2,
     ]: string[],
     times: string[],
     fastest: string,
   ) {
     this.id = name.toLowerCase().trim(); // FIXME
     this.trophy = trophy === 'T';
-    this.rookie = rookie === 'R';
+    this.rookie = rookie === 'M';
     this.position = parseFloat(position);
     this.carNumber = parseInt(carNumber);
     this.carClass = carClass;
     this.name = name;
     this.carDescription = carDescription;
-    this.region = region;
+    this.region = '';
     this.times = times
       .filter((lapTime) => !!lapTime.trim())
       .map((lapTime) => new LapTime(lapTime));
@@ -142,9 +142,7 @@ export class ClassResults {
   }
 }
 
-export type ClassCategoryResults = Record<string, ClassResults>;
-
-export type EventResults = Record<string, ClassCategoryResults>;
+export type EventResults = Record<string, ClassResults>;
 
 export type IndexedChampionshipType = 'PAX' | 'Novice' | 'Ladies';
 export type ChampionshipType = 'Class' | IndexedChampionshipType;

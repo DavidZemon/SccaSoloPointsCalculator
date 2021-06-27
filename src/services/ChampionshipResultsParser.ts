@@ -161,16 +161,15 @@ export class ChampionshipResultsParser {
 
     // Get this event's driver IDs
     Object.values(eventResults)
-      .map((classCategory) => Object.entries(classCategory))
-      .flat()
-      .filter(([carClass, _]) => carClass !== 'Fun Class')
-      .forEach(([carClass, classResults]) => {
-        newEventDriversByClassAndId[carClass] = classResults.drivers
-          .filter((driver) => !driver.dsq)
-          .reduce((o, d) => {
-            o[d.id] = d;
-            return o;
-          }, {} as Record<string, Driver>);
+      .filter((classResults) => classResults.carClass !== 'Fun Class')
+      .forEach((classResults) => {
+        newEventDriversByClassAndId[classResults.carClass] =
+          classResults.drivers
+            .filter((driver) => !driver.dsq)
+            .reduce((o, d) => {
+              o[d.id] = d;
+              return o;
+            }, {} as Record<string, Driver>);
       });
 
     const allDriverIdsByClass: Record<string, string[]> = {};
