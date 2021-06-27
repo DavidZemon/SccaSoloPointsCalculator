@@ -24,8 +24,6 @@ export class ChampionshipResultsParser {
     newLadies: string[],
   ): Promise<ChampionshipResults> {
     const allDriversForEvent = Object.values(eventResults)
-      .map((classCategory) => Object.values(classCategory))
-      .flat()
       .filter((classResults) => classResults.carClass !== 'Fun Class')
       .map((classResults) => classResults.drivers)
       .flat()
@@ -141,7 +139,10 @@ export class ChampionshipResultsParser {
     rows.slice(4).forEach((row) => {
       // If the first cell is non-numeric, it is a class header
       if (isNaN(parseInt(row[0]))) {
-        currentClass = row[0].split(' – ')[1];
+        currentClass = row[0].split(' - ')[1];
+        if (!currentClass) {
+          currentClass = row[0].split(' – ')[1];
+        }
         rowsByClassAndDriverId[currentClass] = classRows = {};
       } else {
         const id = row[1].toLowerCase().trim();
