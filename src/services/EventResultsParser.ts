@@ -24,14 +24,15 @@ export class EventResultsParser {
       ltrim: true,
       rtrim: true,
       relaxColumnCount: true,
+      skipEmptyLines: true,
     });
 
     const eventResults: EventResults = {};
     let classCategoryResults: ClassCategoryResults;
     let currentClass: ClassResults;
     rows
-      // Filter out any undefined rows and rows with only empty cells
-      .filter((row) => row && row.filter((cell) => cell.trim().length).length)
+      // Filter out any rows with only empty cells
+      .filter((row) => row.filter((cell) => cell.trim().length).length)
       .forEach((row) => {
         if (row[row.length - 1].endsWith('Category')) {
           // Just the class category
