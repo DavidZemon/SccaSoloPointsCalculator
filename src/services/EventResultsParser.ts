@@ -56,10 +56,7 @@ export class EventResultsParser {
     return eventResults;
   }
 
-  static processResultsRow(
-    row: string[],
-    classResults?: ClassResults,
-  ): string[] {
+  static processResultsRow(row: string[], classResults?: ClassResults): void {
     if (!classResults)
       throw Error(
         `Class results object is uninitialized for row ${row.join(',')}`,
@@ -69,11 +66,9 @@ export class EventResultsParser {
       const times = row.slice(this.HEADER.length, row.length - 3);
 
       const indexOfFastest = 2;
-      const indexOfDifference = 11;
       const fastest = times[indexOfFastest];
-      const difference = times[indexOfDifference];
 
-      const fixedTimes = [times[0], times[3], times[5], times[1], times[2]];
+      const fixedTimes = times.slice(12);
 
       if (meta[1] === 'T') {
         classResults.trophyCount += 1;
@@ -87,8 +82,6 @@ export class EventResultsParser {
       if (driver.times.length) {
         classResults.drivers.push(driver);
       }
-
-      return [...meta, ...fixedTimes, fastest, difference];
     }
   }
 }
