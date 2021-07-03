@@ -1,5 +1,5 @@
 import parse from 'csv-parse/lib/sync';
-import { ClassResults, Driver, EventResults } from '../models';
+import { ClassResults, Driver, EventResults, LapTime } from '../models';
 
 export class EventResultsParser {
   public static readonly HEADER = [
@@ -45,6 +45,8 @@ export class EventResultsParser {
         }
       });
 
+    // Prune empty classes. This occurs when a class has at least one registered driver for the event, but no drivers in
+    // that class end up driving
     const classesToRemove: string[] = [];
     Object.values(eventResults)
       .filter((classResults) => !classResults.drivers.length)
@@ -52,6 +54,18 @@ export class EventResultsParser {
         classesToRemove.push(classResults.carClass);
       });
     classesToRemove.forEach((carClass) => delete eventResults[carClass]);
+
+    // Fix any sorting issues with drivers, such as a bug in Pronto that causes 1-day drivers in a 2-day event to place
+    // higher than 2-day drivers
+    Object.values(eventResults)
+      .map((classResults) =>
+        classResults.drivers.sort((a, b) =>
+          LapTime.compare(a.bestLap(), b.bestLap()),
+        ),
+      )
+      .forEach((drivers) => {
+        drivers.forEach((driver, index) => (driver.position = index + 1));
+      });
 
     return eventResults;
   }

@@ -89,7 +89,7 @@ export class Driver {
   readonly times: LapTime[];
   readonly trophy: boolean;
   readonly rookie: boolean;
-  readonly position: number;
+  position: number;
   readonly dsq: boolean;
 
   constructor(
