@@ -56,7 +56,7 @@ export class EventResults extends Component<
                     <FontAwesomeIcon
                       className={'clickable'}
                       icon={faDownload}
-                      onClick={() => this.exportResultsByClassCsv()}
+                      onClick={() => this.exportFullResultsToCsv()}
                     />
                   </Button>
                 </Card.Header>
@@ -387,6 +387,50 @@ export class EventResults extends Component<
     this.setState({
       exportFilename: `event_${resultsType.toLowerCase()}_results.csv`,
       csvContent: results.map((row) => `"${row.join('","')}"`).join(EOL),
+    });
+  }
+
+  private exportFullResultsToCsv(): void {
+    const lines = Object.entries(this.props.results!)
+      .map(([carClass, classResults]) => [
+        [`${carClass} (Trophies: ${classResults.trophyCount})`],
+        [
+          'TR',
+          'RK',
+          'Pos',
+          'Nbr',
+          "Driver's name, Town",
+          'Car, Sponsor',
+          'Region',
+          'Saturday Times',
+          ...new Array(5).fill(null).map(() => ''),
+          'Sunday Times',
+          ...new Array(5).fill(null).map(() => ''),
+          'Combined',
+          'Difference',
+        ],
+        ...classResults.drivers.map((driver) => [
+          driver.trophy ? 'T' : '',
+          driver.rookie ? 'R' : '',
+          `${driver.position}`,
+          driver.carNumber,
+          driver.name,
+          driver.carDescription,
+          driver.region,
+          ...driver.day1Times,
+          '', // separator between day 1 & 2 times
+          ...driver.day2Times,
+          '',
+          driver.combined,
+          driver.position === 1
+            ? ''
+            : driver.difference(classResults.drivers[0].combined.time),
+        ]),
+      ])
+      .flat();
+    this.setState({
+      exportFilename: 'event_results.csv',
+      csvContent: lines.map((line) => `"${line.join('","')}"`).join(EOL),
     });
   }
 }
