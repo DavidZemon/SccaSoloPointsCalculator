@@ -95,8 +95,10 @@ export class EventResults extends Component<
                                         <th key={index}>{header}</th>
                                       ))}
                                       <th>Region</th>
-                                      <th colSpan={12}>Lap Times</th>
-                                      <th>Fastest</th>
+                                      <th colSpan={6}>Saturday Times</th>
+                                      <th />
+                                      <th colSpan={6}>Sunday Times</th>
+                                      <th>Combined</th>
                                       <th>Difference</th>
                                     </tr>
                                   </thead>
@@ -139,9 +141,9 @@ export class EventResults extends Component<
   }
 
   private displayClassResultsRows(classResults: ClassResults): JSX.Element[] {
-    const bestLapInClass = classResults.getBestInClass();
+    const bestCombinedInClass = classResults.getBestInClass();
     return classResults.drivers.map((driver, index) => {
-      const driverBestLap = driver.bestLap();
+      const driverCombinedTime = driver.combined;
       return (
         <tr key={index}>
           <td>{driver.trophy ? 'T' : ''}</td>
@@ -151,14 +153,21 @@ export class EventResults extends Component<
           <td>{driver.name}</td>
           <td>{driver.carDescription}</td>
           <td>{driver.region}</td>
-          {driver.times.map((lapTime, index) => (
-            <td key={index}>{lapTime.toString()}</td>
+          {driver.day1Times.map((lapTime, index) => (
+            <td key={`day1Time-${index}`}>{lapTime.toString()}</td>
           ))}
-          {new Array(12 - driver.times.length).fill(null).map((_, index) => (
-            <td key={index} />
+          {new Array(6 - driver.day1Times.length).fill(null).map((_, index) => (
+            <td key={`day1TimeFiller-${index}`} />
           ))}
-          <td>{driverBestLap.toString()}</td>
-          <td>{driver.difference(bestLapInClass)}</td>
+          <td />
+          {driver.day2Times.map((lapTime, index) => (
+            <td key={`day2Time-${index}`}>{lapTime.toString()}</td>
+          ))}
+          {new Array(6 - driver.day2Times.length).fill(null).map((_, index) => (
+            <td key={`day2TimeFiller-${index}`} />
+          ))}
+          <td>{driverCombinedTime.toString()}</td>
+          <td>{driver.difference(bestCombinedInClass)}</td>
         </tr>
       );
     });
@@ -175,7 +184,7 @@ export class EventResults extends Component<
         (driver) =>
           [
             driver,
-            (driver.bestLap().time || Infinity) *
+            (driver.combined.time || Infinity) *
               (resultsType === 'Raw'
                 ? 1
                 : this.props.paxService.getMultiplierFromLongName(
@@ -242,24 +251,22 @@ export class EventResults extends Component<
                     <td>{driver.carDescription}</td>
                     <td>{driver.region}</td>
                     <td>
-                      {driver
-                        .bestLap()
-                        .toString(
-                          resultsType
-                            ? this.props.paxService.getMultiplierFromLongName(
-                                driver.carClass,
-                              )
-                            : undefined,
-                        )}
+                      {driver.combined.toString(
+                        resultsType === 'Raw'
+                          ? undefined
+                          : this.props.paxService.getMultiplierFromLongName(
+                              driver.carClass,
+                            ),
+                      )}
                     </td>
                     <td>
                       {driver.difference(
                         fastestOfDay,
-                        resultsType
-                          ? this.props.paxService.getMultiplierFromLongName(
+                        resultsType === 'Raw'
+                          ? undefined
+                          : this.props.paxService.getMultiplierFromLongName(
                               driver.carClass,
-                            )
-                          : undefined,
+                            ),
                       )}
                     </td>
                   </tr>
@@ -307,19 +314,18 @@ export class EventResults extends Component<
     return [
       [`${shortCarClass} - ${classResults.carClass}`],
       ...classResults.drivers.map((driver, index) => {
-        const driverBestLap = driver.bestLap();
         return [
           `${driver.position}`,
           driver.name,
           driver.carDescription,
           shortCarClass,
           `${driver.carNumber}`,
-          driverBestLap.toString(undefined, false),
-          driverBestLap.toString(paxMultiplier, false),
+          driver.combined.toString(undefined, false),
+          driver.combined.toString(paxMultiplier, false),
           index === 0
             ? ''
             : driver.difference(
-                (classResults.drivers[index - 1].bestLap().time || Infinity) *
+                (classResults.drivers[index - 1].combined.time || Infinity) *
                   paxMultiplier,
                 paxMultiplier,
               ),
@@ -359,11 +365,11 @@ export class EventResults extends Component<
           driver.carDescription,
           toShortClassName(driver.carClass),
           `${driver.carNumber}`,
-          driver.bestLap().toString(isRawTime ? undefined : driverPax, false),
+          driver.combined.toString(isRawTime ? undefined : driverPax, false),
           index === 0
             ? ''
             : driver.difference(
-                (sortedDrivers[index - 1][0].bestLap().time || Infinity) *
+                (sortedDrivers[index - 1][0].combined.time || Infinity) *
                   (isRawTime
                     ? 1
                     : this.props.paxService.getMultiplierFromLongName(

@@ -53,7 +53,7 @@ export class ChampionshipResultsParser {
                 const bestPaxTimeOfDay = Math.min(
                   ...allDriversForEvent.map(
                     (driver) =>
-                      (driver.bestLap().time || Infinity) *
+                      (driver.combined.time || Infinity) *
                       this.paxService.getMultiplierFromLongName(
                         driver.carClass,
                       ),
@@ -69,7 +69,7 @@ export class ChampionshipResultsParser {
                 const fastestNoviceOfDay = Math.min(
                   ...novices.map(
                     (driver) =>
-                      (driver.bestLap().time || Infinity) *
+                      (driver.combined.time || Infinity) *
                       this.paxService.getMultiplierFromLongName(
                         driver.carClass,
                       ),
@@ -96,7 +96,7 @@ export class ChampionshipResultsParser {
                 const fastestLadiesOfDay = Math.min(
                   ...ladies.map(
                     (driver) =>
-                      (driver.bestLap().time || Infinity) *
+                      (driver.combined.time || Infinity) *
                       this.paxService.getMultiplierFromLongName(
                         driver.carClass,
                       ),
@@ -196,7 +196,7 @@ export class ChampionshipResultsParser {
       const bestTimeOfDay =
         Math.min(
           ...(Object.values(newEventDriversById)
-            .map((driver) => driver.bestLap().time)
+            .map((driver) => driver.combined.time)
             .filter((t) => t) as number[]),
         ) * this.paxService.getMultiplierFromLongName(carClass);
       driversByClass[carClass] = driverIds.map(

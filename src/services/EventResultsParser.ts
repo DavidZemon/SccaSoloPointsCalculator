@@ -60,7 +60,7 @@ export class EventResultsParser {
     Object.values(eventResults)
       .map((classResults) =>
         classResults.drivers.sort((a, b) =>
-          LapTime.compare(a.bestLap(), b.bestLap()),
+          LapTime.compare(a.combined, b.combined),
         ),
       )
       .forEach((drivers) => {
@@ -79,10 +79,8 @@ export class EventResultsParser {
       const meta = row.slice(0, this.HEADER.length);
       const times = row.slice(this.HEADER.length, row.length - 3);
 
-      const indexOfFastest = 2;
-      const fastest = times[indexOfFastest];
-
-      const fixedTimes = times.slice(12);
+      const day1Times = [times[0], times[3], times[5], times[1], times[2]];
+      const day2Times = times.slice(12);
 
       if (meta[1] === 'T') {
         classResults.trophyCount += 1;
@@ -90,10 +88,10 @@ export class EventResultsParser {
       const driver = new Driver(
         classResults.carClass,
         meta,
-        fixedTimes,
-        fastest,
+        day1Times,
+        day2Times,
       );
-      if (driver.times.length) {
+      if (driver.day1Times.length && driver.day2Times.length) {
         classResults.drivers.push(driver);
       }
     }

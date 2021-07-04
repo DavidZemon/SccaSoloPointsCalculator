@@ -66,6 +66,16 @@ export class LapTime {
     }
   }
 
+  add(rhs: LapTime): LapTime {
+    if (this.dnf || this.rerun || this.dsq || this.dns) {
+      return this;
+    } else if (rhs.dnf || rhs.rerun || rhs.dsq || rhs.dns) {
+      return rhs;
+    } else {
+      return new LapTime(`${this.time! + rhs.time!}`);
+    }
+  }
+
   static compare(lhs: LapTime, rhs: LapTime): number {
     if (lhs.time === rhs.time) {
       return 0;
@@ -86,7 +96,9 @@ export class Driver {
   readonly carClass: string;
   readonly carDescription: string;
   readonly region: string;
-  readonly times: LapTime[];
+  readonly day1Times: LapTime[];
+  readonly day2Times: LapTime[];
+  readonly combined: LapTime;
   readonly trophy: boolean;
   readonly rookie: boolean;
   position: number;
@@ -104,8 +116,8 @@ export class Driver {
       carDescription,
       _2,
     ]: string[],
-    times: string[],
-    fastest: string,
+    day1Times: string[],
+    day2Times: string[],
   ) {
     this.id = name.toLowerCase().trim(); // FIXME
     this.trophy = trophy === 'T';
@@ -116,22 +128,26 @@ export class Driver {
     this.name = name;
     this.carDescription = carDescription;
     this.region = '';
-    this.times = times
+    this.day1Times = day1Times
       .filter((lapTime) => !!lapTime.trim())
       .map((lapTime) => new LapTime(lapTime));
-    this.dsq =
-      this.times.length !== 0 && fastest.trim().toLowerCase() === 'no time';
+    this.day2Times = day2Times
+      .filter((lapTime) => !!lapTime.trim())
+      .map((lapTime) => new LapTime(lapTime));
+    this.dsq = false;
+    this.combined = this.bestLap(this.day1Times).add(
+      this.bestLap(this.day2Times),
+    );
   }
 
-  bestLap(): LapTime {
+  bestLap(times: LapTime[]): LapTime {
     if (this.dsq) return LapTime.DSQ;
-    else return [...this.times].sort(LapTime.compare)[0];
+    else return [...times].sort(LapTime.compare)[0];
   }
 
   difference(fastestOfDay?: number, paxMultiplier: number = 1): string {
-    const myBestLap = this.bestLap();
-    const myTimeToCompare = paxMultiplier * (myBestLap.time || Infinity);
-    return myBestLap.time
+    const myTimeToCompare = paxMultiplier * (this.combined.time || Infinity);
+    return this.combined.time
       ? myTimeToCompare === fastestOfDay
         ? ''
         : `${(fastestOfDay! - myTimeToCompare).toFixed(3)}`
@@ -151,7 +167,7 @@ export class ClassResults {
   }
 
   getBestInClass(): number | undefined {
-    return [...this.drivers[0].times].sort(LapTime.compare)[0].time;
+    return this.drivers[0].combined.time;
   }
 }
 
