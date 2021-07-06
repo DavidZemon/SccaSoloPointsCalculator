@@ -60,7 +60,7 @@ export class EventResultsParser {
     Object.values(eventResults)
       .map((classResults) =>
         classResults.drivers.sort((a, b) =>
-          LapTime.compare(a.bestLap(a.day1Times), b.bestLap(b.day1Times)),
+          LapTime.compare(a.bestLap(a.day2Times), b.bestLap(b.day2Times)),
         ),
       )
       .forEach((drivers) => {

@@ -149,13 +149,13 @@ export class EventResults extends Component<
           <td>{driver.name}</td>
           <td>{driver.carDescription}</td>
           <td>{driver.region}</td>
-          {driver.day1Times.map((lapTime, index) => (
+          {driver.day2Times.map((lapTime, index) => (
             <td key={`day1Time-${index}`}>{lapTime.toString()}</td>
           ))}
-          {new Array(6 - driver.day1Times.length).fill(null).map((_, index) => (
+          {new Array(6 - driver.day2Times.length).fill(null).map((_, index) => (
             <td key={`day1TimeFiller-${index}`} />
           ))}
-          <td>{driver.bestLap(driver.day1Times).toString()}</td>
+          <td>{driver.bestLap(driver.day2Times).toString()}</td>
           <td>{driver.difference(bestTimeOfDay)}</td>
         </tr>
       );
@@ -383,7 +383,7 @@ export class EventResults extends Component<
     const lines = Object.entries(this.props.results!)
       .map(([carClass, classResults]) => {
         const bestInClass = classResults.drivers[0].bestLap(
-          classResults.drivers[0].day1Times,
+          classResults.drivers[0].day2Times,
         ).time;
         return [
           [`${carClass} (Trophies: ${classResults.trophyCount})`],
@@ -411,14 +411,14 @@ export class EventResults extends Component<
               driver.name,
               driver.carDescription,
               driver.region,
-              ...driver.day1Times,
+              ...driver.day2Times,
               '',
-              driver.bestLap(driver.day1Times),
+              driver.bestLap(driver.day2Times),
               driver.position === 1 ? '' : driver.difference(bestInClass),
               driver.position === 1
                 ? ''
                 : driver.difference(
-                    previousDriver.bestLap(previousDriver.day1Times).time,
+                    previousDriver.bestLap(previousDriver.day2Times).time,
                   ),
             ];
           }),
