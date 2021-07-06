@@ -95,15 +95,12 @@ export class EventResults extends Component<
                                         <th key={index}>{header}</th>
                                       ))}
                                       <th>Region</th>
-                                      <th colSpan={6}>Saturday Times</th>
-                                      <th />
-                                      <th colSpan={6}>Sunday Times</th>
-                                      <th>Combined</th>
+                                      <th colSpan={6}>Lap Times</th>
+                                      <th>Best Lap</th>
                                       <th>Difference</th>
                                     </tr>
                                   </thead>
                                   <tbody>
-                                    {' '}
                                     {this.displayClassResultsRows(classResults)}
                                   </tbody>
                                 </Table>
@@ -141,9 +138,8 @@ export class EventResults extends Component<
   }
 
   private displayClassResultsRows(classResults: ClassResults): JSX.Element[] {
-    const bestCombinedInClass = classResults.getBestInClass();
+    const bestTimeOfDay = classResults.getBestInClass();
     return classResults.drivers.map((driver, index) => {
-      const driverCombinedTime = driver.combined;
       return (
         <tr key={index}>
           <td>{driver.trophy ? 'T' : ''}</td>
@@ -159,15 +155,8 @@ export class EventResults extends Component<
           {new Array(6 - driver.day1Times.length).fill(null).map((_, index) => (
             <td key={`day1TimeFiller-${index}`} />
           ))}
-          <td />
-          {driver.day2Times.map((lapTime, index) => (
-            <td key={`day2Time-${index}`}>{lapTime.toString()}</td>
-          ))}
-          {new Array(6 - driver.day2Times.length).fill(null).map((_, index) => (
-            <td key={`day2TimeFiller-${index}`} />
-          ))}
-          <td>{driverCombinedTime.toString()}</td>
-          <td>{driver.difference(bestCombinedInClass)}</td>
+          <td>{driver.bestLap(driver.day1Times).toString()}</td>
+          <td>{driver.difference(bestTimeOfDay)}</td>
         </tr>
       );
     });
@@ -392,41 +381,49 @@ export class EventResults extends Component<
 
   private exportFullResultsToCsv(): void {
     const lines = Object.entries(this.props.results!)
-      .map(([carClass, classResults]) => [
-        [`${carClass} (Trophies: ${classResults.trophyCount})`],
-        [
-          'TR',
-          'RK',
-          'Pos',
-          'Nbr',
-          "Driver's name, Town",
-          'Car, Sponsor',
-          'Region',
-          'Saturday Times',
-          ...new Array(5).fill(null).map(() => ''),
-          'Sunday Times',
-          ...new Array(5).fill(null).map(() => ''),
-          'Combined',
-          'Difference',
-        ],
-        ...classResults.drivers.map((driver) => [
-          driver.trophy ? 'T' : '',
-          driver.rookie ? 'R' : '',
-          `${driver.position}`,
-          driver.carNumber,
-          driver.name,
-          driver.carDescription,
-          driver.region,
-          ...driver.day1Times,
-          '', // separator between day 1 & 2 times
-          ...driver.day2Times,
-          '',
-          driver.combined,
-          driver.position === 1
-            ? ''
-            : driver.difference(classResults.drivers[0].combined.time),
-        ]),
-      ])
+      .map(([carClass, classResults]) => {
+        const bestInClass = classResults.drivers[0].bestLap(
+          classResults.drivers[0].day1Times,
+        ).time;
+        return [
+          [`${carClass} (Trophies: ${classResults.trophyCount})`],
+          [
+            'TR',
+            'RK',
+            'Pos',
+            'Nbr',
+            "Driver's name, Town",
+            'Car, Sponsor',
+            'Region',
+            'Saturday Times',
+            ...new Array(5).fill(null).map(() => ''),
+            'Best Lap',
+            'Difference',
+            'From Previous',
+          ],
+          ...classResults.drivers.map((driver) => {
+            const previousDriver = classResults.drivers[driver.position - 2];
+            return [
+              driver.trophy ? 'T' : '',
+              driver.rookie ? 'R' : '',
+              `${driver.position}`,
+              driver.carNumber,
+              driver.name,
+              driver.carDescription,
+              driver.region,
+              ...driver.day1Times,
+              '',
+              driver.bestLap(driver.day1Times),
+              driver.position === 1 ? '' : driver.difference(bestInClass),
+              driver.position === 1
+                ? ''
+                : driver.difference(
+                    previousDriver.bestLap(previousDriver.day1Times).time,
+                  ),
+            ];
+          }),
+        ];
+      })
       .flat();
     this.setState({
       exportFilename: 'event_results.csv',

@@ -146,8 +146,9 @@ export class Driver {
   }
 
   difference(fastestOfDay?: number, paxMultiplier: number = 1): string {
-    const myTimeToCompare = paxMultiplier * (this.combined.time || Infinity);
-    return this.combined.time
+    const timeToCompare = this.bestLap(this.day1Times);
+    const myTimeToCompare = paxMultiplier * (timeToCompare.time || Infinity);
+    return timeToCompare.time
       ? myTimeToCompare === fastestOfDay
         ? ''
         : `${(fastestOfDay! - myTimeToCompare).toFixed(3)}`
@@ -167,7 +168,7 @@ export class ClassResults {
   }
 
   getBestInClass(): number | undefined {
-    return this.drivers[0].combined.time;
+    return this.drivers[0].bestLap(this.drivers[0].day1Times).time;
   }
 }
 
