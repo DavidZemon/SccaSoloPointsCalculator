@@ -6,6 +6,7 @@ interface FileUploadBoxProps extends ComponentPropsWithoutRef<any> {
   file?: File;
   onFileSelect: ((f: File) => boolean) | ((f: File) => Promise<boolean>);
   fileSelectedMessage: (f: File) => JSX.Element | JSX.Element[];
+  accept?: string;
 }
 
 interface FileUploadState {
@@ -28,6 +29,7 @@ export class FileUploadBox extends Component<
       <Form.File
         label={this.props.label}
         custom
+        accept={this.props.accept}
         onChange={async (event: ChangeEvent<HTMLInputElement>) => {
           if (
             event.target.files &&

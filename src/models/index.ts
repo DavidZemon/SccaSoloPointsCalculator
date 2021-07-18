@@ -1,6 +1,12 @@
-export class LapTime {
-  public static readonly DSQ = new LapTime('DSQ');
+export type TimeSelection = 'day1' | 'day2' | 'combined';
+export type IndexedChampionshipType = 'PAX' | 'Novice' | 'Ladies';
+export type ChampionshipType = 'Class' | IndexedChampionshipType;
 
+export class LapTime {
+  public static readonly DSQ = new LapTime(0, 0, 'DSQ');
+  public static readonly DNS = new LapTime(0, 0, 'DNS');
+
+  public readonly raw?: number;
   public readonly time?: number;
   public readonly cones: number;
   public readonly dnf: boolean;
@@ -8,8 +14,8 @@ export class LapTime {
   public readonly dsq: boolean;
   public readonly dns: boolean;
 
-  constructor(lap_time_str: string) {
-    switch (lap_time_str) {
+  constructor(rawTime: number, cones: number, penalty?: string) {
+    switch (penalty) {
       case 'DNF':
         this.dnf = true;
         this.rerun = false;
@@ -43,12 +49,9 @@ export class LapTime {
         this.rerun = false;
         this.dsq = false;
         this.dns = false;
-        const timeParts = lap_time_str.split('(');
-        this.time = parseFloat(timeParts[0]);
-        this.cones =
-          timeParts.length === 2
-            ? parseInt(timeParts[1].slice(0, timeParts[1].length - 1))
-            : 0;
+        this.raw = rawTime;
+        this.time = rawTime + cones * 2;
+        this.cones = cones;
     }
   }
 
@@ -72,7 +75,7 @@ export class LapTime {
     } else if (rhs.dnf || rhs.rerun || rhs.dsq || rhs.dns) {
       return rhs;
     } else {
-      return new LapTime(`${this.time! + rhs.time!}`);
+      return new LapTime(this.raw! + rhs.raw!, this.cones + rhs.cones);
     }
   }
 
@@ -89,6 +92,30 @@ export class LapTime {
   }
 }
 
+export interface ExportedDriver {
+  Position?: number;
+  Class: string;
+  Number: number;
+  'First Name'?: string;
+  'Last Name'?: string;
+  'Car Year'?: number;
+  'Car Make'?: string;
+  'Car Model'?: string;
+  'Car Color'?: string;
+  'Member #'?: number;
+  Rookie?: number;
+  Ladies?: number;
+  DSQ?: number;
+  Region?: string;
+  'Best Run': number | string;
+  'Pax Index': number;
+  'Pax Time': number;
+  'Runs Day1'?: number;
+  'Runs Day2'?: number;
+  day1?: LapTime[];
+  day2?: LapTime[];
+}
+
 export class Driver {
   readonly id: string;
   readonly name: string;
@@ -96,58 +123,73 @@ export class Driver {
   readonly carClass: string;
   readonly carDescription: string;
   readonly region: string;
-  readonly day1Times: LapTime[];
-  readonly day2Times: LapTime[];
-  readonly combined: LapTime;
-  readonly trophy: boolean;
   readonly rookie: boolean;
-  position: number;
+  readonly ladiesChampionship: boolean;
+  position?: number;
   readonly dsq: boolean;
+  readonly paxMultiplier: number;
 
-  constructor(
-    carClass: string,
-    [
-      rookie,
-      trophy,
-      position,
-      carNumber,
-      _1,
-      name,
-      carDescription,
-      _2,
-    ]: string[],
-    day1Times: string[],
-    day2Times: string[],
-  ) {
-    this.id = name.toLowerCase().trim(); // FIXME
-    this.trophy = trophy === 'T';
-    this.rookie = rookie === 'M';
-    this.position = parseFloat(position);
-    this.carNumber = parseInt(carNumber);
-    this.carClass = carClass;
-    this.name = name;
-    this.carDescription = carDescription;
-    this.region = '';
-    this.day1Times = day1Times
-      .filter((lapTime) => !!lapTime.trim())
-      .map((lapTime) => new LapTime(lapTime));
-    this.day2Times = day2Times
-      .filter((lapTime) => !!lapTime.trim())
-      .map((lapTime) => new LapTime(lapTime));
+  private readonly day1Times?: LapTime[];
+  private readonly day2Times?: LapTime[];
+  private readonly combined: LapTime;
+
+  constructor(driver: ExportedDriver) {
+    this.rookie = !!driver.Rookie;
+    this.ladiesChampionship = !!driver.Ladies;
+    this.carNumber = driver.Number;
+    this.carClass = driver.Class;
+    this.name = `${driver['First Name']} ${driver['Last Name']}`;
+    this.id = this.name.toLowerCase().trim();
+    this.carDescription =
+      `${driver['Car Year']} ${driver['Car Make']} ${driver['Car Model']}`.trim();
+    this.region = driver.Region || '';
     this.dsq = false;
-    this.combined = this.bestLap(this.day1Times).add(
-      this.bestLap(this.day2Times),
-    );
+    this.paxMultiplier = driver['Pax Index'];
+    this.day1Times = driver.day1;
+    this.day2Times = driver.day2;
+    this.combined =
+      this.day1Times?.length && this.day2Times?.length
+        ? this.bestLap('day1').add(this.bestLap('day2'))
+        : LapTime.DNS;
   }
 
-  bestLap(times: LapTime[]): LapTime {
+  bestLap(timeSelection: TimeSelection = 'day1'): LapTime {
     if (this.dsq) return LapTime.DSQ;
-    else return [...times].sort(LapTime.compare)[0];
+    else {
+      switch (timeSelection) {
+        case 'day1':
+          return [...(this.getTimes('day1') || [LapTime.DNS])].sort(
+            LapTime.compare,
+          )[0];
+        case 'day2':
+          return [...(this.getTimes('day2') || [LapTime.DNS])].sort(
+            LapTime.compare,
+          )[0];
+        case 'combined':
+          return this.combined;
+      }
+    }
   }
 
-  difference(fastestOfDay?: number, paxMultiplier: number = 1): string {
-    const timeToCompare = this.bestLap(this.day2Times);
-    const myTimeToCompare = paxMultiplier * (timeToCompare.time || Infinity);
+  getTimes(
+    timeSelect: Exclude<TimeSelection, 'combined'> = 'day1',
+  ): LapTime[] | undefined {
+    switch (timeSelect) {
+      case 'day1':
+        return this.day1Times;
+      case 'day2':
+        return this.day2Times;
+    }
+  }
+
+  difference(
+    fastestOfDay?: number,
+    usePax = false,
+    timeSelection: TimeSelection = 'day1',
+  ): string {
+    const timeToCompare = this.bestLap(timeSelection);
+    const myTimeToCompare =
+      (usePax ? this.paxMultiplier : 1) * (timeToCompare.time || Infinity);
     return timeToCompare.time
       ? myTimeToCompare === fastestOfDay
         ? ''
@@ -167,15 +209,12 @@ export class ClassResults {
     this.drivers = [];
   }
 
-  getBestInClass(): number | undefined {
-    return this.drivers[0].bestLap(this.drivers[0].day2Times).time;
+  getBestInClass(timeSelection: TimeSelection = 'day1'): number | undefined {
+    return this.drivers[0].bestLap(timeSelection).time;
   }
 }
 
 export type EventResults = Record<string, ClassResults>;
-
-export type IndexedChampionshipType = 'PAX' | 'Novice' | 'Ladies';
-export type ChampionshipType = 'Class' | IndexedChampionshipType;
 
 export interface ChampionshipDriver {
   id: string;

@@ -19,7 +19,7 @@ export function calculatePointsForDriver(
   driver: Driver,
   paxMultiplier = 1,
 ): number {
-  const actual = (driver.combined.time || Infinity) * paxMultiplier;
+  const actual = (driver.bestLap().time || Infinity) * paxMultiplier;
   if (fastest === actual) {
     return 10000;
   } else {

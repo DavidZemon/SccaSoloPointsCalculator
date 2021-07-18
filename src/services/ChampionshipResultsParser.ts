@@ -12,14 +12,11 @@ import {
   IndexedChampionshipResults,
   IndexedChampionshipType,
 } from '../models';
-import { PaxService } from './PaxService';
 import { calculatePointsForDriver } from './utilities';
 
 export class ChampionshipResultsParser {
-  constructor(private readonly paxService: PaxService) {}
-
   async parse(
-    inputFiles: Record<ChampionshipType, File | undefined>,
+    inputFiles: Partial<Record<ChampionshipType, File>>,
     eventResults: EventResults,
     newLadies: string[],
   ): Promise<ChampionshipResults> {
@@ -53,10 +50,8 @@ export class ChampionshipResultsParser {
                 const bestPaxTimeOfDay = Math.min(
                   ...allDriversForEvent.map(
                     (driver) =>
-                      (driver.combined.time || Infinity) *
-                      this.paxService.getMultiplierFromLongName(
-                        driver.carClass,
-                      ),
+                      (driver.bestLap().time || Infinity) *
+                      driver.paxMultiplier,
                   ),
                 );
                 results[championshipType as IndexedChampionshipType] =
@@ -69,10 +64,8 @@ export class ChampionshipResultsParser {
                 const fastestNoviceOfDay = Math.min(
                   ...novices.map(
                     (driver) =>
-                      (driver.combined.time || Infinity) *
-                      this.paxService.getMultiplierFromLongName(
-                        driver.carClass,
-                      ),
+                      (driver.bestLap().time || Infinity) *
+                      driver.paxMultiplier,
                   ),
                 );
                 results[championshipType as IndexedChampionshipType] =
@@ -96,10 +89,8 @@ export class ChampionshipResultsParser {
                 const fastestLadiesOfDay = Math.min(
                   ...ladies.map(
                     (driver) =>
-                      (driver.combined.time || Infinity) *
-                      this.paxService.getMultiplierFromLongName(
-                        driver.carClass,
-                      ),
+                      (driver.bestLap().time || Infinity) *
+                      driver.paxMultiplier,
                   ),
                 );
                 results[championshipType as IndexedChampionshipType] =
@@ -139,9 +130,9 @@ export class ChampionshipResultsParser {
     rows.slice(4).forEach((row) => {
       // If the first cell is non-numeric, it is a class header
       if (isNaN(parseInt(row[0]))) {
-        currentClass = row[0].split(' - ')[1];
+        currentClass = row[0].split(' - ')[0];
         if (!currentClass) {
-          currentClass = row[0].split(' – ')[1];
+          currentClass = row[0].split(' – ')[0];
         }
         rowsByClassAndDriverId[currentClass] = classRows = {};
       } else {
@@ -193,15 +184,21 @@ export class ChampionshipResultsParser {
       const classHistory = rowsByClassAndDriverId[carClass] || [];
       const newEventDriversById = newEventDriversByClassAndId[carClass] || [];
 
-      const bestTimeOfDay =
-        Math.min(
-          ...(Object.values(newEventDriversById)
-            .map((driver) => driver.combined.time)
-            .filter((t) => t) as number[]),
-        ) * this.paxService.getMultiplierFromLongName(carClass);
+      const bestTimeOfDay = Math.min(
+        ...Object.values(newEventDriversById)
+          .map(
+            (driver) =>
+              [driver.bestLap().time, driver.paxMultiplier] as [
+                number | undefined,
+                number,
+              ],
+          )
+          .filter(([t, _]) => t !== undefined)
+          .map(([t, multiplier]) => t! * multiplier),
+      );
       driversByClass[carClass] = driverIds.map(
         (driverId): ClassChampionshipDriver => ({
-          ...this.buildDriver(
+          ...ChampionshipResultsParser.buildDriver(
             driverId,
             classHistory,
             newEventDriversById,
@@ -251,7 +248,7 @@ export class ChampionshipResultsParser {
           ...Object.keys(previousDrivers),
         ]),
       ].map((driverId) =>
-        this.buildDriver(
+        ChampionshipResultsParser.buildDriver(
           driverId,
           previousDrivers,
           driversForEventById,
@@ -296,7 +293,7 @@ export class ChampionshipResultsParser {
     }
   }
 
-  private buildDriver<T extends Omit<ChampionshipDriver, 'totalPoints'>>(
+  private static buildDriver<T extends Omit<ChampionshipDriver, 'totalPoints'>>(
     driverId: string,
     previousDrivers: Record<string, T>,
     driversForEventById: Record<string, Driver>,
@@ -306,18 +303,16 @@ export class ChampionshipResultsParser {
     const driverHistory = previousDrivers[driverId];
     const driverNewResults = driversForEventById[driverId];
     if (driverHistory && driverNewResults) {
-      const newPoints = [
-        ...driverHistory.points,
-        calculatePointsForDriver(
-          bestPaxTimeOfDay,
-          driverNewResults,
-          this.paxService.getMultiplierFromLongName(driverNewResults.carClass),
-        ),
-      ];
+      const pointsForNewEvent = calculatePointsForDriver(
+        bestPaxTimeOfDay,
+        driverNewResults,
+        driverNewResults.paxMultiplier,
+      );
+      const newPointListing = [...driverHistory.points, pointsForNewEvent];
       return {
         ...driverHistory,
-        points: newPoints,
-        totalPoints: ChampionshipResultsParser.sumPoints(newPoints),
+        points: newPointListing,
+        totalPoints: ChampionshipResultsParser.sumPoints(newPointListing),
       };
     } else if (driverHistory) {
       const newPoints = [...driverHistory.points, 0];
@@ -333,7 +328,7 @@ export class ChampionshipResultsParser {
         calculatePointsForDriver(
           bestPaxTimeOfDay,
           newDriver,
-          this.paxService.getMultiplierFromLongName(newDriver.carClass),
+          newDriver.paxMultiplier,
         ),
       ];
       return {
@@ -352,9 +347,9 @@ export class ChampionshipResultsParser {
       return fleshedOutPoints.reduce((sum, p) => sum + p, 0);
     } else {
       const eventsToCount = this.calculateEventsToCount(points.length);
+
       return fleshedOutPoints
-        .sort()
-        .reverse()
+        .sort((a, b) => b - a)
         .slice(0, eventsToCount)
         .reduce((sum, p) => sum + p, 0);
     }

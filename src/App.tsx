@@ -1,4 +1,3 @@
-import assert from 'assert';
 import 'react-toastify/dist/ReactToastify.css';
 import 'bootswatch/dist/slate/bootstrap.css';
 import 'react-bootstrap-typeahead/css/Typeahead.css';
@@ -6,12 +5,7 @@ import { Component, ComponentPropsWithoutRef } from 'react';
 import { Button, Col, Container, Row, Spinner } from 'react-bootstrap';
 import { Typeahead } from 'react-bootstrap-typeahead';
 import { toast, ToastContainer } from 'react-toastify';
-import parse from 'csv-parse/lib/sync';
-import {
-  ChampionshipResultsParser,
-  EventResultsParser,
-  PaxService,
-} from './services';
+import { ChampionshipResultsParser, EventResultsParser } from './services';
 import { ChampionshipResults, ChampionshipType, EventResults } from './models';
 import { EventResults as EventResultsComponent } from './components/EventResults';
 import { FileUploadBox } from './components/FileUploadBox';
@@ -19,7 +13,7 @@ import { ChampionshipResults as ChampionshipResultsComponent } from './component
 
 interface AppState {
   eventResultsFile?: File;
-  championshipResultsFiles: Record<ChampionshipType, File | undefined>;
+  championshipResultsFiles: Partial<Record<ChampionshipType, File>>;
 
   processing: boolean;
 
@@ -30,11 +24,10 @@ interface AppState {
 }
 
 class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
-  private readonly paxService = new PaxService();
   private readonly eventResultsParser = new EventResultsParser();
-  private readonly championshipResultsProcessor = new ChampionshipResultsParser(
-    this.paxService,
-  );
+  private readonly championshipResultsProcessor =
+    new ChampionshipResultsParser();
+
   constructor(props: Readonly<ComponentPropsWithoutRef<any>>) {
     super(props);
     this.state = {
@@ -47,14 +40,6 @@ class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
       processing: false,
       newLadies: [],
     };
-  }
-
-  async componentDidMount() {
-    try {
-      await this.paxService.init();
-    } catch (e) {
-      console.error(e);
-    }
   }
 
   render() {
@@ -75,13 +60,15 @@ class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
               <FileUploadBox
                 label={'Full Event Results (by class)'}
                 file={this.state.eventResultsFile}
+                accept={'.csv'}
                 onFileSelect={async (f) => {
                   try {
-                    await this.validateUploadedEventResultsFile(f);
+                    await App.validateUploadedEventResultsFile(f);
                     const eventResults = await this.eventResultsParser.parse(
                       await f.text(),
                     );
                     this.setState({ eventResultsFile: f, eventResults });
+                    await this.processChampionships();
                     return true;
                   } catch (e) {
                     console.error(e.message);
@@ -93,12 +80,14 @@ class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
                 }}
                 fileSelectedMessage={(f) => (
                   <p>
-                    Ready to process <code>{f.name}</code> as new event results
+                    Showing results for <code>{f.name}</code> as new event
+                    results
                   </p>
                 )}
               />
 
               <Typeahead
+                id={'newLadiesInput'}
                 placeholder={'Names of first-time ladies championship drivers'}
                 disabled={!this.state.eventResults}
                 options={Object.values(this.state.eventResults || {})
@@ -118,25 +107,24 @@ class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
                   <FileUploadBox
                     key={index}
                     label={`${championshipType} Championship Standings`}
+                    accept={'.xls,.xlsx'}
                     file={
                       this.state.championshipResultsFiles[
                         championshipType as ChampionshipType
                       ]
                     }
-                    onFileSelect={(f) => {
-                      const newResults = {
-                        ...this.state.championshipResultsFiles,
-                      };
-                      newResults[championshipType as ChampionshipType] = f;
-                      this.setState({ championshipResultsFiles: newResults });
+                    onFileSelect={async (f) => {
+                      await this.processChampionships(
+                        championshipType as ChampionshipType,
+                        f,
+                      );
                       return true;
                     }}
                     fileSelectedMessage={(f) =>
                       this.state.eventResultsFile ? (
                         <p>
-                          Ready to process <code>{f.name}</code> as{' '}
-                          <strong>{championshipType}</strong> championship
-                          standings
+                          Showing <strong>{championshipType}</strong>{' '}
+                          championship standings based on <code>{f.name}</code>
                         </p>
                       ) : (
                         <p>
@@ -164,40 +152,20 @@ class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
                   ).length === 0
                 }
                 variant={'primary'}
-                onClick={async () => {
-                  this.setState({ processing: true });
-                  const eventResults = await this.eventResultsParser.parse(
-                    await this.state.eventResultsFile!.text(),
-                  );
-                  const championshipResults =
-                    await this.championshipResultsProcessor.parse(
-                      this.state.championshipResultsFiles,
-                      eventResults,
-                      this.state.newLadies,
-                    );
-                  this.setState({
-                    eventResults,
-                    championshipResults,
-                    processing: false,
-                  });
-                }}
+                onClick={async () => await this.processChampionships()}
               >
                 {this.state.processing ? (
                   <Spinner animation={'border'} />
                 ) : (
-                  <span>Process Championship</span>
+                  <span>Reprocess Championship</span>
                 )}
               </Button>
             </Col>
           </Row>
 
-          <EventResultsComponent
-            paxService={this.paxService}
-            results={this.state.eventResults}
-          />
+          <EventResultsComponent results={this.state.eventResults} />
 
           <ChampionshipResultsComponent
-            paxService={this.paxService}
             results={this.state.championshipResults}
           />
         </Container>
@@ -205,27 +173,37 @@ class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
     );
   }
 
-  async validateUploadedEventResultsFile(f: File) {
+  private async processChampionships(
+    championshipType?: ChampionshipType,
+    newFile?: File,
+  ): Promise<void> {
+    const mergedFiles = { ...this.state.championshipResultsFiles };
+    if (championshipType && newFile) {
+      mergedFiles[championshipType] = newFile;
+      this.setState({ championshipResultsFiles: mergedFiles });
+    }
+    if (this.state.eventResults) {
+      this.setState({ processing: true });
+      this.setState({
+        processing: false,
+        championshipResults: await this.championshipResultsProcessor.parse(
+          mergedFiles,
+          this.state.eventResults,
+          this.state.newLadies,
+        ),
+      });
+    }
+  }
+
+  private static async validateUploadedEventResultsFile(f: File) {
+    const EXPECTED_HEADER =
+      'Class, Number, First Name,Last Name, Car Year, Car Make, Car Model, Car Color, Member #, Rookie, Ladies, DSQ, Region, Best Run, Pax Index, Pax Time';
     const content = await f.text();
-    const rows: string[][] = parse(content, {
-      columns: false,
-      ltrim: true,
-      rtrim: true,
-      relaxColumnCount: true,
-      skipEmptyLines: true,
-    });
-    const firstLine = rows[0];
-
-    const errorMessage = `First line does not match expected value. Actual: \`"${firstLine.join(
-      '"',
-    )}"\``;
-
-    assert(firstLine[0] === 'Results', errorMessage);
-    assert(firstLine[2] === 'www.ProntoTimingSystem.com', errorMessage);
-    assert(firstLine[3] === 'Pos', errorMessage);
-    assert(firstLine[4] === 'Nbr', errorMessage);
-    assert(firstLine[5] === "Driver's name, Town", errorMessage);
-    assert(firstLine[6] === 'Car, Sponsor', errorMessage);
+    if (!content.includes(EXPECTED_HEADER)) {
+      throw new Error(
+        `Expected results file to start with header: ${EXPECTED_HEADER}`,
+      );
+    }
   }
 }
 

@@ -6,18 +6,13 @@ import {
   ChampionshipType,
   IndexedChampionshipResults,
 } from '../models';
-import {
-  ChampionshipResultsParser,
-  PaxService,
-  toShortClassName,
-} from '../services';
+import { ChampionshipResultsParser, toShortClassName } from '../services';
 import { RamDownload } from './DownloadButton';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faDownload } from '@fortawesome/free-solid-svg-icons';
 import { EOL } from 'os';
 
 interface ChampionshipResultsProps extends PropsWithoutRef<any> {
-  paxService: PaxService;
   results?: ChampionshipResultsData;
 }
 
