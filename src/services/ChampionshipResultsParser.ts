@@ -127,24 +127,27 @@ export class ChampionshipResultsParser {
     > = {};
     let classRows: Record<string, Omit<ClassChampionshipDriver, 'totalPoints'>>;
     let currentClass: string;
-    rows.slice(4).forEach((row) => {
-      // If the first cell is non-numeric, it is a class header
-      if (isNaN(parseInt(row[0]))) {
-        currentClass = row[0].split(' - ')[0];
-        if (!currentClass) {
-          currentClass = row[0].split(' – ')[0];
+
+    rows
+      .slice(ChampionshipResultsParser.getHeaderRowIndex(rows) + 1)
+      .forEach((row) => {
+        // If the first cell is non-numeric, it is a class header
+        if (isNaN(parseInt(row[0]))) {
+          currentClass = row[0].split(' - ')[0];
+          if (!currentClass) {
+            currentClass = row[0].split(' – ')[0];
+          }
+          rowsByClassAndDriverId[currentClass] = classRows = {};
+        } else {
+          const id = row[1].toLowerCase().trim();
+          classRows[id] = {
+            carClass: currentClass,
+            id,
+            name: row[1],
+            points: row.slice(2, row.length - 2).map((p) => parseInt(p)),
+          };
         }
-        rowsByClassAndDriverId[currentClass] = classRows = {};
-      } else {
-        const id = row[1].toLowerCase().trim();
-        classRows[id] = {
-          carClass: currentClass,
-          id,
-          name: row[1],
-          points: row.slice(2, row.length - 2).map((p) => parseInt(p)),
-        };
-      }
-    });
+      });
 
     const newEventDriversByClassAndId: Record<
       string,
@@ -271,6 +274,7 @@ export class ChampionshipResultsParser {
     const csvString = xlsxUtils.sheet_to_csv(sheet, {
       strip: true,
       skipHidden: true,
+      blankrows: false,
     });
 
     const rows = parse(csvString, {
@@ -353,6 +357,13 @@ export class ChampionshipResultsParser {
         .slice(0, eventsToCount)
         .reduce((sum, p) => sum + p, 0);
     }
+  }
+
+  private static getHeaderRowIndex(rows: string[][]): number {
+    for (let i = 0; i < rows.length; ++i) {
+      if (rows[i][0] === 'Rank' && rows[i][1] === 'Driver') return i;
+    }
+    throw new Error('Unable to find header row index');
   }
 
   static calculateEventsToCount(totalEventCount: number): number {
