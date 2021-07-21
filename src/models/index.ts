@@ -217,13 +217,29 @@ export class ClassResults {
 export type EventResults = Record<string, ClassResults>;
 
 export interface ChampionshipDriver {
+  /**
+   * Unique(ish) ID for the driver
+   */
   id: string;
+  /**
+   * Driver's full name
+   */
   name: string;
+  /**
+   * Points that this driver has earned, sorted by event sequence
+   */
   points: number[];
+  /**
+   * Total championship points value. Will not be equal to the sum of `ChampionshipDriver.points` if the driver has
+   * participated in six or more events.
+   */
   totalPoints: number;
 }
 
 export interface ClassChampionshipDriver extends ChampionshipDriver {
+  /**
+   * Class that this driver has participated in
+   */
   carClass: string;
 }
 
