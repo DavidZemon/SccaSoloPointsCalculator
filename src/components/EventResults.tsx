@@ -329,7 +329,8 @@ export class EventResults extends Component<
         ...(isRawTime ? [] : ['Points']),
       ],
       ...sortedDrivers.map(([driver, time], index) => {
-        const previousDriver = sortedDrivers[index - 1][0];
+        const previousDriver =
+          index === 0 ? driver : sortedDrivers[index - 1][0];
         return [
           `${index + 1}`,
           driver.name,
@@ -337,7 +338,7 @@ export class EventResults extends Component<
           driver.carClass.short,
           `${driver.carNumber}`,
           driver
-            .bestLap('combined')
+            .bestLap('day1')
             .toString(isRawTime ? undefined : driver.paxMultiplier, false),
           index === 0
             ? ''
