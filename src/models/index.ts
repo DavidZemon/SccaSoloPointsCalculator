@@ -2,6 +2,485 @@ export type TimeSelection = 'day1' | 'day2' | 'combined';
 export type IndexedChampionshipType = 'PAX' | 'Novice' | 'Ladies';
 export type ChampionshipType = 'Class' | IndexedChampionshipType;
 
+export type ClassCategory =
+  | 'Street Category'
+  | 'Street Touring Category'
+  | 'Street Prepared Category'
+  | 'Street Modified Category'
+  | 'Prepared Category'
+  | 'Modified Category'
+  | 'Classic American Muscle Category'
+  | 'Xtreme Street'
+  | 'Miscellaneous Category';
+
+export type ShortCarClass =
+  | 'SS'
+  | 'AS'
+  | 'BS'
+  | 'CS'
+  | 'DS'
+  | 'ES'
+  | 'FS'
+  | 'GS'
+  | 'HS'
+  | 'STH'
+  | 'STU'
+  | 'STX'
+  | 'STR'
+  | 'STS'
+  | 'SSP'
+  | 'ASP'
+  | 'BSP'
+  | 'CSP'
+  | 'DSP'
+  | 'ESP'
+  | 'FSP'
+  | 'SSM'
+  | 'SM'
+  | 'SMF'
+  | 'XP'
+  | 'CP'
+  | 'DP'
+  | 'EP'
+  | 'FP'
+  | 'AM'
+  | 'BM'
+  | 'CM'
+  | 'DM'
+  | 'EM'
+  | 'FM'
+  | 'CAMC'
+  | 'CAMT'
+  | 'CAMS'
+  | 'XSA'
+  | 'XSB'
+  | 'EVX'
+  | 'SSL'
+  | 'ASL'
+  | 'BSL'
+  | 'CSL'
+  | 'DSL'
+  | 'ESL'
+  | 'FSL'
+  | 'GSL'
+  | 'HSL'
+  | 'STHL'
+  | 'STUL'
+  | 'STXL'
+  | 'STRL'
+  | 'STSL'
+  | 'SSPL'
+  | 'ASPL'
+  | 'BSPL'
+  | 'CSPL'
+  | 'DSPL'
+  | 'ESPL'
+  | 'FSPL'
+  | 'SSML'
+  | 'SML'
+  | 'SMFL'
+  | 'XPL'
+  | 'CPL'
+  | 'DPL'
+  | 'EPL'
+  | 'FPL'
+  | 'AML'
+  | 'BML'
+  | 'CML'
+  | 'DML'
+  | 'EML'
+  | 'FML'
+  | 'CAMCL'
+  | 'CAMTL'
+  | 'CAMSL'
+  | 'XSAL'
+  | 'XSBL'
+  | 'EVXL'
+  | 'FUN';
+
+export type LongCarClass =
+  | 'Super Street'
+  | 'A Street'
+  | 'B Street'
+  | 'C Street'
+  | 'D Street'
+  | 'E Street'
+  | 'F Street'
+  | 'G Street'
+  | 'H Street'
+  | 'Street Touring Hatchback'
+  | 'Street Touring Ultra'
+  | 'Street Touring Xtreme'
+  | 'Street Touring Roadster'
+  | 'Street Touring Sport'
+  | 'Super Street Prepared'
+  | 'A Street Prepared'
+  | 'B Street Prepared'
+  | 'C Street Prepared'
+  | 'D Street Prepared'
+  | 'E Street Prepared'
+  | 'F Street Prepared'
+  | 'Super Street Modified'
+  | 'Street Modified'
+  | 'Street Modified Front-Wheel-Drive'
+  | 'X Prepared'
+  | 'C Prepared'
+  | 'D Prepared'
+  | 'E Prepared'
+  | 'F Prepared'
+  | 'A Modified'
+  | 'B Modified'
+  | 'C Modified'
+  | 'D Modified'
+  | 'E Modified'
+  | 'F Modified'
+  | 'Classic American Muscle Contemporary'
+  | 'Classic American Muscle Traditional'
+  | 'Classic American Muscle Sports'
+  | 'Xtreme Street A'
+  | 'Xtreme Street B'
+  | 'Electric Vehicle Xtreme'
+  | 'Super Street Ladies'
+  | 'A Street Ladies'
+  | 'B Street Ladies'
+  | 'C Street Ladies'
+  | 'D Street Ladies'
+  | 'E Street Ladies'
+  | 'F Street Ladies'
+  | 'G Street Ladies'
+  | 'H Street Ladies'
+  | 'Street Touring Hatchback Ladies'
+  | 'Street Touring Ultra Ladies'
+  | 'Street Touring Xtreme Ladies'
+  | 'Street Touring Roadster Ladies'
+  | 'Street Touring Sport Ladies'
+  | 'Super Street Prepared Ladies'
+  | 'A Street Prepared Ladies'
+  | 'B Street Prepared Ladies'
+  | 'C Street Prepared Ladies'
+  | 'D Street Prepared Ladies'
+  | 'E Street Prepared Ladies'
+  | 'F Street Prepared Ladies'
+  | 'Super Street Modified Ladies'
+  | 'Street Modified Ladies'
+  | 'Street Modified Front-Wheel-Drive Ladies'
+  | 'X Prepared Ladies'
+  | 'C Prepared Ladies'
+  | 'D Prepared Ladies'
+  | 'E Prepared Ladies'
+  | 'F Prepared Ladies'
+  | 'A Modified Ladies'
+  | 'B Modified Ladies'
+  | 'C Modified Ladies'
+  | 'D Modified Ladies'
+  | 'E Modified Ladies'
+  | 'F Modified Ladies'
+  | 'Classic American Muscle Contemporary Ladies'
+  | 'Classic American Muscle Traditional Ladies'
+  | 'Classic American Muscle Sports Ladies'
+  | 'Xtreme Street A Ladies'
+  | 'Xtreme Street B Ladies'
+  | 'Electric Vehicle Xtreme Ladies'
+  | 'Fun';
+
+export const CLASS_MAP: Record<ShortCarClass, CarClass> = {
+  SS: { short: 'SS', long: 'Super Street', category: 'Street Category' },
+  AS: { short: 'AS', long: 'A Street', category: 'Street Category' },
+  BS: { short: 'BS', long: 'B Street', category: 'Street Category' },
+  CS: { short: 'CS', long: 'C Street', category: 'Street Category' },
+  DS: { short: 'DS', long: 'D Street', category: 'Street Category' },
+  ES: { short: 'ES', long: 'E Street', category: 'Street Category' },
+  FS: { short: 'FS', long: 'F Street', category: 'Street Category' },
+  GS: { short: 'GS', long: 'G Street', category: 'Street Category' },
+  HS: { short: 'HS', long: 'H Street', category: 'Street Category' },
+  STH: {
+    short: 'STH',
+    long: 'Street Touring Hatchback',
+    category: 'Street Touring Category',
+  },
+  STU: {
+    short: 'STU',
+    long: 'Street Touring Ultra',
+    category: 'Street Touring Category',
+  },
+  STX: {
+    short: 'STX',
+    long: 'Street Touring Xtreme',
+    category: 'Street Touring Category',
+  },
+  STR: {
+    short: 'STR',
+    long: 'Street Touring Roadster',
+    category: 'Street Touring Category',
+  },
+  STS: {
+    short: 'STS',
+    long: 'Street Touring Sport',
+    category: 'Street Touring Category',
+  },
+  SSP: {
+    short: 'SSP',
+    long: 'Super Street Prepared',
+    category: 'Street Touring Category',
+  },
+  ASP: {
+    short: 'ASP',
+    long: 'A Street Prepared',
+    category: 'Street Prepared Category',
+  },
+  BSP: {
+    short: 'BSP',
+    long: 'B Street Prepared',
+    category: 'Street Prepared Category',
+  },
+  CSP: {
+    short: 'CSP',
+    long: 'C Street Prepared',
+    category: 'Street Prepared Category',
+  },
+  DSP: {
+    short: 'DSP',
+    long: 'D Street Prepared',
+    category: 'Street Prepared Category',
+  },
+  ESP: {
+    short: 'ESP',
+    long: 'E Street Prepared',
+    category: 'Street Prepared Category',
+  },
+  FSP: {
+    short: 'FSP',
+    long: 'F Street Prepared',
+    category: 'Street Prepared Category',
+  },
+  SSM: {
+    short: 'SSM',
+    long: 'Super Street Modified',
+    category: 'Street Modified Category',
+  },
+  SM: {
+    short: 'SM',
+    long: 'Street Modified',
+    category: 'Street Modified Category',
+  },
+  SMF: {
+    short: 'SMF',
+    long: 'Street Modified Front-Wheel-Drive',
+    category: 'Street Modified Category',
+  },
+  XP: { short: 'XP', long: 'X Prepared', category: 'Prepared Category' },
+  CP: { short: 'CP', long: 'C Prepared', category: 'Prepared Category' },
+  DP: { short: 'DP', long: 'D Prepared', category: 'Prepared Category' },
+  EP: { short: 'EP', long: 'E Prepared', category: 'Prepared Category' },
+  FP: { short: 'FP', long: 'F Prepared', category: 'Prepared Category' },
+  AM: { short: 'AM', long: 'A Modified', category: 'Prepared Category' },
+  BM: { short: 'BM', long: 'B Modified', category: 'Prepared Category' },
+  CM: { short: 'CM', long: 'C Modified', category: 'Prepared Category' },
+  DM: { short: 'DM', long: 'D Modified', category: 'Prepared Category' },
+  EM: { short: 'EM', long: 'E Modified', category: 'Prepared Category' },
+  FM: { short: 'FM', long: 'F Modified', category: 'Prepared Category' },
+  CAMC: {
+    short: 'CAMC',
+    long: 'Classic American Muscle Contemporary',
+    category: 'Classic American Muscle Category',
+  },
+  CAMT: {
+    short: 'CAMT',
+    long: 'Classic American Muscle Traditional',
+    category: 'Classic American Muscle Category',
+  },
+  CAMS: {
+    short: 'CAMS',
+    long: 'Classic American Muscle Sports',
+    category: 'Classic American Muscle Category',
+  },
+  XSA: { short: 'XSA', long: 'Xtreme Street A', category: 'Xtreme Street' },
+  XSB: { short: 'XSB', long: 'Xtreme Street B', category: 'Xtreme Street' },
+  EVX: {
+    short: 'EVX',
+    long: 'Electric Vehicle Xtreme',
+    category: 'Miscellaneous Category',
+  },
+  SSL: {
+    short: 'SSL',
+    long: 'Super Street Ladies',
+    category: 'Street Category',
+  },
+  ASL: { short: 'ASL', long: 'A Street Ladies', category: 'Street Category' },
+  BSL: { short: 'BSL', long: 'B Street Ladies', category: 'Street Category' },
+  CSL: { short: 'CSL', long: 'C Street Ladies', category: 'Street Category' },
+  DSL: { short: 'DSL', long: 'D Street Ladies', category: 'Street Category' },
+  ESL: { short: 'ESL', long: 'E Street Ladies', category: 'Street Category' },
+  FSL: { short: 'FSL', long: 'F Street Ladies', category: 'Street Category' },
+  GSL: { short: 'GSL', long: 'G Street Ladies', category: 'Street Category' },
+  HSL: { short: 'HSL', long: 'H Street Ladies', category: 'Street Category' },
+  STHL: {
+    short: 'STHL',
+    long: 'Street Touring Hatchback Ladies',
+    category: 'Street Touring Category',
+  },
+  STUL: {
+    short: 'STUL',
+    long: 'Street Touring Ultra Ladies',
+    category: 'Street Touring Category',
+  },
+  STXL: {
+    short: 'STXL',
+    long: 'Street Touring Xtreme Ladies',
+    category: 'Street Touring Category',
+  },
+  STRL: {
+    short: 'STRL',
+    long: 'Street Touring Roadster Ladies',
+    category: 'Street Touring Category',
+  },
+  STSL: {
+    short: 'STSL',
+    long: 'Street Touring Sport Ladies',
+    category: 'Street Touring Category',
+  },
+  SSPL: {
+    short: 'SSPL',
+    long: 'Super Street Prepared Ladies',
+    category: 'Street Prepared Category',
+  },
+  ASPL: {
+    short: 'ASPL',
+    long: 'A Street Prepared Ladies',
+    category: 'Street Prepared Category',
+  },
+  BSPL: {
+    short: 'BSPL',
+    long: 'B Street Prepared Ladies',
+    category: 'Street Prepared Category',
+  },
+  CSPL: {
+    short: 'CSPL',
+    long: 'C Street Prepared Ladies',
+    category: 'Street Prepared Category',
+  },
+  DSPL: {
+    short: 'DSPL',
+    long: 'D Street Prepared Ladies',
+    category: 'Street Prepared Category',
+  },
+  ESPL: {
+    short: 'ESPL',
+    long: 'E Street Prepared Ladies',
+    category: 'Street Prepared Category',
+  },
+  FSPL: {
+    short: 'FSPL',
+    long: 'F Street Prepared Ladies',
+    category: 'Street Prepared Category',
+  },
+  SSML: {
+    short: 'SSML',
+    long: 'Super Street Modified Ladies',
+    category: 'Street Modified Category',
+  },
+  SML: {
+    short: 'SML',
+    long: 'Street Modified Ladies',
+    category: 'Street Modified Category',
+  },
+  SMFL: {
+    short: 'SMFL',
+    long: 'Street Modified Front-Wheel-Drive Ladies',
+    category: 'Street Modified Category',
+  },
+  XPL: {
+    short: 'XPL',
+    long: 'X Prepared Ladies',
+    category: 'Prepared Category',
+  },
+  CPL: {
+    short: 'CPL',
+    long: 'C Prepared Ladies',
+    category: 'Prepared Category',
+  },
+  DPL: {
+    short: 'DPL',
+    long: 'D Prepared Ladies',
+    category: 'Prepared Category',
+  },
+  EPL: {
+    short: 'EPL',
+    long: 'E Prepared Ladies',
+    category: 'Prepared Category',
+  },
+  FPL: {
+    short: 'FPL',
+    long: 'F Prepared Ladies',
+    category: 'Prepared Category',
+  },
+  AML: {
+    short: 'AML',
+    long: 'A Modified Ladies',
+    category: 'Modified Category',
+  },
+  BML: {
+    short: 'BML',
+    long: 'B Modified Ladies',
+    category: 'Modified Category',
+  },
+  CML: {
+    short: 'CML',
+    long: 'C Modified Ladies',
+    category: 'Modified Category',
+  },
+  DML: {
+    short: 'DML',
+    long: 'D Modified Ladies',
+    category: 'Modified Category',
+  },
+  EML: {
+    short: 'EML',
+    long: 'E Modified Ladies',
+    category: 'Modified Category',
+  },
+  FML: {
+    short: 'FML',
+    long: 'F Modified Ladies',
+    category: 'Modified Category',
+  },
+  CAMCL: {
+    short: 'CAMCL',
+    long: 'Classic American Muscle Contemporary Ladies',
+    category: 'Classic American Muscle Category',
+  },
+  CAMTL: {
+    short: 'CAMTL',
+    long: 'Classic American Muscle Traditional Ladies',
+    category: 'Classic American Muscle Category',
+  },
+  CAMSL: {
+    short: 'CAMSL',
+    long: 'Classic American Muscle Sports Ladies',
+    category: 'Classic American Muscle Category',
+  },
+  XSAL: {
+    short: 'XSAL',
+    long: 'Xtreme Street A Ladies',
+    category: 'Xtreme Street',
+  },
+  XSBL: {
+    short: 'XSBL',
+    long: 'Xtreme Street B Ladies',
+    category: 'Xtreme Street',
+  },
+  EVXL: {
+    short: 'EVXL',
+    long: 'Electric Vehicle Xtreme Ladies',
+    category: 'Miscellaneous Category',
+  },
+  FUN: {
+    short: 'FUN',
+    long: 'Fun',
+    category: 'Miscellaneous Category',
+  },
+};
+
 export class LapTime {
   public static readonly DSQ = new LapTime(0, 0, 'DSQ');
   public static readonly DNS = new LapTime(0, 0, 'DNS');
@@ -92,9 +571,12 @@ export class LapTime {
   }
 }
 
+/**
+ * Object with property names that match the Pronto export file
+ */
 export interface ExportedDriver {
   Position?: number;
-  Class: string;
+  Class: ShortCarClass;
   Number: number;
   'First Name'?: string;
   'Last Name'?: string;
@@ -116,11 +598,24 @@ export interface ExportedDriver {
   day2?: LapTime[];
 }
 
+export interface CarClass {
+  short: ShortCarClass;
+  long: LongCarClass;
+  category: ClassCategory;
+}
+
+export type DriverId = string;
+
+/**
+ * Object representing a driver which is easier to work with in a program.
+ *
+ * Same core data as `ExportedDriver`, but easier to work with.
+ */
 export class Driver {
-  readonly id: string;
+  readonly id: DriverId;
   readonly name: string;
   readonly carNumber: number;
-  readonly carClass: string;
+  readonly carClass: CarClass;
   readonly carDescription: string;
   readonly region: string;
   readonly rookie: boolean;
@@ -137,7 +632,10 @@ export class Driver {
     this.rookie = !!driver.Rookie;
     this.ladiesChampionship = !!driver.Ladies;
     this.carNumber = driver.Number;
-    this.carClass = driver.Class;
+    this.carClass = CLASS_MAP[driver.Class];
+    if (!this.carClass) {
+      console.error(`Unable to map class "${driver.Class}"`);
+    }
     this.name = `${driver['First Name']} ${driver['Last Name']}`;
     this.id = this.name.toLowerCase().trim();
     this.carDescription =
@@ -200,12 +698,12 @@ export class Driver {
 
 export class ClassResults {
   public trophyCount: number;
-  public readonly carClass: string;
+  public readonly carClass: CarClass;
   public readonly drivers: Driver[];
 
-  constructor(carClass: string) {
+  constructor(carClass: ShortCarClass) {
     this.trophyCount = 0;
-    this.carClass = carClass;
+    this.carClass = CLASS_MAP[carClass];
     this.drivers = [];
   }
 
@@ -214,7 +712,7 @@ export class ClassResults {
   }
 }
 
-export type EventResults = Record<string, ClassResults>;
+export type EventResults = Partial<Record<ShortCarClass, ClassResults>>;
 
 export interface ChampionshipDriver {
   /**
@@ -240,7 +738,7 @@ export interface ClassChampionshipDriver extends ChampionshipDriver {
   /**
    * Class that this driver has participated in
    */
-  carClass: string;
+  carClass: CarClass;
 }
 
 export interface IndexedChampionshipResults {
@@ -252,7 +750,7 @@ export interface IndexedChampionshipResults {
 export interface ClassChampionshipResults {
   year: number;
   organization: string;
-  driversByClass: Record<string, ChampionshipDriver[]>;
+  driversByClass: Record<ShortCarClass, ChampionshipDriver[]>;
 }
 
 export interface ChampionshipResults {

@@ -5,12 +5,15 @@ import {
   ChampionshipDriver,
   ChampionshipResults,
   ChampionshipType,
+  CLASS_MAP,
   ClassChampionshipDriver,
   ClassChampionshipResults,
   Driver,
+  DriverId,
   EventResults,
   IndexedChampionshipResults,
   IndexedChampionshipType,
+  ShortCarClass,
 } from '../models';
 import { calculatePointsForDriver } from './utilities';
 
@@ -21,7 +24,7 @@ export class ChampionshipResultsParser {
     newLadies: string[],
   ): Promise<ChampionshipResults> {
     const allDriversForEvent = Object.values(eventResults)
-      .filter((classResults) => classResults.carClass !== 'Fun Class')
+      .filter((classResults) => classResults.carClass !== CLASS_MAP.FUN)
       .map((classResults) => classResults.drivers)
       .flat()
       .filter((driver) => !driver.dsq);
@@ -121,27 +124,32 @@ export class ChampionshipResultsParser {
     const pastEventCount = rows[5].length - 4;
 
     // Start by grouping rows by class
-    const rowsByClassAndDriverId: Record<
-      string,
-      Record<string, Omit<ClassChampionshipDriver, 'totalPoints'>>
+    const rowsByClassAndDriverId: Partial<
+      Record<
+        ShortCarClass,
+        Record<DriverId, Omit<ClassChampionshipDriver, 'totalPoints'>>
+      >
     > = {};
-    let classRows: Record<string, Omit<ClassChampionshipDriver, 'totalPoints'>>;
-    let currentClass: string;
+    let rowsForOneClass: Record<
+      DriverId,
+      Omit<ClassChampionshipDriver, 'totalPoints'>
+    >;
+    let currentClass: ShortCarClass;
 
     rows
       .slice(ChampionshipResultsParser.getHeaderRowIndex(rows) + 1)
       .forEach((row) => {
         // If the first cell is non-numeric, it is a class header
         if (isNaN(parseInt(row[0]))) {
-          currentClass = row[0].split(' - ')[0];
+          currentClass = row[0].split(' - ')[0] as ShortCarClass;
           if (!currentClass) {
-            currentClass = row[0].split(' – ')[0];
+            currentClass = row[0].split(' – ')[0] as ShortCarClass;
           }
-          rowsByClassAndDriverId[currentClass] = classRows = {};
+          rowsByClassAndDriverId[currentClass] = rowsForOneClass = {};
         } else {
           const id = row[1].toLowerCase().trim();
-          classRows[id] = {
-            carClass: currentClass,
+          rowsForOneClass[id] = {
+            carClass: CLASS_MAP[currentClass],
             id,
             name: row[1],
             points: row.slice(2, row.length - 2).map((p) => parseInt(p)),
@@ -149,16 +157,15 @@ export class ChampionshipResultsParser {
         }
       });
 
-    const newEventDriversByClassAndId: Record<
-      string,
-      Record<string, Driver>
+    const newEventDriversByClassAndId: Partial<
+      Record<ShortCarClass, Record<DriverId, Driver>>
     > = {};
 
     // Get this event's driver IDs
     Object.values(eventResults)
-      .filter((classResults) => classResults.carClass !== 'Fun Class')
+      .filter((classResults) => classResults.carClass !== CLASS_MAP.FUN)
       .forEach((classResults) => {
-        newEventDriversByClassAndId[classResults.carClass] =
+        newEventDriversByClassAndId[classResults.carClass.short] =
           classResults.drivers
             .filter((driver) => !driver.dsq)
             .reduce((o, d) => {
@@ -167,13 +174,15 @@ export class ChampionshipResultsParser {
             }, {} as Record<string, Driver>);
       });
 
-    const allDriverIdsByClass: Record<string, string[]> = {};
-    [
-      ...new Set([
-        ...Object.keys(rowsByClassAndDriverId),
-        ...Object.keys(newEventDriversByClassAndId),
-      ]),
-    ].forEach((carClass) => {
+    const allDriverIdsByClass: Partial<Record<ShortCarClass, DriverId[]>> = {};
+    (
+      [
+        ...new Set([
+          ...Object.keys(rowsByClassAndDriverId),
+          ...Object.keys(newEventDriversByClassAndId),
+        ]),
+      ] as ShortCarClass[]
+    ).forEach((carClass) => {
       allDriverIdsByClass[carClass] = [
         ...new Set([
           ...Object.keys(rowsByClassAndDriverId[carClass] || []),
@@ -183,9 +192,11 @@ export class ChampionshipResultsParser {
     });
 
     const driversByClass: Record<string, ChampionshipDriver[]> = {};
-    Object.entries(allDriverIdsByClass).forEach(([carClass, driverIds]) => {
-      const classHistory = rowsByClassAndDriverId[carClass] || [];
-      const newEventDriversById = newEventDriversByClassAndId[carClass] || [];
+    (
+      Object.entries(allDriverIdsByClass) as [ShortCarClass, DriverId[]][]
+    ).forEach(([carClass, driverIds]) => {
+      const classHistory = rowsByClassAndDriverId[carClass] || {};
+      const newEventDriversById = newEventDriversByClassAndId[carClass] || {};
 
       const bestTimeOfDay = Math.min(
         ...Object.values(newEventDriversById)
@@ -208,7 +219,7 @@ export class ChampionshipResultsParser {
             bestTimeOfDay,
             pastEventCount,
           ),
-          carClass,
+          carClass: CLASS_MAP[carClass],
         }),
       );
     });
@@ -222,7 +233,7 @@ export class ChampionshipResultsParser {
 
   private parseIndexedResults(
     rows: string[][],
-    driversForEventById: Record<string, Driver>,
+    driversForEventById: Record<DriverId, Driver>,
     bestIndexTimeOfDay: number,
   ): IndexedChampionshipResults {
     const previousDrivers = rows
@@ -298,9 +309,9 @@ export class ChampionshipResultsParser {
   }
 
   private static buildDriver<T extends Omit<ChampionshipDriver, 'totalPoints'>>(
-    driverId: string,
-    previousDrivers: Record<string, T>,
-    driversForEventById: Record<string, Driver>,
+    driverId: DriverId,
+    previousDrivers: Record<DriverId, T>,
+    driversForEventById: Record<DriverId, Driver>,
     bestPaxTimeOfDay: number,
     pastEventCount: number,
   ): ChampionshipDriver {

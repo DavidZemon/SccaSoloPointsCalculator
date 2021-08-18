@@ -5,6 +5,7 @@ import {
   ChampionshipResults as ChampionshipResultsData,
   ChampionshipType,
   IndexedChampionshipResults,
+  ShortCarClass,
 } from '../models';
 import { ChampionshipResultsParser, toShortClassName } from '../services';
 import { RamDownload } from './DownloadButton';
@@ -140,7 +141,7 @@ export class ChampionshipResults extends Component<
           <Accordion.Collapse eventKey={championshipType}>
             <Card.Body>
               <Table striped hover borderless>
-                {Object.keys(results.driversByClass)
+                {(Object.keys(results.driversByClass) as ShortCarClass[])
                   .sort()
                   .map((carClass) => [
                     <thead key={0}>

@@ -7,8 +7,9 @@ import {
   ClassResults,
   Driver,
   EventResults as EventResultsData,
+  ShortCarClass,
 } from '../models';
-import { calculatePointsForDriver, toShortClassName } from '../services';
+import { calculatePointsForDriver } from '../services';
 import { RamDownload } from './DownloadButton';
 
 interface EventResultsProps extends ComponentPropsWithoutRef<any> {
@@ -69,7 +70,7 @@ export class EventResults extends Component<
                                 as={Button}
                                 variant={'link'}
                               >
-                                {carClass}
+                                {classResults.carClass.long}
                               </Accordion.Toggle>
                             </Card.Header>
 
@@ -77,11 +78,6 @@ export class EventResults extends Component<
                               <Card.Body>
                                 <Table key={index} striped hover borderless>
                                   <thead>
-                                    <tr>
-                                      <th colSpan={10}>
-                                        {classResults.carClass}
-                                      </th>
-                                    </tr>
                                     <tr>
                                       <th>RK</th>
                                       <th>Pos</th>
@@ -180,7 +176,7 @@ export class EventResults extends Component<
           case 'Novice':
             return driver.rookie;
           case 'PAX':
-            return 'Fun Class' !== driver.carClass;
+            return 'FUN' !== driver.carClass.short;
           case 'Raw':
             return true;
         }
@@ -227,7 +223,7 @@ export class EventResults extends Component<
                 {sortedDrivers.map(([driver, driverBestTime], index) => (
                   <tr key={index}>
                     <td>{index + 1}</td>
-                    <td>{driver.carClass}</td>
+                    <td>{driver.carClass.short}</td>
                     <td>{driver.carNumber}</td>
                     <td>{driver.name}</td>
                     <td>{driver.carDescription}</td>
@@ -280,7 +276,7 @@ export class EventResults extends Component<
   }
 
   private exportClassResultsToCsv(classResults: ClassResults): string[][] {
-    const shortCarClass = toShortClassName(classResults.carClass);
+    const shortCarClass = classResults.carClass.short;
     const bestLapInClass = classResults.getBestInClass();
     const bestIndexTime =
       (bestLapInClass || Infinity) * classResults.drivers[0].paxMultiplier;
@@ -338,7 +334,7 @@ export class EventResults extends Component<
           `${index + 1}`,
           driver.name,
           driver.carDescription,
-          toShortClassName(driver.carClass),
+          driver.carClass.short,
           `${driver.carNumber}`,
           driver
             .bestLap('combined')
@@ -370,7 +366,9 @@ export class EventResults extends Component<
   }
 
   private exportFullResultsToCsv(): void {
-    const lines = Object.entries(this.props.results!)
+    const lines = (
+      Object.entries(this.props.results!) as [ShortCarClass, ClassResults][]
+    )
       .map(([carClass, classResults]) => {
         const bestInClass = classResults.drivers[0].bestLap().time;
         return [

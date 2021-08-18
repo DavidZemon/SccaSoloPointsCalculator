@@ -1,5 +1,6 @@
 import parse from 'csv-parse/lib/sync';
 import {
+  CarClass,
   ClassResults,
   Driver,
   EventResults,
@@ -22,7 +23,7 @@ export class EventResultsParser {
       skipEmptyLines: true,
       cast: true,
       onRecord: (record) =>
-        EventResultsParser.finalizeCsvRecord(header, record),
+        EventResultsParser.csvRecordInterceptor(header, record),
     });
 
     const eventResults: EventResults = {};
@@ -53,14 +54,14 @@ export class EventResultsParser {
 
     // Prune empty classes. This occurs when a class has at least one registered driver for the event, but no drivers in
     // that class end up driving
-    const classesToRemove: string[] = [];
+    const classesToRemove: CarClass[] = [];
     const emptyClassResults = Object.values(eventResults).filter(
       (classResults) => !classResults.drivers.length,
     );
     emptyClassResults.forEach((classResults) => {
       classesToRemove.push(classResults.carClass);
     });
-    classesToRemove.forEach((carClass) => delete eventResults[carClass]);
+    classesToRemove.forEach((carClass) => delete eventResults[carClass.short]);
 
     // Fix any sorting issues with drivers, such as a bug in Pronto that causes 1-day drivers in a 2-day event to place
     // higher than 2-day drivers
@@ -77,7 +78,7 @@ export class EventResultsParser {
     return eventResults;
   }
 
-  private static finalizeCsvRecord(
+  private static csvRecordInterceptor(
     header: string[],
     {
       raw,
@@ -92,6 +93,7 @@ export class EventResultsParser {
 
     const firstTimeColumnHeader = 'Runs (Time/Cones/Penalty)';
     const firstTimeColumnIndex = header.indexOf(firstTimeColumnHeader);
+
     if (-1 === firstTimeColumnIndex) {
       throw new Error(
         `Missing critical column header: ${firstTimeColumnHeader}`,
@@ -102,6 +104,7 @@ export class EventResultsParser {
         trim: true,
       })[0].slice(firstTimeColumnIndex);
 
+      // Insert day 1 times
       for (
         let lapNumber = 0;
         lapNumber < (driver['Runs Day1'] || 0);
@@ -114,6 +117,7 @@ export class EventResultsParser {
         driver.day1!.push(new LapTime(rawTime, cones, penalty));
       }
 
+      // Insert day 2 times
       for (
         let lapNumber = 0;
         lapNumber < (driver['Runs Day2'] || 0);
@@ -128,7 +132,8 @@ export class EventResultsParser {
           ),
         );
       }
+
+      return driver;
     }
-    return driver;
   }
 }
