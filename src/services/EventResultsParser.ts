@@ -12,6 +12,7 @@ export class EventResultsParser {
   async parse(fileContents: string): Promise<EventResults> {
     const header: string[] = parse(fileContents, {
       columns: false,
+      skipEmptyLines: true,
       trim: true,
       toLine: 1,
     })[0];
@@ -99,7 +100,7 @@ export class EventResultsParser {
         `Missing critical column header: ${firstTimeColumnHeader}`,
       );
     } else {
-      const verboseTimes = parse(raw, {
+      const verboseTimes = parse(raw.trim(), {
         columns: false,
         trim: true,
       })[0].slice(firstTimeColumnIndex);
