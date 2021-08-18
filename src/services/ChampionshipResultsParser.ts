@@ -238,7 +238,7 @@ export class ChampionshipResultsParser {
     bestIndexTimeOfDay: number,
   ): IndexedChampionshipResults {
     const previousDrivers = rows
-      .slice(3)
+      .slice(ChampionshipResultsParser.getHeaderRowIndex(rows) + 1)
       .map((row): ChampionshipDriver => {
         const allPoints = row.slice(2, row.length - 2).map((p) => parseInt(p));
         return {
