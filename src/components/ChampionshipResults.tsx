@@ -4,10 +4,11 @@ import {
   ChampionshipDriver,
   ChampionshipResults as ChampionshipResultsData,
   ChampionshipType,
+  CLASS_MAP,
   IndexedChampionshipResults,
   ShortCarClass,
 } from '../models';
-import { ChampionshipResultsParser, toShortClassName } from '../services';
+import { ChampionshipResultsParser } from '../services';
 import { RamDownload } from './DownloadButton';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faDownload } from '@fortawesome/free-solid-svg-icons';
@@ -228,10 +229,18 @@ export class ChampionshipResults extends Component<
 
     const rows = [
       ...header,
-      ...Object.entries(results.driversByClass)
+      ...(
+        Object.entries(results.driversByClass) as [
+          ShortCarClass,
+          ChampionshipDriver[],
+        ][]
+      )
         .map(([carClass, drivers]) => {
+          if (!CLASS_MAP[carClass]) {
+            console.error(`Can not map class "${carClass}"`);
+          }
           return [
-            [`${toShortClassName(carClass)} - ${carClass}`],
+            [`${carClass} - ${CLASS_MAP[carClass].long}`],
             ...drivers
               .sort((d1, d2) => d2.totalPoints - d1.totalPoints)
               .map(ChampionshipResults.driverToCsv),

@@ -141,9 +141,10 @@ export class ChampionshipResultsParser {
       .forEach((row) => {
         // If the first cell is non-numeric, it is a class header
         if (isNaN(parseInt(row[0]))) {
-          currentClass = row[0].split(' - ')[0] as ShortCarClass;
+          const delimiter = row[0].includes(' - ') ? ' - ' : ' – ';
+          currentClass = row[0].split(delimiter)[0] as ShortCarClass;
           if (!currentClass) {
-            currentClass = row[0].split(' – ')[0] as ShortCarClass;
+            currentClass = row[0].split(delimiter)[0] as ShortCarClass;
           }
           rowsByClassAndDriverId[currentClass] = rowsForOneClass = {};
         } else {

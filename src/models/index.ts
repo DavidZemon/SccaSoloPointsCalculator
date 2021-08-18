@@ -49,12 +49,14 @@ export type ShortCarClass =
   | 'DM'
   | 'EM'
   | 'FM'
+  | 'KM'
   | 'CAMC'
   | 'CAMT'
   | 'CAMS'
   | 'XSA'
   | 'XSB'
   | 'EVX'
+  | 'SSC'
   | 'SSL'
   | 'ASL'
   | 'BSL'
@@ -90,12 +92,14 @@ export type ShortCarClass =
   | 'DML'
   | 'EML'
   | 'FML'
+  | 'KML'
   | 'CAMCL'
   | 'CAMTL'
   | 'CAMSL'
   | 'XSAL'
   | 'XSBL'
   | 'EVXL'
+  | 'SSCL'
   | 'FUN';
 
 export type LongCarClass =
@@ -134,12 +138,14 @@ export type LongCarClass =
   | 'D Modified'
   | 'E Modified'
   | 'F Modified'
+  | 'Kart Modified'
   | 'Classic American Muscle Contemporary'
   | 'Classic American Muscle Traditional'
   | 'Classic American Muscle Sports'
   | 'Xtreme Street A'
   | 'Xtreme Street B'
   | 'Electric Vehicle Xtreme'
+  | 'Solo Spec Coupe'
   | 'Super Street Ladies'
   | 'A Street Ladies'
   | 'B Street Ladies'
@@ -175,12 +181,14 @@ export type LongCarClass =
   | 'D Modified Ladies'
   | 'E Modified Ladies'
   | 'F Modified Ladies'
+  | 'Kart Modified Ladies'
   | 'Classic American Muscle Contemporary Ladies'
   | 'Classic American Muscle Traditional Ladies'
   | 'Classic American Muscle Sports Ladies'
   | 'Xtreme Street A Ladies'
   | 'Xtreme Street B Ladies'
   | 'Electric Vehicle Xtreme Ladies'
+  | 'Solo Spec Coupe Ladies'
   | 'Fun';
 
 export const CLASS_MAP: Record<ShortCarClass, CarClass> = {
@@ -268,17 +276,18 @@ export const CLASS_MAP: Record<ShortCarClass, CarClass> = {
     long: 'Street Modified Front-Wheel-Drive',
     category: 'Street Modified Category',
   },
-  XP: { short: 'XP', long: 'X Prepared', category: 'Prepared Category' },
-  CP: { short: 'CP', long: 'C Prepared', category: 'Prepared Category' },
-  DP: { short: 'DP', long: 'D Prepared', category: 'Prepared Category' },
-  EP: { short: 'EP', long: 'E Prepared', category: 'Prepared Category' },
-  FP: { short: 'FP', long: 'F Prepared', category: 'Prepared Category' },
-  AM: { short: 'AM', long: 'A Modified', category: 'Prepared Category' },
-  BM: { short: 'BM', long: 'B Modified', category: 'Prepared Category' },
-  CM: { short: 'CM', long: 'C Modified', category: 'Prepared Category' },
-  DM: { short: 'DM', long: 'D Modified', category: 'Prepared Category' },
-  EM: { short: 'EM', long: 'E Modified', category: 'Prepared Category' },
-  FM: { short: 'FM', long: 'F Modified', category: 'Prepared Category' },
+  XP: { short: 'XP', long: 'X Prepared', category: 'Modified Category' },
+  CP: { short: 'CP', long: 'C Prepared', category: 'Modified Category' },
+  DP: { short: 'DP', long: 'D Prepared', category: 'Modified Category' },
+  EP: { short: 'EP', long: 'E Prepared', category: 'Modified Category' },
+  FP: { short: 'FP', long: 'F Prepared', category: 'Modified Category' },
+  AM: { short: 'AM', long: 'A Modified', category: 'Modified Category' },
+  BM: { short: 'BM', long: 'B Modified', category: 'Modified Category' },
+  CM: { short: 'CM', long: 'C Modified', category: 'Modified Category' },
+  DM: { short: 'DM', long: 'D Modified', category: 'Modified Category' },
+  EM: { short: 'EM', long: 'E Modified', category: 'Modified Category' },
+  FM: { short: 'FM', long: 'F Modified', category: 'Modified Category' },
+  KM: { short: 'KM', long: 'Kart Modified', category: 'Modified Category' },
   CAMC: {
     short: 'CAMC',
     long: 'Classic American Muscle Contemporary',
@@ -299,6 +308,11 @@ export const CLASS_MAP: Record<ShortCarClass, CarClass> = {
   EVX: {
     short: 'EVX',
     long: 'Electric Vehicle Xtreme',
+    category: 'Miscellaneous Category',
+  },
+  SSC: {
+    short: 'SSC',
+    long: 'Solo Spec Coupe',
     category: 'Miscellaneous Category',
   },
   SSL: {
@@ -444,6 +458,11 @@ export const CLASS_MAP: Record<ShortCarClass, CarClass> = {
     long: 'F Modified Ladies',
     category: 'Modified Category',
   },
+  KML: {
+    short: 'KML',
+    long: 'Kart Modified Ladies',
+    category: 'Modified Category',
+  },
   CAMCL: {
     short: 'CAMCL',
     long: 'Classic American Muscle Contemporary Ladies',
@@ -472,6 +491,11 @@ export const CLASS_MAP: Record<ShortCarClass, CarClass> = {
   EVXL: {
     short: 'EVXL',
     long: 'Electric Vehicle Xtreme Ladies',
+    category: 'Miscellaneous Category',
+  },
+  SSCL: {
+    short: 'SSCL',
+    long: 'Solo Spec Coupe Ladies',
     category: 'Miscellaneous Category',
   },
   FUN: {
