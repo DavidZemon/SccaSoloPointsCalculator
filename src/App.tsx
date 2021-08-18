@@ -71,7 +71,7 @@ class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
                     await this.processChampionships();
                     return true;
                   } catch (e) {
-                    console.error(e.message);
+                    console.error(e);
                     toast.error(
                       'File format does not match expected. Please export event results with raw times, grouped by class.',
                     );

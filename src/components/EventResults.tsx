@@ -53,7 +53,7 @@ export class EventResults extends Component<
                     <FontAwesomeIcon
                       className={'clickable'}
                       icon={faDownload}
-                      onClick={() => this.exportFullResultsToCsv()}
+                      onClick={() => this.exportResultsByClassCsv()}
                     />
                   </Button>
                 </Card.Header>
@@ -276,18 +276,17 @@ export class EventResults extends Component<
   }
 
   private exportClassResultsToCsv(classResults: ClassResults): string[][] {
-    const shortCarClass = classResults.carClass.short;
     const bestLapInClass = classResults.getBestInClass();
     const bestIndexTime =
       (bestLapInClass || Infinity) * classResults.drivers[0].paxMultiplier;
     return [
-      [`${shortCarClass} - ${classResults.carClass}`],
+      [`${classResults.carClass.short} - ${classResults.carClass.long}`],
       ...classResults.drivers.map((driver, index) => {
         return [
           `${driver.position}`,
           driver.name,
           driver.carDescription,
-          shortCarClass,
+          classResults.carClass.short,
           `${driver.carNumber}`,
           driver.bestLap().toString(undefined, false),
           driver.bestLap().toString(driver.paxMultiplier, false),
@@ -382,7 +381,9 @@ export class EventResults extends Component<
             'Car, Sponsor',
             'Region',
             'Times',
-            ...new Array(10).fill(null).map(() => ''),
+            ...new Array(EventResults.MAX_LAP_COUNT - 1)
+              .fill(null)
+              .map(() => ''),
             'Best Lap',
             'Difference',
             'From Previous',
@@ -397,7 +398,11 @@ export class EventResults extends Component<
               driver.carDescription,
               driver.region,
               ...driver.getTimes('day1')!,
-              '',
+              ...new Array(
+                EventResults.MAX_LAP_COUNT - driver.getTimes('day1')!.length,
+              )
+                .fill(null)
+                .map(() => ''),
               driver.bestLap(),
               driver.position === 1 ? '' : driver.difference(bestInClass),
               driver.position === 1
