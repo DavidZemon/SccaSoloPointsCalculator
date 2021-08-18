@@ -6,6 +6,7 @@ import { faDownload } from '@fortawesome/free-solid-svg-icons';
 import {
   ClassResults,
   Driver,
+  DriverId,
   EventResults as EventResultsData,
   ShortCarClass,
 } from '../models';
@@ -14,6 +15,7 @@ import { RamDownload } from './DownloadButton';
 
 interface EventResultsProps extends ComponentPropsWithoutRef<any> {
   results?: EventResultsData;
+  ladiesIds?: DriverId[]; // IDs of Ladies drivers from championship results
 }
 
 interface EventResultsState {
@@ -111,6 +113,10 @@ export class EventResults extends Component<
               {this.displayCombinedResults('Raw')}
 
               {this.displayCombinedResults('Novice')}
+
+              {this.props.ladiesIds
+                ? this.displayCombinedResults('Ladies')
+                : null}
             </Accordion>
           </Col>
         </Row>,
@@ -156,7 +162,7 @@ export class EventResults extends Component<
   }
 
   private displayCombinedResults(
-    resultsType: 'PAX' | 'Raw' | 'Novice',
+    resultsType: 'PAX' | 'Raw' | 'Novice' | 'Ladies',
   ): JSX.Element {
     const drivers = Object.values(this.props.results!)
       .map((classResults) => classResults.drivers)
@@ -177,6 +183,8 @@ export class EventResults extends Component<
             return driver.rookie;
           case 'PAX':
             return 'FUN' !== driver.carClass.short;
+          case 'Ladies':
+            return this.props.ladiesIds!.includes(driver.id);
           case 'Raw':
             return true;
         }
@@ -312,7 +320,7 @@ export class EventResults extends Component<
   private exportCombinedResultsToCsv(
     sortedDrivers: [Driver, number][],
     fastestOfDay: number,
-    resultsType: 'PAX' | 'Raw' | 'Novice',
+    resultsType: 'PAX' | 'Raw' | 'Novice' | 'Ladies',
   ): void {
     const isRawTime = resultsType === 'Raw';
     const results = [

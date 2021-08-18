@@ -163,7 +163,12 @@ class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
             </Col>
           </Row>
 
-          <EventResultsComponent results={this.state.eventResults} />
+          <EventResultsComponent
+            results={this.state.eventResults}
+            ladiesIds={this.state.championshipResults?.Ladies?.drivers?.map(
+              (driver) => driver.id,
+            )}
+          />
 
           <ChampionshipResultsComponent
             results={this.state.championshipResults}
