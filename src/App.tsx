@@ -6,7 +6,12 @@ import { Button, Col, Container, Row, Spinner } from 'react-bootstrap';
 import { Typeahead } from 'react-bootstrap-typeahead';
 import { toast, ToastContainer } from 'react-toastify';
 import { ChampionshipResultsParser, EventResultsParser } from './services';
-import { ChampionshipResults, ChampionshipType, EventResults } from './models';
+import {
+  ChampionshipResults,
+  ChampionshipType,
+  Driver,
+  EventResults,
+} from './models';
 import { EventResults as EventResultsComponent } from './components/EventResults';
 import { FileUploadBox } from './components/FileUploadBox';
 import { ChampionshipResults as ChampionshipResultsComponent } from './components/ChampionshipResults';
@@ -18,6 +23,7 @@ interface AppState {
   processing: boolean;
 
   eventResults?: EventResults;
+  driversInError?: Driver[];
   championshipResults?: ChampionshipResults;
 
   newLadies: string[];
@@ -63,12 +69,22 @@ class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
                 accept={'.csv'}
                 onFileSelect={async (f) => {
                   try {
-                    await App.validateUploadedEventResultsFile(f);
                     const eventResults = await this.eventResultsParser.parse(
                       await f.text(),
                     );
-                    this.setState({ eventResultsFile: f, eventResults });
-                    await this.processChampionships();
+                    const driversInError = Object.entries(eventResults)
+                      .map(([className, classResults]) => classResults.drivers)
+                      .flat()
+                      .filter((driver) => driver.error);
+                    if (driversInError)
+                      this.setState({ eventResultsFile: f, driversInError });
+                    else {
+                      this.setState({
+                        eventResultsFile: f,
+                        eventResults,
+                      });
+                      await this.processChampionships();
+                    }
                     return true;
                   } catch (e) {
                     console.error(e);
@@ -78,12 +94,40 @@ class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
                     return false;
                   }
                 }}
-                fileSelectedMessage={(f) => (
-                  <p>
-                    Showing results for <code>{f.name}</code> as new event
-                    results
-                  </p>
-                )}
+                fileSelectedMessage={(f) => {
+                  const elements = [
+                    <p key={'resultsSummary'}>
+                      Showing results for <code>{f.name}</code> as new event
+                      results.
+                    </p>,
+                  ];
+                  if (this.state.driversInError?.length) {
+                    elements.push(
+                      <p key={'errorIntro'}>
+                        The following drivers appear to be be in an error state:
+                      </p>,
+                      <ul key={'errorList'}>
+                        {this.state.driversInError.map((driver) => (
+                          <li
+                            key={`driverInError-${driver.carNumber}${driver.carClass}`}
+                          >
+                            {driver.name} {driver.carNumber}{' '}
+                            {driver.carClass.short}
+                          </li>
+                        ))}
+                      </ul>,
+                      <p key={'demandRefresh'}>
+                        Please fix the errors and refresh this page.
+                      </p>,
+                      <p key={'fixInstructions'}>
+                        To fix the errors, open TSAnnounce, search for each
+                        class listed above, then re-run the export function from
+                        TSAdmin
+                      </p>,
+                    );
+                  }
+                  return elements;
+                }}
               />
 
               <Typeahead
@@ -197,17 +241,6 @@ class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
           this.state.newLadies,
         ),
       });
-    }
-  }
-
-  private static async validateUploadedEventResultsFile(f: File) {
-    const EXPECTED_HEADER =
-      'Class, Number, First Name,Last Name, Car Year, Car Make, Car Model, Car Color, Member #, Rookie, Ladies, DSQ, Region, Best Run, Pax Index, Pax Time';
-    const content = await f.text();
-    if (!content.includes(EXPECTED_HEADER)) {
-      throw new Error(
-        `Expected results file to start with header: ${EXPECTED_HEADER}`,
-      );
     }
   }
 }

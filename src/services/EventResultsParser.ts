@@ -10,6 +10,7 @@ import {
 
 export class EventResultsParser {
   async parse(fileContents: string): Promise<EventResults> {
+    await EventResultsParser.validateHeaderRow(fileContents);
     const header: string[] = parse(fileContents, {
       columns: false,
       skipEmptyLines: true,
@@ -28,30 +29,27 @@ export class EventResultsParser {
     });
 
     const eventResults: EventResults = {};
-    drivers
-      // Filter out any rows where the driver reported no times for either day
-      .filter((driver) => {
-        return !!driver['Runs Day1'] || !!driver['Runs Day2'];
-      })
-      .forEach((exportedDriver) => {
+    drivers.forEach((exportedDriver) => {
+      const driver = new Driver(exportedDriver);
+      // If the driver has any times or if there was an error processing the driver, include the driver in the
+      // results. The error will be presented to the user later
+      if (
+        driver.getTimes('day1')?.length ||
+        driver.getTimes('day2')?.length ||
+        driver.error
+      ) {
         let currentClass = eventResults[exportedDriver.Class];
         if (!currentClass) {
           currentClass = new ClassResults(exportedDriver.Class);
           eventResults[exportedDriver.Class] = currentClass;
         }
-
-        const driver = new Driver(exportedDriver);
-        if (
-          driver.getTimes('day1')?.length ||
-          driver.getTimes('day2')?.length
-        ) {
-          currentClass.drivers.push(driver);
-        } else {
-          console.warn(
-            `Removing driver due to no times: ${driver.carNumber} ${driver.carClass}`,
-          );
-        }
-      });
+        currentClass.drivers.push(driver);
+      } else {
+        console.warn(
+          `Removing driver due to no times: ${exportedDriver.Number} ${exportedDriver.Class}`,
+        );
+      }
+    });
 
     // Prune empty classes. This occurs when a class has at least one registered driver for the event, but no drivers in
     // that class end up driving
@@ -135,6 +133,16 @@ export class EventResultsParser {
       }
 
       return driver;
+    }
+  }
+
+  private static async validateHeaderRow(content: string) {
+    const EXPECTED_HEADER =
+      'Class, Number, First Name,Last Name, Car Year, Car Make, Car Model, Car Color, Member #, Rookie, Ladies, DSQ, Region, Best Run, Pax Index, Pax Time';
+    if (!content.includes(EXPECTED_HEADER)) {
+      throw new Error(
+        `Expected results file to start with header: ${EXPECTED_HEADER}`,
+      );
     }
   }
 }

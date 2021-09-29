@@ -636,6 +636,7 @@ export type DriverId = string;
  * Same core data as `ExportedDriver`, but easier to work with.
  */
 export class Driver {
+  readonly error: boolean;
   readonly id: DriverId;
   readonly name: string;
   readonly carNumber: number;
@@ -653,6 +654,8 @@ export class Driver {
   private readonly combined: LapTime;
 
   constructor(driver: ExportedDriver) {
+    this.error =
+      !driver['Runs Day1'] && !driver['Runs Day2'] && !!driver['Best Run'];
     this.rookie = !!driver.Rookie;
     this.ladiesChampionship = !!driver.Ladies;
     this.carNumber = driver.Number;
