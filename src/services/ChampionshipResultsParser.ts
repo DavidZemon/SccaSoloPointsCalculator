@@ -109,7 +109,8 @@ export class ChampionshipResultsParser {
             }
           } catch (e) {
             console.error(e);
-            toast.error(e.message ? e.message : e.toString());
+            const error = e as Error;
+            toast.error(error.message ? error.message : error.toString());
           }
         }),
     );
