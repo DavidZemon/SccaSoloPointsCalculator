@@ -138,7 +138,7 @@ export class EventResultsParser {
 
   private static async validateHeaderRow(content: string) {
     const EXPECTED_HEADER =
-      'Class, Number, First Name,Last Name, Car Year, Car Make, Car Model, Car Color, Member #, Rookie, Ladies, DSQ, Region, Best Run, Pax Index, Pax Time';
+      'Class, Class Category, Class Name, Number, First Name,Last Name, Car Year, Car Make, Car Model, Car Color, Member #, Rookie, Ladies, DSQ, Region, Best Run, Pax Index, Pax Time';
     if (!content.includes(EXPECTED_HEADER)) {
       throw new Error(
         `Expected results file to start with header: ${EXPECTED_HEADER}`,

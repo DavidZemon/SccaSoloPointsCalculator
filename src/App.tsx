@@ -73,10 +73,11 @@ class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
                       await f.text(),
                     );
                     const driversInError = Object.entries(eventResults)
-                      .map(([className, classResults]) => classResults.drivers)
+                      .map(([_, classResults]) => classResults.drivers)
                       .flat()
                       .filter((driver) => driver.error);
-                    if (driversInError)
+                    console.dir(driversInError);
+                    if (driversInError.length)
                       this.setState({ eventResultsFile: f, driversInError });
                     else {
                       this.setState({
@@ -109,7 +110,7 @@ class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
                       <ul key={'errorList'}>
                         {this.state.driversInError.map((driver) => (
                           <li
-                            key={`driverInError-${driver.carNumber}${driver.carClass}`}
+                            key={`driverInError-${driver.carNumber}${driver.carClass.short}`}
                           >
                             {driver.name} {driver.carNumber}{' '}
                             {driver.carClass.short}
