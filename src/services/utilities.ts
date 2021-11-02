@@ -1,4 +1,4 @@
-import { Driver } from '../models';
+import { ChampionshipDriver, Driver } from '../models';
 
 export const SPECIAL_CLASS_MAP: Record<string, string> = {
   'Fun Class': 'FUN',
@@ -40,4 +40,15 @@ export function calculateTrophies(drivers: any[] | number): number {
   } else {
     return Math.ceil(driverCount / 3);
   }
+}
+
+export function calculateChampionshipTrophies(
+  drivers: ChampionshipDriver[],
+): number {
+  const eventCountCutoff = Math.ceil(drivers[0].points.length / 2) + 2;
+  const eligibleDrivers = drivers.filter((driver) => {
+    const eventsThatTheDriverDrove = driver.points.filter((points) => points);
+    return eventsThatTheDriverDrove.length >= eventCountCutoff;
+  });
+  return calculateTrophies(eligibleDrivers);
 }
