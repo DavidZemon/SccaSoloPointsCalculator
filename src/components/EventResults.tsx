@@ -10,7 +10,7 @@ import {
   EventResults as EventResultsData,
   ShortCarClass,
 } from '../models';
-import { calculatePointsForDriver } from '../services';
+import { calculatePointsForDriver, calculateTrophies } from '../services';
 import { RamDownload } from './DownloadButton';
 
 interface EventResultsProps extends ComponentPropsWithoutRef<any> {
@@ -81,6 +81,7 @@ export class EventResults extends Component<
                                 <Table key={index} striped hover borderless>
                                   <thead>
                                     <tr>
+                                      <th>Tr</th>
                                       <th>RK</th>
                                       <th>Pos</th>
                                       <th>Nbr</th>
@@ -140,6 +141,7 @@ export class EventResults extends Component<
     return classResults.drivers.map((driver, index) => {
       return (
         <tr key={index}>
+          <td>{index < classResults.trophyCount ? 'T' : ''}</td>
           <td>{driver.rookie ? 'R' : ''}</td>
           <td>{driver.position}</td>
           <td>{driver.carNumber}</td>
@@ -191,6 +193,7 @@ export class EventResults extends Component<
         throw new Error(`Unrecognized eventResultsType: ${resultsType}`);
       });
     const fastestOfDay = sortedDrivers[0][1];
+    const trophyCount = calculateTrophies(sortedDrivers);
     return (
       <Card>
         <Card.Header key={resultsType}>
@@ -216,6 +219,7 @@ export class EventResults extends Component<
             <Table striped hover borderless>
               <thead>
                 <tr>
+                  <th>Trophy</th>
                   <th>Position</th>
                   <th>Class</th>
                   <th>Car #</th>
@@ -230,6 +234,7 @@ export class EventResults extends Component<
               <tbody>
                 {sortedDrivers.map(([driver, driverBestTime], index) => (
                   <tr key={index}>
+                    <td>{index < trophyCount ? 'T' : ''}</td>
                     <td>{index + 1}</td>
                     <td>{driver.carClass.short}</td>
                     <td>{driver.carNumber}</td>
@@ -261,6 +266,7 @@ export class EventResults extends Component<
   private exportResultsByClassCsv() {
     const lines = [
       [
+        'Trophy',
         'Pos',
         'Name',
         'Car',
@@ -291,6 +297,7 @@ export class EventResults extends Component<
       [`${classResults.carClass.short} - ${classResults.carClass.long}`],
       ...classResults.drivers.map((driver, index) => {
         return [
+          index < classResults.trophyCount ? 'T' : '',
           `${driver.position}`,
           driver.name,
           driver.carDescription,
@@ -323,8 +330,10 @@ export class EventResults extends Component<
     resultsType: 'PAX' | 'Raw' | 'Novice' | 'Ladies',
   ): void {
     const isRawTime = resultsType === 'Raw';
+    const trophyCount = calculateTrophies(sortedDrivers);
     const results = [
       [
+        'Trophy',
         'Position',
         'Name',
         'Car',
@@ -339,6 +348,7 @@ export class EventResults extends Component<
         const previousDriver =
           index === 0 ? driver : sortedDrivers[index - 1][0];
         return [
+          index < trophyCount ? 'T' : '',
           `${index + 1}`,
           driver.name,
           driver.carDescription,

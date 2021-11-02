@@ -7,6 +7,7 @@ import {
   ExportedDriver,
   LapTime,
 } from '../models';
+import { calculateTrophies } from './utilities';
 
 export class EventResultsParser {
   async parse(fileContents: string): Promise<EventResults> {
@@ -65,11 +66,12 @@ export class EventResultsParser {
     // Fix any sorting issues with drivers, such as a bug in Pronto that causes 1-day drivers in a 2-day event to place
     // higher than 2-day drivers
     Object.values(eventResults)
-      .map((classResults) =>
-        classResults.drivers.sort((a, b) =>
+      .map((classResults) => {
+        classResults.trophyCount = calculateTrophies(classResults.drivers);
+        return classResults.drivers.sort((a, b) =>
           LapTime.compare(a.bestLap(), b.bestLap()),
-        ),
-      )
+        );
+      })
       .forEach((drivers) => {
         drivers.forEach((driver, index) => (driver.position = index + 1));
       });
