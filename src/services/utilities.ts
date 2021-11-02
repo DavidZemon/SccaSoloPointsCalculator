@@ -50,5 +50,13 @@ export function calculateChampionshipTrophies(
     const eventsThatTheDriverDrove = driver.points.filter((points) => points);
     return eventsThatTheDriverDrove.length >= eventCountCutoff;
   });
-  return calculateTrophies(eligibleDrivers);
+
+  if (eligibleDrivers.length <= 1) return 0;
+  else {
+    const defaultTrophyCount = calculateTrophies(eligibleDrivers);
+    const overrideTrophyCount = drivers.filter(
+      (driver) => driver.totalPoints >= eventCountCutoff * 9600,
+    ).length;
+    return Math.max(defaultTrophyCount, overrideTrophyCount);
+  }
 }
