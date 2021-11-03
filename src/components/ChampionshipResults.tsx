@@ -5,11 +5,13 @@ import {
   ChampionshipResults as ChampionshipResultsData,
   ChampionshipType,
   CLASS_MAP,
+  ClassChampionshipDriver,
   IndexedChampionshipResults,
   ShortCarClass,
 } from '../models';
 import {
-  calculateChampionshipTrophies,
+  calculateClassChampionshipTrophies,
+  doesIndexDriverGetATrophy,
   ChampionshipResultsParser,
 } from '../services';
 import { RamDownload } from './DownloadButton';
@@ -60,9 +62,6 @@ export class ChampionshipResults extends Component<
                     ],
                 )
                 .map(([championshipType, results]) => {
-                  const trophyCount = calculateChampionshipTrophies(
-                    results.drivers,
-                  );
                   return (
                     <Card key={championshipType}>
                       {this.renderCardHeader(championshipType, results.year)}
@@ -99,7 +98,11 @@ export class ChampionshipResults extends Component<
                                 )
                                 .map((driver, index) => (
                                   <tr key={index}>
-                                    <td>{index < trophyCount ? 'T' : ''}</td>
+                                    <td>
+                                      {doesIndexDriverGetATrophy(driver, index)
+                                        ? 'T'
+                                        : ''}
+                                    </td>
                                     <td>{index + 1}</td>
                                     <td>{driver.name}</td>
                                     {driver.points.map((points, index) => (
@@ -157,7 +160,7 @@ export class ChampionshipResults extends Component<
                 {(Object.keys(results.driversByClass) as ShortCarClass[])
                   .sort()
                   .map((carClass) => {
-                    const trophyCount = calculateChampionshipTrophies(
+                    const trophyCount = calculateClassChampionshipTrophies(
                       results?.driversByClass[carClass],
                     );
                     return [
@@ -251,14 +254,14 @@ export class ChampionshipResults extends Component<
       ...(
         Object.entries(results.driversByClass) as [
           ShortCarClass,
-          ChampionshipDriver[],
+          ClassChampionshipDriver[],
         ][]
       )
         .map(([carClass, drivers]) => {
           if (!CLASS_MAP[carClass]) {
             console.error(`Can not map class "${carClass}"`);
           }
-          const trophyCount = calculateChampionshipTrophies(drivers);
+          const trophyCount = calculateClassChampionshipTrophies(drivers);
           return [
             [`${carClass} - ${CLASS_MAP[carClass].long}`],
             ...drivers
@@ -287,12 +290,9 @@ export class ChampionshipResults extends Component<
       results.drivers[0].points.length,
     );
 
-    const trophyCount = calculateChampionshipTrophies(results.drivers);
     const rows = results.drivers
       .sort((d1, d2) => d2.totalPoints - d1.totalPoints)
-      .map((driver, index) =>
-        ChampionshipResults.driverToCsv(driver, index, trophyCount),
-      );
+      .map((driver, index) => ChampionshipResults.driverToCsv(driver, index));
 
     this.setState({
       downloadData: [...header, ...rows]
@@ -333,10 +333,16 @@ export class ChampionshipResults extends Component<
   private static driverToCsv(
     driver: ChampionshipDriver,
     index: number,
-    trophyCount: number,
+    trophyCount?: number,
   ): string[] {
+    let trophy: boolean;
+    if (trophyCount === undefined) {
+      trophy = doesIndexDriverGetATrophy(driver, index);
+    } else {
+      trophy = index < trophyCount;
+    }
     return [
-      index < trophyCount ? 'T' : '',
+      trophy ? 'T' : '',
       `${index + 1}`,
       driver.name,
       ...driver.points.map((p) => `${p}`),

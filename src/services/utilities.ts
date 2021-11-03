@@ -1,4 +1,4 @@
-import { ChampionshipDriver, Driver } from '../models';
+import { ChampionshipDriver, ClassChampionshipDriver, Driver } from '../models';
 
 export const SPECIAL_CLASS_MAP: Record<string, string> = {
   'Fun Class': 'FUN',
@@ -42,21 +42,42 @@ export function calculateTrophies(drivers: any[] | number): number {
   }
 }
 
-export function calculateChampionshipTrophies(
-  drivers: ChampionshipDriver[],
+export function calculateClassChampionshipTrophies(
+  drivers: ClassChampionshipDriver[],
 ): number {
-  const eventCountCutoff = Math.ceil(drivers[0].points.length / 2) + 2;
-  const eligibleDrivers = drivers.filter((driver) => {
-    const eventsThatTheDriverDrove = driver.points.filter((points) => points);
-    return eventsThatTheDriverDrove.length >= eventCountCutoff;
-  });
-
-  if (eligibleDrivers.length <= 1) return 0;
+  if (drivers.length <= 1) return 0;
   else {
-    const defaultTrophyCount = calculateTrophies(eligibleDrivers);
+    const totalEventCount = drivers[0].points.length;
+    const eventCountCutoff = Math.ceil(totalEventCount / 2) + 2;
+    const averageDriverCount =
+      drivers
+        .map((driver) => driver.points)
+        .flat()
+        .filter((points) => points).length / totalEventCount;
+
+    const defaultTrophyCount = calculateTrophies(
+      Math.round(averageDriverCount),
+    );
     const overrideTrophyCount = drivers.filter(
-      (driver) => driver.totalPoints >= eventCountCutoff * 9600,
+      (driver) =>
+        // Average points higher than 9600
+        driver.totalPoints >= eventCountCutoff * 9600 &&
+        // Driver attended enough events to qualify
+        driver.points.filter((points) => points).length >= eventCountCutoff,
     ).length;
     return Math.max(defaultTrophyCount, overrideTrophyCount);
+  }
+}
+
+export function doesIndexDriverGetATrophy(
+  driver: ChampionshipDriver,
+  position: number,
+): boolean {
+  if (position >= 3) return false;
+  else {
+    const totalEventCount = driver.points.length;
+    const eventCountCutoff = Math.ceil(totalEventCount / 2) + 2;
+    const attendanceCount = driver.points.filter((points) => points).length;
+    return attendanceCount >= eventCountCutoff;
   }
 }

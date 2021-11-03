@@ -777,7 +777,7 @@ export interface IndexedChampionshipResults {
 export interface ClassChampionshipResults {
   year: number;
   organization: string;
-  driversByClass: Record<ShortCarClass, ChampionshipDriver[]>;
+  driversByClass: Record<ShortCarClass, ClassChampionshipDriver[]>;
 }
 
 export interface ChampionshipResults {

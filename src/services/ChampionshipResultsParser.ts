@@ -193,7 +193,7 @@ export class ChampionshipResultsParser {
       ];
     });
 
-    const driversByClass: Record<string, ChampionshipDriver[]> = {};
+    const driversByClass: Record<string, ClassChampionshipDriver[]> = {};
     (
       Object.entries(allDriverIdsByClass) as [ShortCarClass, DriverId[]][]
     ).forEach(([carClass, driverIds]) => {
@@ -229,7 +229,7 @@ export class ChampionshipResultsParser {
     return {
       organization: rows[0][0].trim(),
       year: parseInt(rows[1][0].split(' ')[0]),
-      driversByClass: driversByClass,
+      driversByClass,
     };
   }
 
