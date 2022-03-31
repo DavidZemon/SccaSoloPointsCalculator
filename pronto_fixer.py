@@ -42,6 +42,9 @@ def convert(i: Dict[str, str]) -> Dict[str, str]:
     out['Modifier/PAX'] = 'L' if out['Ladies'] == '1' else ''
     del out['Ladies']
 
+    if 'Medical condition? (Optional)' in out.keys():
+        del out['Medical condition? (Optional)']
+
     return out
 
 
