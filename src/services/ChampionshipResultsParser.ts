@@ -1,6 +1,6 @@
 import { read as xlsxRead, Sheet, utils as xlsxUtils } from 'xlsx';
 import { toast } from 'react-toastify';
-import parse from 'csv-parse/lib/sync';
+import { parse } from 'csv-parse/lib/sync';
 import {
   ChampionshipDriver,
   ChampionshipResults,

@@ -100,7 +100,8 @@ export type ShortCarClass =
   | 'XSBL'
   | 'EVXL'
   | 'SSCL'
-  | 'FUN';
+  | 'FUN'
+  | 'FSAE';
 
 export type LongCarClass =
   | 'Super Street'
@@ -189,7 +190,8 @@ export type LongCarClass =
   | 'Xtreme Street B Ladies'
   | 'Electric Vehicle Xtreme Ladies'
   | 'Solo Spec Coupe Ladies'
-  | 'Fun';
+  | 'Fun'
+  | 'Formula SAE';
 
 export const CLASS_MAP: Record<ShortCarClass, CarClass> = {
   SS: { short: 'SS', long: 'Super Street', category: 'Street Category' },
@@ -501,6 +503,11 @@ export const CLASS_MAP: Record<ShortCarClass, CarClass> = {
   FUN: {
     short: 'FUN',
     long: 'Fun',
+    category: 'Miscellaneous Category',
+  },
+  FSAE: {
+    short: 'FSAE',
+    long: 'Formula SAE',
     category: 'Miscellaneous Category',
   },
 };
