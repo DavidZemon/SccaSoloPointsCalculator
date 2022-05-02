@@ -1,0 +1,14 @@
+[package]
+name = "rusty"
+description = "Business logic for the SCCA Solo Points Calculator"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+repository = "https://github.com/DavidZemon/SccaSoloPointsCalculator"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+wasm-bindgen = "^0.2.80"
+float-cmp = "0.9.0"

@@ -1,11 +1,11 @@
 import { parse } from 'csv-parse/lib/sync';
+import * as rusty from 'rusty/rusty';
 import {
   CarClass,
   ClassResults,
   Driver,
   EventResults,
   ExportedDriver,
-  LapTime,
 } from '../models';
 import { calculateTrophies } from './utilities';
 
@@ -69,7 +69,7 @@ export class EventResultsParser {
       .map((classResults) => {
         classResults.trophyCount = calculateTrophies(classResults.drivers);
         return classResults.drivers.sort((a, b) =>
-          LapTime.compare(a.bestLap(), b.bestLap()),
+          rusty.LapTime.compare(a.bestLap(), b.bestLap()),
         );
       })
       .forEach((drivers) => {
@@ -115,7 +115,7 @@ export class EventResultsParser {
         const rawTime = parseFloat(verboseTimes[firstIndex]);
         const cones = parseInt(verboseTimes[firstIndex + 1]);
         const penalty = verboseTimes[firstIndex + 2] || undefined;
-        driver.day1!.push(new LapTime(rawTime, cones, penalty));
+        driver.day1!.push(new rusty.LapTime(rawTime, cones, penalty));
       }
 
       // Insert day 2 times
@@ -126,7 +126,7 @@ export class EventResultsParser {
       ) {
         const firstIndex = 3 * lapNumber + 3 * (driver['Runs Day1'] || 0);
         driver.day2!.push(
-          new LapTime(
+          new rusty.LapTime(
             parseFloat(verboseTimes[firstIndex]),
             parseInt(verboseTimes[firstIndex + 1]),
             verboseTimes[firstIndex + 2] || undefined,

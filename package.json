@@ -18,6 +18,7 @@
     "react-bootstrap-typeahead": "^5.2.2",
     "react-dom": "^17.0.2",
     "react-toastify": "^8.2.0",
+    "rusty": "link:./rusty",
     "typescript": "~4.4.4",
     "web-vitals": "^2.1.4",
     "xlsx": "^0.18.5"
@@ -28,8 +29,10 @@
     "ts-node": "^10.7.0"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "env 'PUBLIC_URL=https://david.zemon.name/pronto' react-scripts build",
+    "build-rs": "cargo build --release && wasm-bindgen target/wasm32-unknown-unknown/release/rusty.wasm --target=web --out-dir=rusty --omit-default-module-path && cp rusty/rusty_bg.wasm public/",
+    "start": "yarn build-rs && react-scripts start",
+    "build": "yarn build-rs && env 'PUBLIC_URL=https://david.zemon.name/pronto' react-scripts build",
+    "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {

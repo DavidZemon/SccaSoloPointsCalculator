@@ -1,3 +1,5 @@
+import * as rusty from 'rusty/rusty';
+
 export type TimeSelection = 'day1' | 'day2' | 'combined';
 export type IndexedChampionshipType = 'PAX' | 'Novice' | 'Ladies';
 export type ChampionshipType = 'Class' | IndexedChampionshipType;
@@ -512,96 +514,6 @@ export const CLASS_MAP: Record<ShortCarClass, CarClass> = {
   },
 };
 
-export class LapTime {
-  public static readonly DSQ = new LapTime(0, 0, 'DSQ');
-  public static readonly DNS = new LapTime(0, 0, 'DNS');
-
-  public readonly raw?: number;
-  public readonly time?: number;
-  public readonly cones: number;
-  public readonly dnf: boolean;
-  public readonly rerun: boolean;
-  public readonly dsq: boolean;
-  public readonly dns: boolean;
-
-  constructor(rawTime: number, cones: number, penalty?: string) {
-    switch (penalty) {
-      case 'DNF':
-        this.dnf = true;
-        this.rerun = false;
-        this.dsq = false;
-        this.dns = false;
-        this.cones = 0;
-        break;
-      case 'RRN':
-        this.dnf = false;
-        this.rerun = true;
-        this.dsq = false;
-        this.dns = false;
-        this.cones = 0;
-        break;
-      case 'DSQ':
-        this.dnf = false;
-        this.rerun = false;
-        this.dsq = true;
-        this.dns = false;
-        this.cones = 0;
-        break;
-      case 'DNS':
-        this.dnf = false;
-        this.rerun = false;
-        this.dsq = false;
-        this.dns = true;
-        this.cones = 0;
-        break;
-      default:
-        this.dnf = false;
-        this.rerun = false;
-        this.dsq = false;
-        this.dns = false;
-        this.raw = rawTime;
-        this.time = rawTime + cones * 2;
-        this.cones = cones;
-    }
-  }
-
-  toString(paxMultiplier?: number, displayConeCount = true): string {
-    if (this.dnf) return 'DNF';
-    else if (this.rerun) return 'Re-run';
-    else if (this.dsq) return 'DSQ';
-    else if (this.dns) return 'DNS';
-    else {
-      let time = this.time!;
-      if (paxMultiplier) time *= paxMultiplier;
-      if (displayConeCount)
-        return `${time.toFixed(3)}` + (this.cones ? ` (${this.cones})` : '');
-      else return time.toFixed(3);
-    }
-  }
-
-  add(rhs: LapTime): LapTime {
-    if (this.dnf || this.rerun || this.dsq || this.dns) {
-      return this;
-    } else if (rhs.dnf || rhs.rerun || rhs.dsq || rhs.dns) {
-      return rhs;
-    } else {
-      return new LapTime(this.raw! + rhs.raw!, this.cones + rhs.cones);
-    }
-  }
-
-  static compare(lhs: LapTime, rhs: LapTime): number {
-    if (lhs.time === rhs.time) {
-      return 0;
-    } else if (lhs.time === undefined) {
-      return 1;
-    } else if (rhs.time === undefined) {
-      return -1;
-    } else {
-      return lhs.time - rhs.time;
-    }
-  }
-}
-
 /**
  * Object with property names that match the Pronto export file
  */
@@ -625,8 +537,8 @@ export interface ExportedDriver {
   'Pax Time': number;
   'Runs Day1'?: number;
   'Runs Day2'?: number;
-  day1?: LapTime[];
-  day2?: LapTime[];
+  day1?: rusty.LapTime[];
+  day2?: rusty.LapTime[];
 }
 
 export interface CarClass {
@@ -656,9 +568,9 @@ export class Driver {
   readonly dsq: boolean;
   readonly paxMultiplier: number;
 
-  private readonly day1Times?: LapTime[];
-  private readonly day2Times?: LapTime[];
-  private readonly combined: LapTime;
+  private readonly day1Times?: rusty.LapTime[];
+  private readonly day2Times?: rusty.LapTime[];
+  private readonly combined: rusty.LapTime;
 
   constructor(driver: ExportedDriver) {
     this.error =
@@ -682,20 +594,20 @@ export class Driver {
     this.combined =
       this.day1Times?.length && this.day2Times?.length
         ? this.bestLap('day1').add(this.bestLap('day2'))
-        : LapTime.DNS;
+        : rusty.LapTime.dns();
   }
 
-  bestLap(timeSelection: TimeSelection = 'day1'): LapTime {
-    if (this.dsq) return LapTime.DSQ;
+  bestLap(timeSelection: TimeSelection = 'day1'): rusty.LapTime {
+    if (this.dsq) return rusty.LapTime.dsq();
     else {
       switch (timeSelection) {
         case 'day1':
-          return [...(this.getTimes('day1') || [LapTime.DNS])].sort(
-            LapTime.compare,
+          return [...(this.getTimes('day1') || [rusty.LapTime.dns()])].sort(
+            rusty.LapTime.compare,
           )[0];
         case 'day2':
-          return [...(this.getTimes('day2') || [LapTime.DNS])].sort(
-            LapTime.compare,
+          return [...(this.getTimes('day2') || [rusty.LapTime.dns()])].sort(
+            rusty.LapTime.compare,
           )[0];
         case 'combined':
           return this.combined;
@@ -705,7 +617,7 @@ export class Driver {
 
   getTimes(
     timeSelect: Exclude<TimeSelection, 'combined'> = 'day1',
-  ): LapTime[] | undefined {
+  ): rusty.LapTime[] | undefined {
     switch (timeSelect) {
       case 'day1':
         return this.day1Times;
