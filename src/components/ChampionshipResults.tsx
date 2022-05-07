@@ -4,7 +4,6 @@ import {
   ChampionshipDriver,
   ChampionshipResults as ChampionshipResultsData,
   ChampionshipType,
-  CLASS_MAP,
   ClassChampionshipDriver,
   IndexedChampionshipResults,
   ShortCarClass,
@@ -18,6 +17,7 @@ import { RamDownload } from './DownloadButton';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faDownload } from '@fortawesome/free-solid-svg-icons';
 import { EOL } from 'os';
+import * as rusty from 'rusty/rusty';
 
 interface ChampionshipResultsProps extends PropsWithoutRef<any> {
   results?: ChampionshipResultsData;
@@ -258,12 +258,16 @@ export class ChampionshipResults extends Component<
         ][]
       )
         .map(([carClass, drivers]) => {
-          if (!CLASS_MAP[carClass]) {
+          if (!rusty.get_car_class(rusty.ShortCarClass[carClass])) {
             console.error(`Can not map class "${carClass}"`);
           }
           const trophyCount = calculateClassChampionshipTrophies(drivers);
           return [
-            [`${carClass} - ${CLASS_MAP[carClass].long}`],
+            [
+              `${carClass} - ${rusty.to_display_name(
+                rusty.get_car_class(rusty.ShortCarClass[carClass])!.long,
+              )}`,
+            ],
             ...drivers
               .sort((d1, d2) => d2.totalPoints - d1.totalPoints)
               .map((driver, index) =>

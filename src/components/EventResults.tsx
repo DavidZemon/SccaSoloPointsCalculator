@@ -3,6 +3,7 @@ import { Component, ComponentPropsWithoutRef } from 'react';
 import { Accordion, Button, Card, Col, Row, Table } from 'react-bootstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faDownload } from '@fortawesome/free-solid-svg-icons';
+import * as rusty from 'rusty/rusty';
 import {
   ClassResults,
   Driver,
@@ -184,7 +185,7 @@ export class EventResults extends Component<
           case 'Novice':
             return driver.rookie;
           case 'PAX':
-            return 'FUN' !== driver.carClass.short;
+            return 'FUN' !== rusty.ShortCarClass[driver.carClass.short];
           case 'Ladies':
             return this.props.ladiesIds!.includes(driver.id);
           case 'Raw':
@@ -294,14 +295,18 @@ export class EventResults extends Component<
     const bestIndexTime =
       (bestLapInClass || Infinity) * classResults.drivers[0].paxMultiplier;
     return [
-      [`${classResults.carClass.short} - ${classResults.carClass.long}`],
+      [
+        `${
+          rusty.ShortCarClass[classResults.carClass.short]
+        } - ${rusty.to_display_name(classResults.carClass.long)}`,
+      ],
       ...classResults.drivers.map((driver, index) => {
         return [
           index < classResults.trophyCount ? 'T' : '',
           `${driver.position}`,
           driver.name,
           driver.carDescription,
-          classResults.carClass.short,
+          rusty.ShortCarClass[classResults.carClass.short],
           `${driver.carNumber}`,
           driver.bestLap().toString(undefined, false),
           driver.bestLap().toString(driver.paxMultiplier, false),

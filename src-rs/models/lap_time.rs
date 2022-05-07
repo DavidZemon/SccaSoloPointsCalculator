@@ -1,15 +1,16 @@
+use crate::models::type_aliases::{PaxMultiplier, Time};
 use float_cmp;
-use float_cmp::F32Margin;
+use float_cmp::F64Margin;
 use std::cmp::Ordering;
 use std::fmt;
 use std::fmt::Formatter;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct LapTime {
-    pub raw: Option<f32>,
-    pub time: Option<f32>,
+    pub raw: Option<Time>,
+    pub time: Option<Time>,
     pub cones: u8,
     pub dnf: bool,
     pub rerun: bool,
@@ -29,7 +30,7 @@ impl PartialOrd<Self> for LapTime {
             let self_time = self.time.unwrap();
             let other_time = other.time.unwrap();
 
-            if float_cmp::ApproxEq::approx_eq(self_time, other_time, F32Margin::default()) {
+            if float_cmp::ApproxEq::approx_eq(self_time, other_time, F64Margin::default()) {
                 Some(Ordering::Equal)
             } else {
                 self_time.partial_cmp(&other_time)
@@ -63,6 +64,7 @@ impl PartialEq for LapTime {
 impl Eq for LapTime {}
 
 #[wasm_bindgen]
+#[derive(Copy, Clone, Debug)]
 pub enum Penalty {
     DNF,
     RRN,
@@ -73,11 +75,11 @@ pub enum Penalty {
 #[wasm_bindgen]
 impl LapTime {
     #[wasm_bindgen(constructor)]
-    pub fn new(raw_time: f32, cones: u8, penalty: Option<Penalty>) -> LapTime {
+    pub fn new(raw_time: Time, cones: u8, penalty: Option<Penalty>) -> LapTime {
         match penalty {
             None => LapTime {
                 raw: Some(raw_time),
-                time: Some(raw_time + (cones as f32) * 2.),
+                time: Some(raw_time + (cones as Time) * 2.),
                 cones,
                 dnf: false,
                 rerun: false,
@@ -126,7 +128,7 @@ impl LapTime {
     #[allow(non_snake_case)]
     pub fn toString(
         &self,
-        pax_multiplier: Option<f32>,
+        pax_multiplier: Option<PaxMultiplier>,
         display_cone_count: Option<bool>,
     ) -> String {
         if self.dnf {
