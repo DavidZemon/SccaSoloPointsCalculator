@@ -1,8 +1,9 @@
 use crate::models::car_class::{get_car_class, CarClass};
 use crate::models::exported_driver::{BestRun, ExportedDriver};
 use crate::models::lap_time::LapTime;
-use crate::models::type_aliases::DriverId;
+use crate::models::type_aliases::{DriverId, Time};
 
+#[derive(Copy, Clone, Debug)]
 pub enum TimeSelection {
     Day1,
     Day2,
@@ -130,5 +131,49 @@ impl Driver {
             &self.day_2_times,
             time_selection,
         )
+    }
+
+    pub fn get_times(&self, time_selection: Option<TimeSelection>) -> Option<Vec<LapTime>> {
+        let selection = match time_selection {
+            Some(t) => t,
+            None => TimeSelection::Day1,
+        };
+        match selection {
+            TimeSelection::Day1 => self.day_1_times.clone(),
+            TimeSelection::Day2 => self.day_2_times.clone(),
+            TimeSelection::Combined => {
+                panic!("Silly person! I can't give you an array of times for the 'combined' time!")
+            }
+        }
+    }
+
+    pub fn differences(
+        &self,
+        fastest_of_day: Option<Time>,
+        use_pax: Option<bool>,
+        time_selection: Option<TimeSelection>,
+    ) -> String {
+        let time_to_compare = self.best_lap(time_selection);
+        match time_to_compare.time {
+            Some(t) => {
+                let multiplier = if use_pax.unwrap_or(false) {
+                    self.pax_multiplier
+                } else {
+                    1.
+                };
+                let indexed_time = multiplier * t;
+                match fastest_of_day {
+                    Some(fastest) => {
+                        if indexed_time == fastest {
+                            String::from("")
+                        } else {
+                            String::from(format!("{:.3}", fastest - indexed_time))
+                        }
+                    }
+                    None => panic!("Asking for time difference but no fastest given"),
+                }
+            }
+            None => String::from("N/A"),
+        }
     }
 }
