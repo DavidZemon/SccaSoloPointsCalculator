@@ -1,4 +1,5 @@
 mod car_class;
+mod championship_driver;
 mod class_category;
 mod class_results;
 mod driver;
