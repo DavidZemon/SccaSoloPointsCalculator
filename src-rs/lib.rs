@@ -1,3 +1,3 @@
 extern crate core;
 
-mod models;
+pub mod models;

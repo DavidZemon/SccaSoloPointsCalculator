@@ -7,7 +7,7 @@ license = "MIT"
 repository = "https://github.com/DavidZemon/SccaSoloPointsCalculator"
 
 [lib]
-crate-type = ["cdylib"]
+crate-type = ["cdylib", "rlib"]
 path = "src-rs/lib.rs"
 
 [dependencies]

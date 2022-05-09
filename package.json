@@ -29,7 +29,7 @@
     "ts-node": "^10.7.0"
   },
   "scripts": {
-    "build-rs": "cargo build --release && wasm-bindgen target/wasm32-unknown-unknown/release/rusty.wasm --target=web --out-dir=rusty --omit-default-module-path && cp rusty/rusty_bg.wasm public/",
+    "build-rs": "cargo build --release --target wasm32-unknown-unknown && wasm-bindgen target/wasm32-unknown-unknown/release/rusty.wasm --target=web --out-dir=rusty --omit-default-module-path && cp rusty/rusty_bg.wasm public/",
     "start": "yarn build-rs && react-scripts start",
     "build": "yarn build-rs && env 'PUBLIC_URL=https://david.zemon.name/pronto' react-scripts build",
     "test": "react-scripts test",
