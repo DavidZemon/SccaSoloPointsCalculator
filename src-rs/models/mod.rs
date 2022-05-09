@@ -1,5 +1,6 @@
 mod car_class;
 mod class_category;
+mod class_results;
 mod driver;
 mod enum_str;
 mod exported_driver;
