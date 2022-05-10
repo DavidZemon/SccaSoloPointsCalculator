@@ -102,3 +102,25 @@ pub fn to_display_name(car_class: LongCarClass) -> String {
         .replace("Front_Wheel_Drive", "Front-Wheel-Drive")
         .replace("_", " ")
 }
+
+#[cfg(test)]
+mod test {
+    use crate::models::long_car_class::to_display_name;
+    use crate::models::long_car_class::LongCarClass;
+
+    #[test]
+    fn to_display_name_should_convert_correctly() {
+        assert_eq!(
+            to_display_name(LongCarClass::Super_Street),
+            String::from("Super Street")
+        );
+        assert_eq!(
+            to_display_name(LongCarClass::Formula_SAE),
+            String::from("Formula SAE")
+        );
+        assert_eq!(
+            to_display_name(LongCarClass::Street_Modified_Front_Wheel_Drive),
+            String::from("Street Modified Front-Wheel-Drive")
+        );
+    }
+}

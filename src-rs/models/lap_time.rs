@@ -125,8 +125,7 @@ impl LapTime {
         }
     }
 
-    #[allow(non_snake_case)]
-    pub fn toString(
+    pub fn to_string(
         &self,
         pax_multiplier: Option<PaxMultiplier>,
         display_cone_count: Option<bool>,
@@ -182,6 +181,279 @@ impl LapTime {
 
 impl fmt::Display for LapTime {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.toString(None, None))
+        write!(f, "{}", self.to_string(None, None))
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::models::lap_time::{LapTime, Penalty};
+
+    #[test]
+    fn constructor_should_build_valid_time_without_cones() {
+        let actual = LapTime::new(12.34, 0, None);
+        assert_eq!(actual.raw, Some(12.34));
+        assert_eq!(actual.time, Some(12.34));
+        assert_eq!(actual.cones, 0);
+        assert_eq!(actual.dnf, false);
+        assert_eq!(actual.rerun, false);
+        assert_eq!(actual.dsq, false);
+        assert_eq!(actual.dns, false);
+    }
+
+    #[test]
+    fn constructor_should_build_valid_time_with_cones() {
+        let actual = LapTime::new(12.34, 2, None);
+        assert_eq!(actual.raw, Some(12.34));
+        assert_eq!(actual.time, Some(16.34));
+        assert_eq!(actual.cones, 2);
+        assert_eq!(actual.dnf, false);
+        assert_eq!(actual.rerun, false);
+        assert_eq!(actual.dsq, false);
+        assert_eq!(actual.dns, false);
+    }
+
+    #[test]
+    fn constructor_should_build_with_dnf() {
+        let actual = LapTime::new(12.34, 2, Some(Penalty::DNF));
+        assert_eq!(actual.raw, None);
+        assert_eq!(actual.time, None);
+        assert_eq!(actual.cones, 0);
+        assert_eq!(actual.dnf, true);
+        assert_eq!(actual.rerun, false);
+        assert_eq!(actual.dsq, false);
+        assert_eq!(actual.dns, false);
+    }
+
+    #[test]
+    fn constructor_should_build_with_rerun() {
+        let actual = LapTime::new(12.34, 2, Some(Penalty::RRN));
+        assert_eq!(actual.raw, None);
+        assert_eq!(actual.time, None);
+        assert_eq!(actual.cones, 0);
+        assert_eq!(actual.dnf, false);
+        assert_eq!(actual.rerun, true);
+        assert_eq!(actual.dsq, false);
+        assert_eq!(actual.dns, false);
+    }
+
+    #[test]
+    fn constructor_should_build_with_dsq() {
+        let actual = LapTime::new(12.34, 2, Some(Penalty::DSQ));
+        assert_eq!(actual.raw, None);
+        assert_eq!(actual.time, None);
+        assert_eq!(actual.cones, 0);
+        assert_eq!(actual.dnf, false);
+        assert_eq!(actual.rerun, false);
+        assert_eq!(actual.dsq, true);
+        assert_eq!(actual.dns, false);
+
+        let actual = LapTime::dsq();
+        assert_eq!(actual.raw, None);
+        assert_eq!(actual.time, None);
+        assert_eq!(actual.cones, 0);
+        assert_eq!(actual.dnf, false);
+        assert_eq!(actual.rerun, false);
+        assert_eq!(actual.dsq, true);
+        assert_eq!(actual.dns, false);
+    }
+
+    #[test]
+    fn constructor_should_build_with_dns() {
+        let actual = LapTime::new(12.34, 2, Some(Penalty::DNS));
+        assert_eq!(actual.raw, None);
+        assert_eq!(actual.time, None);
+        assert_eq!(actual.cones, 0);
+        assert_eq!(actual.dnf, false);
+        assert_eq!(actual.rerun, false);
+        assert_eq!(actual.dsq, false);
+        assert_eq!(actual.dns, true);
+
+        let actual = LapTime::dns();
+        assert_eq!(actual.raw, None);
+        assert_eq!(actual.time, None);
+        assert_eq!(actual.cones, 0);
+        assert_eq!(actual.dnf, false);
+        assert_eq!(actual.rerun, false);
+        assert_eq!(actual.dsq, false);
+        assert_eq!(actual.dns, true);
+    }
+
+    #[test]
+    fn to_string_should_display_valid_time_without_cones() {
+        let actual = LapTime::new(12.34, 0, None);
+        assert_eq!(actual.to_string(None, None), String::from("12.340"));
+        assert_eq!(actual.to_string(Some(0.5), None), String::from("6.170"));
+        assert_eq!(actual.to_string(None, Some(false)), String::from("12.340"));
+        assert_eq!(actual.to_string(None, Some(true)), String::from("12.340"));
+        assert_eq!(
+            actual.to_string(Some(0.5), Some(false)),
+            String::from("6.170")
+        );
+
+        assert_eq!(
+            LapTime::new(100.34, 0, None).to_string(None, None),
+            String::from("100.340")
+        );
+        assert_eq!(
+            LapTime::new(0.34, 0, None).to_string(None, None),
+            String::from("0.340")
+        );
+    }
+
+    #[test]
+    fn to_string_should_display_valid_time_with_cones() {
+        let actual = LapTime::new(12.34, 2, None);
+        assert_eq!(actual.to_string(None, None), String::from("16.340 (2)"));
+        assert_eq!(actual.to_string(Some(0.5), None), String::from("8.170 (2)"));
+        assert_eq!(actual.to_string(None, Some(false)), String::from("16.340"));
+        assert_eq!(
+            actual.to_string(None, Some(true)),
+            String::from("16.340 (2)")
+        );
+        assert_eq!(
+            actual.to_string(Some(0.5), Some(false)),
+            String::from("8.170")
+        );
+    }
+
+    #[test]
+    fn to_string_should_display_with_dnf() {
+        let actual = LapTime::new(12.34, 2, Some(Penalty::DNF));
+        assert_eq!(actual.to_string(None, None), String::from("DNF"));
+        assert_eq!(actual.to_string(Some(0.5), None), String::from("DNF"));
+        assert_eq!(actual.to_string(None, Some(false)), String::from("DNF"));
+        assert_eq!(actual.to_string(None, Some(true)), String::from("DNF"));
+        assert_eq!(
+            actual.to_string(Some(0.5), Some(false)),
+            String::from("DNF")
+        );
+    }
+
+    #[test]
+    fn to_string_should_display_with_rerun() {
+        let actual = LapTime::new(12.34, 2, Some(Penalty::RRN));
+        assert_eq!(actual.to_string(None, None), String::from("Re-run"));
+        assert_eq!(actual.to_string(Some(0.5), None), String::from("Re-run"));
+        assert_eq!(actual.to_string(None, Some(false)), String::from("Re-run"));
+        assert_eq!(actual.to_string(None, Some(true)), String::from("Re-run"));
+        assert_eq!(
+            actual.to_string(Some(0.5), Some(false)),
+            String::from("Re-run")
+        );
+    }
+
+    #[test]
+    fn to_string_should_display_with_dsq() {
+        let actual = LapTime::new(12.34, 2, Some(Penalty::DSQ));
+        assert_eq!(actual.to_string(None, None), String::from("DSQ"));
+        assert_eq!(actual.to_string(Some(0.5), None), String::from("DSQ"));
+        assert_eq!(actual.to_string(None, Some(false)), String::from("DSQ"));
+        assert_eq!(actual.to_string(None, Some(true)), String::from("DSQ"));
+        assert_eq!(
+            actual.to_string(Some(0.5), Some(false)),
+            String::from("DSQ")
+        );
+    }
+
+    #[test]
+    fn to_string_should_display_with_dns() {
+        let actual = LapTime::new(12.34, 2, Some(Penalty::DNS));
+        assert_eq!(actual.to_string(None, None), String::from("DNS"));
+        assert_eq!(actual.to_string(Some(0.5), None), String::from("DNS"));
+        assert_eq!(actual.to_string(None, Some(false)), String::from("DNS"));
+        assert_eq!(actual.to_string(None, Some(true)), String::from("DNS"));
+        assert_eq!(
+            actual.to_string(Some(0.5), Some(false)),
+            String::from("DNS")
+        );
+    }
+
+    #[test]
+    fn comparator_should_sort_correctly() {
+        let mut actual = Vec::new();
+        actual.push(LapTime::new(10., 0, None));
+        actual.push(LapTime::new(6., 1, None));
+        actual.push(LapTime::new(1., 0, Some(Penalty::DNF)));
+        actual.push(LapTime::new(1., 0, Some(Penalty::DNS)));
+        actual.push(LapTime::new(1., 0, Some(Penalty::RRN)));
+        actual.push(LapTime::new(1., 0, Some(Penalty::DSQ)));
+        actual.push(LapTime::new(12., 0, None));
+        actual.push(LapTime::new(7., 0, None));
+
+        actual.sort();
+
+        assert_eq!(actual.get(0).unwrap().time, Some(7.));
+        assert_eq!(actual.get(1).unwrap().time, Some(8.));
+        assert_eq!(actual.get(2).unwrap().time, Some(10.));
+        assert_eq!(actual.get(3).unwrap().time, Some(12.));
+        assert_eq!(actual.get(4).unwrap().time, None);
+        assert_eq!(actual.get(5).unwrap().time, None);
+        assert_eq!(actual.get(6).unwrap().time, None);
+        assert_eq!(actual.get(7).unwrap().time, None);
+    }
+
+    #[test]
+    fn add_should_add_two_times_without_cones() {
+        let lhs = LapTime::new(3., 0, None);
+        let rhs = LapTime::new(5., 0, None);
+        assert_eq!(lhs.add(rhs).to_string(None, None), "8.000");
+    }
+
+    #[test]
+    fn add_should_add_two_times_with_cones() {
+        let lhs = LapTime::new(3., 1, None);
+        let rhs = LapTime::new(5., 0, None);
+        assert_eq!(lhs.add(rhs).to_string(None, None), "10.000 (1)");
+
+        let lhs = LapTime::new(3., 0, None);
+        let rhs = LapTime::new(5., 2, None);
+        assert_eq!(lhs.add(rhs).to_string(None, None), "12.000 (2)");
+
+        let lhs = LapTime::new(3., 1, None);
+        let rhs = LapTime::new(5., 2, None);
+        assert_eq!(lhs.add(rhs).to_string(None, None), "14.000 (3)");
+    }
+
+    #[test]
+    fn add_should_add_two_times_with_penalties() {
+        let lhs = LapTime::new(3., 1, Some(Penalty::DNF));
+        let rhs = LapTime::new(5., 0, None);
+        assert_eq!(lhs.add(rhs).to_string(None, None), "DNF");
+        let lhs = LapTime::new(3., 1, Some(Penalty::DNS));
+        let rhs = LapTime::new(5., 0, None);
+        assert_eq!(lhs.add(rhs).to_string(None, None), "DNS");
+        let lhs = LapTime::new(3., 1, Some(Penalty::DSQ));
+        let rhs = LapTime::new(5., 0, None);
+        assert_eq!(lhs.add(rhs).to_string(None, None), "DSQ");
+        let lhs = LapTime::new(3., 1, Some(Penalty::RRN));
+        let rhs = LapTime::new(5., 0, None);
+        assert_eq!(lhs.add(rhs).to_string(None, None), "Re-run");
+
+        let lhs = LapTime::new(3., 1, None);
+        let rhs = LapTime::new(5., 0, Some(Penalty::DNF));
+        assert_eq!(lhs.add(rhs).to_string(None, None), "DNF");
+        let lhs = LapTime::new(3., 1, None);
+        let rhs = LapTime::new(5., 0, Some(Penalty::DNS));
+        assert_eq!(lhs.add(rhs).to_string(None, None), "DNS");
+        let lhs = LapTime::new(3., 1, None);
+        let rhs = LapTime::new(5., 0, Some(Penalty::DSQ));
+        assert_eq!(lhs.add(rhs).to_string(None, None), "DSQ");
+        let lhs = LapTime::new(3., 1, None);
+        let rhs = LapTime::new(5., 0, Some(Penalty::RRN));
+        assert_eq!(lhs.add(rhs).to_string(None, None), "Re-run");
+
+        let lhs = LapTime::new(3., 1, Some(Penalty::DNS));
+        let rhs = LapTime::new(5., 0, Some(Penalty::DNF));
+        assert_eq!(lhs.add(rhs).to_string(None, None), "DNS");
+        let lhs = LapTime::new(3., 1, Some(Penalty::DSQ));
+        let rhs = LapTime::new(5., 0, Some(Penalty::DNS));
+        assert_eq!(lhs.add(rhs).to_string(None, None), "DSQ");
+        let lhs = LapTime::new(3., 1, Some(Penalty::RRN));
+        let rhs = LapTime::new(5., 0, Some(Penalty::DSQ));
+        assert_eq!(lhs.add(rhs).to_string(None, None), "Re-run");
+        let lhs = LapTime::new(3., 1, Some(Penalty::DNF));
+        let rhs = LapTime::new(5., 0, Some(Penalty::RRN));
+        assert_eq!(lhs.add(rhs).to_string(None, None), "DNF");
     }
 }

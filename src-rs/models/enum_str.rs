@@ -20,3 +20,24 @@ macro_rules! enum_str {
         }
     };
 }
+
+#[cfg(test)]
+mod test {
+    use serde::Deserialize;
+    use wasm_bindgen::prelude::*;
+
+    enum_str! {
+        enum ActualEnum {
+            First,
+            Second,
+            Multi_Word,
+        }
+    }
+
+    #[test]
+    fn should_create_name_method() {
+        assert_eq!(ActualEnum::First.name(), String::from("First"));
+        assert_eq!(ActualEnum::Second.name(), String::from("Second"));
+        assert_eq!(ActualEnum::Multi_Word.name(), String::from("Multi_Word"));
+    }
+}
