@@ -31,7 +31,7 @@ pub struct ExportedDriver {
     #[serde(rename = "Car Color")]
     pub color: Option<String>,
     #[serde(rename = "Member #")]
-    pub member_number: Option<u32>,
+    pub member_number: Option<String>,
     #[serde(rename = "Rookie")]
     pub rookie: Option<u8>,
     #[serde(rename = "Ladies")]
@@ -41,15 +41,15 @@ pub struct ExportedDriver {
     #[serde(rename = "Region")]
     pub region: Option<String>,
     #[serde(rename = "Best Run")]
-    pub best_run: BestRun,
+    pub best_run: String,
     #[serde(rename = "Pax Index")]
     pub pax_multiplier: PaxMultiplier,
     #[serde(rename = "Pax Time")]
     pub pax_time: Time,
     #[serde(rename = "Runs Day1")]
-    pub runs_day1: Option<u8>,
+    pub runs_day1: Option<usize>,
     #[serde(rename = "Runs Day2")]
-    pub runs_day2: Option<u8>,
+    pub runs_day2: Option<usize>,
     #[serde(skip)]
     pub day1: Option<Vec<LapTime>>,
     #[serde(skip)]
