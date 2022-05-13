@@ -66,11 +66,12 @@ pub type EventResults = HashMap<ShortCarClass, ClassResults>;
 #[cfg(test)]
 mod test {
     use crate::models::class_results::ClassResults;
-    use crate::models::driver::Driver;
+    use crate::models::driver::{Driver, TimeSelection};
     use crate::models::exported_driver::ExportedDriver;
+    use crate::models::lap_time::LapTime;
     use crate::models::short_car_class::ShortCarClass;
 
-    fn build_driver() -> Driver {
+    fn build_driver(day1: Option<Vec<LapTime>>, day2: Option<Vec<LapTime>>) -> Driver {
         Driver::from(
             ExportedDriver {
                 position: None,
@@ -92,10 +93,10 @@ mod test {
                 pax_time: 0.0,
                 runs_day1: None,
                 runs_day2: None,
-                day1: None,
-                day2: None,
+                day1,
+                day2,
             },
-            false,
+            true,
         )
     }
 
@@ -104,49 +105,102 @@ mod test {
         let mut testable = ClassResults::new(ShortCarClass::AS);
 
         assert_eq!(testable.trophy_count, 0);
-        testable.add_driver(build_driver());
+        testable.add_driver(build_driver(None, None));
         assert_eq!(testable.trophy_count, 0);
-        testable.add_driver(build_driver());
+        testable.add_driver(build_driver(None, None));
         assert_eq!(testable.trophy_count, 1);
-        testable.add_driver(build_driver());
+        testable.add_driver(build_driver(None, None));
         assert_eq!(testable.trophy_count, 1);
-        testable.add_driver(build_driver());
+        testable.add_driver(build_driver(None, None));
         assert_eq!(testable.trophy_count, 2);
-        testable.add_driver(build_driver());
+        testable.add_driver(build_driver(None, None));
         assert_eq!(testable.trophy_count, 2);
-        testable.add_driver(build_driver());
+        testable.add_driver(build_driver(None, None));
         assert_eq!(testable.trophy_count, 2);
-        testable.add_driver(build_driver());
+        testable.add_driver(build_driver(None, None));
         assert_eq!(testable.trophy_count, 3);
-        testable.add_driver(build_driver());
+        testable.add_driver(build_driver(None, None));
         assert_eq!(testable.trophy_count, 3);
-        testable.add_driver(build_driver());
+        testable.add_driver(build_driver(None, None));
         assert_eq!(testable.trophy_count, 3);
-        testable.add_driver(build_driver());
+        testable.add_driver(build_driver(None, None));
         assert_eq!(testable.trophy_count, 4);
-        testable.add_driver(build_driver());
+        testable.add_driver(build_driver(None, None));
         assert_eq!(testable.trophy_count, 4);
-        testable.add_driver(build_driver());
+        testable.add_driver(build_driver(None, None));
         assert_eq!(testable.trophy_count, 4);
-        testable.add_driver(build_driver());
+        testable.add_driver(build_driver(None, None));
         assert_eq!(testable.trophy_count, 4);
-        testable.add_driver(build_driver());
+        testable.add_driver(build_driver(None, None));
         assert_eq!(testable.trophy_count, 5);
-        testable.add_driver(build_driver());
+        testable.add_driver(build_driver(None, None));
         assert_eq!(testable.trophy_count, 5);
-        testable.add_driver(build_driver());
+        testable.add_driver(build_driver(None, None));
         assert_eq!(testable.trophy_count, 5);
-        testable.add_driver(build_driver());
+        testable.add_driver(build_driver(None, None));
         assert_eq!(testable.trophy_count, 5);
-        testable.add_driver(build_driver());
+        testable.add_driver(build_driver(None, None));
         assert_eq!(testable.trophy_count, 6);
     }
 
     #[test]
-    fn get_best_in_class() {
+    fn get_best_in_class_day1() {
         let mut testable = ClassResults::new(ShortCarClass::AS);
-        testable.add_driver(build_driver());
+        testable.add_driver(build_driver(
+            Some(vec![LapTime::new(4., 0, None)]),
+            Some(vec![LapTime::new(40., 0, None)]),
+        ));
+        testable.add_driver(build_driver(
+            Some(vec![LapTime::new(3., 0, None)]),
+            Some(vec![LapTime::new(30., 0, None)]),
+        ));
+        testable.add_driver(build_driver(
+            Some(vec![LapTime::new(5., 0, None)]),
+            Some(vec![LapTime::new(500., 0, None)]),
+        ));
 
-        // TODO
+        assert_eq!(testable.get_best_in_class(None), 3.);
+        assert_eq!(testable.get_best_in_class(Some(TimeSelection::Day1)), 3.);
+    }
+
+    #[test]
+    fn get_best_in_class_day2() {
+        let mut testable = ClassResults::new(ShortCarClass::AS);
+        testable.add_driver(build_driver(
+            Some(vec![LapTime::new(4., 0, None)]),
+            Some(vec![LapTime::new(40., 0, None)]),
+        ));
+        testable.add_driver(build_driver(
+            Some(vec![LapTime::new(3., 0, None)]),
+            Some(vec![LapTime::new(30., 0, None)]),
+        ));
+        testable.add_driver(build_driver(
+            Some(vec![LapTime::new(5., 0, None)]),
+            Some(vec![LapTime::new(500., 0, None)]),
+        ));
+
+        assert_eq!(testable.get_best_in_class(Some(TimeSelection::Day2)), 30.);
+    }
+
+    #[test]
+    fn get_best_in_class_combined() {
+        let mut testable = ClassResults::new(ShortCarClass::AS);
+        testable.add_driver(build_driver(
+            Some(vec![LapTime::new(4., 0, None)]),
+            Some(vec![LapTime::new(40., 0, None)]),
+        ));
+        testable.add_driver(build_driver(
+            Some(vec![LapTime::new(3., 0, None)]),
+            Some(vec![LapTime::new(30., 0, None)]),
+        ));
+        testable.add_driver(build_driver(
+            Some(vec![LapTime::new(5., 0, None)]),
+            Some(vec![LapTime::new(500., 0, None)]),
+        ));
+
+        assert_eq!(
+            testable.get_best_in_class(Some(TimeSelection::Combined)),
+            33.
+        );
     }
 }
