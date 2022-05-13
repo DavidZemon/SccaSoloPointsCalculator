@@ -1,8 +1,9 @@
+use std::cmp::Ordering;
+
 use crate::models::car_class::{get_car_class, CarClass};
 use crate::models::exported_driver::ExportedDriver;
 use crate::models::lap_time::LapTime;
 use crate::models::type_aliases::{DriverId, Time};
-use std::cmp::Ordering;
 
 #[derive(Copy, Clone, Debug)]
 pub enum TimeSelection {
@@ -29,10 +30,13 @@ pub struct Driver {
     pub day_1_times: Option<Vec<LapTime>>,
     pub day_2_times: Option<Vec<LapTime>>,
     pub combined: LapTime,
+
+    /// For internal use only to help sort and compute combined time
+    two_day_event: bool,
 }
 
 impl Driver {
-    pub fn from(driver: ExportedDriver) -> Driver {
+    pub fn from(driver: ExportedDriver, two_day_event: bool) -> Driver {
         let best_run_is_truthy = driver
             .best_run
             .parse::<f64>()
@@ -61,7 +65,7 @@ impl Driver {
             times
         });
 
-        Driver {
+        let mut driver = Driver {
             error: driver.runs_day1.is_none() && driver.runs_day2.is_none() && best_run_is_truthy,
             rookie: driver.rookie.map_or(false, |value| value != 0),
             ladies_championship: driver.ladies.map_or(false, |value| value != 0),
@@ -77,26 +81,65 @@ impl Driver {
                 driver.model.clone().unwrap_or(String::from("Unknown"))
             ),
             region: driver.region.clone().unwrap_or(String::from("")),
-            dsq: false,
+            dsq: driver.dsq.map(|dsq| dsq == 1).unwrap_or(false),
             pax_multiplier: driver.pax_multiplier,
             day_1_times: day_1_times.clone(),
             day_2_times: day_2_times.clone(),
-            combined: compute_best_lap(
-                false,
-                &day_1_times.clone().as_ref(),
-                &day_2_times.clone().as_ref(),
-                Some(TimeSelection::Combined),
-            ),
-        }
+            combined: LapTime::dns(),
+            two_day_event,
+        };
+        driver.combined = driver.best_lap(Some(TimeSelection::Combined));
+        driver
     }
 
     pub fn best_lap(&self, time_selection: Option<TimeSelection>) -> LapTime {
-        compute_best_lap(
-            self.dsq,
-            &self.day_1_times.as_ref(),
-            &self.day_2_times.as_ref(),
-            time_selection,
-        )
+        if self.dsq {
+            LapTime::dsq()
+        } else {
+            match time_selection.unwrap_or(TimeSelection::Day1) {
+                TimeSelection::Day1 => self
+                    .day_1_times
+                    .clone()
+                    .map(|times| times.get(0).map(|t| t.clone()))
+                    .flatten()
+                    .unwrap_or(LapTime::dns()),
+                TimeSelection::Day2 => self
+                    .day_2_times
+                    .clone()
+                    .map(|times| times.get(0).map(|t| t.clone()))
+                    .flatten()
+                    .unwrap_or(LapTime::dns()),
+                TimeSelection::Combined => {
+                    let day_1_empty = self
+                        .day_1_times
+                        .clone()
+                        .map(|times| times.is_empty())
+                        .unwrap_or(true);
+                    let day_2_empty = self
+                        .day_2_times
+                        .clone()
+                        .map(|times| times.is_empty())
+                        .unwrap_or(true);
+
+                    if self.two_day_event {
+                        if day_1_empty || day_2_empty {
+                            LapTime::dns()
+                        } else {
+                            self.best_lap(Some(TimeSelection::Day1))
+                                .add(self.best_lap(Some(TimeSelection::Day2)))
+                        }
+                    } else {
+                        if day_2_empty {
+                            self.best_lap(Some(TimeSelection::Day1))
+                        } else if day_1_empty {
+                            self.best_lap(Some(TimeSelection::Day2))
+                        } else {
+                            panic!("Asking for combined time for a one-day event but driver {} has times for both days!", self.name)
+                        }
+                    }
+                }
+            }
+        }
     }
 
     pub fn get_times(&self, time_selection: Option<TimeSelection>) -> Option<Vec<LapTime>> {
@@ -178,212 +221,118 @@ impl PartialEq<Self> for Driver {
 
 impl Eq for Driver {}
 
-/// Find the best lap for the given time selection
-/// NOTE: Times MUST already be sorted with the fastest lap at the beginning of each vector
-fn compute_best_lap(
-    dsq: bool,
-    day_1_times: &Option<&Vec<LapTime>>,
-    day_2_times: &Option<&Vec<LapTime>>,
-    time_selection: Option<TimeSelection>,
-) -> LapTime {
-    if dsq {
-        LapTime::dsq()
-    } else {
-        match time_selection.unwrap_or(TimeSelection::Day1) {
-            TimeSelection::Day1 => day_1_times
-                .map_or(None, |times| times.get(0))
-                .unwrap_or(&LapTime::dns())
-                .clone(),
-            TimeSelection::Day2 => day_2_times
-                .map_or(None, |times| times.get(0))
-                .unwrap_or(&LapTime::dns())
-                .clone(),
-            TimeSelection::Combined => {
-                if day_1_times.map(|times| !times.is_empty()).unwrap_or(false)
-                    && day_2_times.map(|times| !times.is_empty()).unwrap_or(false)
-                {
-                    compute_best_lap(dsq, day_1_times, day_2_times, Some(TimeSelection::Day1)).add(
-                        compute_best_lap(dsq, day_1_times, day_2_times, Some(TimeSelection::Day2)),
-                    )
-                } else {
-                    LapTime::dns()
-                }
-            }
-        }
-    }
-}
-
 #[cfg(test)]
 mod test {
-    use crate::models::driver::{compute_best_lap, TimeSelection};
+    use rstest::rstest;
+
+    use crate::models::driver::{Driver, TimeSelection};
+    use crate::models::exported_driver::ExportedDriver;
     use crate::models::lap_time::LapTime;
+    use crate::models::short_car_class::ShortCarClass;
 
-    #[test]
-    fn compute_best_lap_should_return_dsq_for_dsq() {
-        assert_eq!(compute_best_lap(true, &None, &None, None), LapTime::dsq());
+    fn build_driver(
+        d1: Option<Vec<LapTime>>,
+        d2: Option<Vec<LapTime>>,
+        dsq: bool,
+        two_day: bool,
+    ) -> Driver {
+        Driver::from(
+            ExportedDriver {
+                position: None,
+                car_class: ShortCarClass::SS,
+                car_number: 0,
+                first_name: None,
+                last_name: None,
+                year: None,
+                make: None,
+                model: None,
+                color: None,
+                member_number: None,
+                rookie: None,
+                ladies: None,
+                dsq: Some(if dsq { 1 } else { 0 }),
+                region: None,
+                best_run: "".to_string(),
+                pax_multiplier: 0.0,
+                pax_time: 0.0,
+                runs_day1: None,
+                runs_day2: None,
+                day1: d1,
+                day2: d2,
+            },
+            two_day,
+        )
     }
 
-    #[test]
-    fn compute_best_lap_should_return_dns_if_no_times() {
-        let no_times: Vec<LapTime> = Vec::new();
-        let with_times = vec![LapTime::new(1., 0, None)];
+    #[rstest]
+    #[case(None, None)]
+    #[case(None, Some(vec![LapTime::new(2., 0, None)]))]
+    #[case(Some(vec![LapTime::new(2., 0, None)]), None)]
+    #[case(Some(vec![LapTime::new(1., 0, None)]), Some(vec![LapTime::new(2., 0, None)]))]
+    fn best_lap_should_return_dsq_for_dsq(
+        #[case] d1: Option<Vec<LapTime>>,
+        #[case] d2: Option<Vec<LapTime>>,
+    ) {
+        for ts in vec![
+            None,
+            Some(TimeSelection::Day1),
+            Some(TimeSelection::Day2),
+            Some(TimeSelection::Combined),
+        ] {
+            assert_eq!(
+                build_driver(d1.clone(), d2.clone(), true, false).best_lap(ts),
+                LapTime::dsq()
+            );
+            assert_eq!(
+                build_driver(d1.clone(), d2.clone(), true, true).best_lap(ts),
+                LapTime::dsq()
+            );
+        }
+    }
 
-        assert_eq!(compute_best_lap(false, &None, &None, None), LapTime::dns());
-
+    #[rstest]
+    #[case(None, None, None)]
+    #[case(None, Some(vec![]), None)]
+    #[case(None, Some(vec![LapTime::new(2., 0, None)]), None)]
+    #[case(None, None, Some(TimeSelection::Day1))]
+    #[case(None, Some(vec![]), Some(TimeSelection::Day1))]
+    #[case(None, Some(vec![LapTime::new(2., 0, None)]), Some(TimeSelection::Day1))]
+    #[case(None, None, Some(TimeSelection::Day2))]
+    #[case(Some(vec![]), None, Some(TimeSelection::Day2))]
+    #[case(Some(vec![LapTime::new(2., 0, None)]), None, Some(TimeSelection::Day2))]
+    #[case(None, None, Some(TimeSelection::Day2))]
+    #[case(Some(vec![]), None, Some(TimeSelection::Day2))]
+    #[case(None, Some(vec![]), Some(TimeSelection::Day2))]
+    #[case(Some(vec![]), Some(vec![]), Some(TimeSelection::Day2))]
+    #[case(None, None, Some(TimeSelection::Combined))]
+    fn best_lap_should_return_dns_for_missing_times(
+        #[case] d1: Option<Vec<LapTime>>,
+        #[case] d2: Option<Vec<LapTime>>,
+        #[case] ts: Option<TimeSelection>,
+    ) {
         assert_eq!(
-            compute_best_lap(false, &None, &None, Some(TimeSelection::Day1)),
+            build_driver(d1.clone(), d2.clone(), false, false).best_lap(ts),
             LapTime::dns()
         );
         assert_eq!(
-            compute_best_lap(false, &Some(&no_times), &None, Some(TimeSelection::Day1)),
-            LapTime::dns()
-        );
-        assert_eq!(
-            compute_best_lap(false, &None, &Some(&with_times), Some(TimeSelection::Day1)),
-            LapTime::dns()
-        );
-        assert_eq!(
-            compute_best_lap(
-                false,
-                &Some(&no_times),
-                &Some(&with_times),
-                Some(TimeSelection::Day1)
-            ),
-            LapTime::dns()
-        );
-
-        assert_eq!(
-            compute_best_lap(false, &None, &None, Some(TimeSelection::Day2)),
-            LapTime::dns()
-        );
-        assert_eq!(
-            compute_best_lap(false, &None, &Some(&no_times), Some(TimeSelection::Day2)),
-            LapTime::dns()
-        );
-        assert_eq!(
-            compute_best_lap(false, &Some(&with_times), &None, Some(TimeSelection::Day2)),
-            LapTime::dns()
-        );
-        assert_eq!(
-            compute_best_lap(
-                false,
-                &Some(&with_times),
-                &Some(&no_times),
-                Some(TimeSelection::Day2)
-            ),
-            LapTime::dns()
-        );
-
-        assert_eq!(
-            compute_best_lap(false, &None, &None, Some(TimeSelection::Combined)),
-            LapTime::dns()
-        );
-        assert_eq!(
-            compute_best_lap(
-                false,
-                &Some(&no_times),
-                &None,
-                Some(TimeSelection::Combined)
-            ),
-            LapTime::dns()
-        );
-        assert_eq!(
-            compute_best_lap(
-                false,
-                &None,
-                &Some(&no_times),
-                Some(TimeSelection::Combined)
-            ),
-            LapTime::dns()
-        );
-        assert_eq!(
-            compute_best_lap(
-                false,
-                &Some(&no_times),
-                &Some(&no_times),
-                Some(TimeSelection::Combined)
-            ),
-            LapTime::dns()
-        );
-        assert_eq!(
-            compute_best_lap(
-                false,
-                &Some(&with_times),
-                &Some(&no_times),
-                Some(TimeSelection::Combined)
-            ),
-            LapTime::dns()
-        );
-        assert_eq!(
-            compute_best_lap(
-                false,
-                &Some(&no_times),
-                &Some(&with_times),
-                Some(TimeSelection::Combined)
-            ),
+            build_driver(d1.clone(), d2.clone(), false, true).best_lap(ts),
             LapTime::dns()
         );
     }
 
-    #[test]
-    fn compute_best_lap_happy_path() {
-        // Intentionally use not the fastest lap as the expected as a showcase and reminder that
-        // this function doesn't actually compute the best lap
-        let expected1 = LapTime::new(3., 2, None);
-        let expected2 = LapTime::new(20., 1, None);
-        let expected_combined = LapTime::new(23., 3, None);
-
-        let times1 = vec![
-            expected1.clone(),
-            LapTime::new(1., 0, None),
-            LapTime::new(2., 0, None),
-        ];
-        let times2 = vec![
-            expected2.clone(),
-            LapTime::new(10., 0, None),
-            LapTime::new(30., 0, None),
-        ];
-
+    #[rstest]
+    #[case(Some(vec![LapTime::new(2., 0, None)]), None, Some(TimeSelection::Combined))]
+    #[case(Some(vec![LapTime::new(2., 0, None)]), Some(vec![]), Some(TimeSelection::Combined))]
+    #[case(None, Some(vec![LapTime::new(2., 0, None)]), Some(TimeSelection::Combined))]
+    #[case(Some(vec![]), Some(vec![LapTime::new(2., 0, None)]), Some(TimeSelection::Combined))]
+    fn best_lap_should_return_dns_for_special_two_day_event_cases(
+        #[case] d1: Option<Vec<LapTime>>,
+        #[case] d2: Option<Vec<LapTime>>,
+        #[case] ts: Option<TimeSelection>,
+    ) {
         assert_eq!(
-            compute_best_lap(false, &Some(&times1), &None, None),
-            expected1.clone()
-        );
-        assert_eq!(
-            compute_best_lap(false, &Some(&times1), &Some(&times2), None),
-            expected1.clone()
-        );
-        assert_eq!(
-            compute_best_lap(
-                false,
-                &Some(&times1),
-                &Some(&times2),
-                Some(TimeSelection::Day1)
-            ),
-            expected1.clone()
-        );
-
-        assert_eq!(
-            compute_best_lap(false, &None, &Some(&times2), Some(TimeSelection::Day2)),
-            expected2.clone()
-        );
-        assert_eq!(
-            compute_best_lap(
-                false,
-                &Some(&times1),
-                &Some(&times2),
-                Some(TimeSelection::Day2)
-            ),
-            expected2.clone()
-        );
-
-        assert_eq!(
-            compute_best_lap(
-                false,
-                &Some(&times1),
-                &Some(&times2),
-                Some(TimeSelection::Combined)
-            ),
-            expected_combined.clone()
+            build_driver(d1.clone(), d2.clone(), false, true).best_lap(ts),
+            LapTime::dns()
         );
     }
 }

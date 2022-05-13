@@ -17,3 +17,6 @@ getset = "0.1.2"
 lazy_static = "1.4.0"
 serde = {version = "1.0.137", features = ["derive"]}
 wasm-bindgen = "^0.2.80"
+
+[dev-dependencies]
+rstest = "0.12.0"

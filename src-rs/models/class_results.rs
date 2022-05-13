@@ -65,30 +65,38 @@ pub type EventResults = HashMap<ShortCarClass, ClassResults>;
 
 #[cfg(test)]
 mod test {
-    use crate::models::car_class::get_car_class;
     use crate::models::class_results::ClassResults;
     use crate::models::driver::Driver;
-    use crate::models::lap_time::LapTime;
+    use crate::models::exported_driver::ExportedDriver;
     use crate::models::short_car_class::ShortCarClass;
 
     fn build_driver() -> Driver {
-        Driver {
-            error: false,
-            id: "".to_string(),
-            name: "".to_string(),
-            car_number: 0,
-            car_class: get_car_class(ShortCarClass::AS).unwrap(),
-            car_description: "".to_string(),
-            region: "".to_string(),
-            rookie: false,
-            ladies_championship: false,
-            position: None,
-            dsq: false,
-            pax_multiplier: 0.0,
-            day_1_times: None,
-            day_2_times: None,
-            combined: LapTime::dsq(),
-        }
+        Driver::from(
+            ExportedDriver {
+                position: None,
+                car_class: ShortCarClass::SS,
+                car_number: 0,
+                first_name: None,
+                last_name: None,
+                year: None,
+                make: None,
+                model: None,
+                color: None,
+                member_number: None,
+                rookie: None,
+                ladies: None,
+                dsq: None,
+                region: None,
+                best_run: "".to_string(),
+                pax_multiplier: 0.0,
+                pax_time: 0.0,
+                runs_day1: None,
+                runs_day2: None,
+                day1: None,
+                day2: None,
+            },
+            false,
+        )
     }
 
     #[test]
@@ -138,5 +146,7 @@ mod test {
     fn get_best_in_class() {
         let mut testable = ClassResults::new(ShortCarClass::AS);
         testable.add_driver(build_driver());
+
+        // TODO
     }
 }

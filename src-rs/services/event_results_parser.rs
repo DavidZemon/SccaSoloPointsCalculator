@@ -9,7 +9,7 @@ use crate::models::exported_driver::ExportedDriver;
 use crate::models::lap_time::{LapTime, Penalty};
 use crate::utilities::swap;
 
-pub fn parse(file_contents: String) -> Result<EventResults, String> {
+pub fn parse(file_contents: String, two_day_event: bool) -> Result<EventResults, String> {
     let mut reader1 = csv::ReaderBuilder::new()
         .flexible(true)
         .trim(Trim::Headers)
@@ -30,7 +30,7 @@ pub fn parse(file_contents: String) -> Result<EventResults, String> {
     let records = reader1.deserialize().zip(string_reader.records());
     for (deserialized, string_rec) in records {
         let driver = perform_second_parsing(deserialized, string_rec, final_column_index + 1)?;
-        let driver = Driver::from(driver);
+        let driver = Driver::from(driver, two_day_event);
         let class = driver.car_class.short;
 
         if !event_results.contains_key(&class) {
@@ -119,7 +119,7 @@ mod test {
     fn test() {
         let sample_contents =
             fs::read_to_string("./SampleData/2022_Event1-DavidExport.csv").unwrap();
-        let actual = parse(sample_contents).unwrap();
+        let actual = parse(sample_contents, false).unwrap();
 
         assert_eq!(actual.len(), 29);
         assert!(actual.contains_key(&ShortCarClass::AS));
@@ -187,7 +187,7 @@ mod test {
             ])
         );
         assert_eq!(robert.day_2_times, None);
-        assert_eq!(robert.combined, LapTime::dns());
+        assert_eq!(robert.combined, LapTime::new(52.288, 0, None));
 
         for (index, driver) in a_street.get_drivers().iter().enumerate() {
             assert_eq!(driver.position, Some(index + 1));
