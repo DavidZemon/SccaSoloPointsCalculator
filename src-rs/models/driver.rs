@@ -1,3 +1,4 @@
+use float_cmp::approx_eq;
 use std::cmp::Ordering;
 
 use crate::models::car_class::{get_car_class, CarClass};
@@ -12,7 +13,7 @@ pub enum TimeSelection {
     Combined,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Driver {
     pub error: bool,
     pub id: DriverId,
@@ -37,7 +38,7 @@ pub struct Driver {
 
 impl Driver {
     pub fn from(driver: ExportedDriver, two_day_event: bool) -> Driver {
-        let best_run_is_truthy = driver
+        let best_run_is_falsy = driver
             .best_run
             .parse::<f64>()
             .map_or_else(|_| driver.best_run.trim().is_empty(), |f| f == 0.);
@@ -66,7 +67,7 @@ impl Driver {
         });
 
         let mut driver = Driver {
-            error: driver.runs_day1.is_none() && driver.runs_day2.is_none() && best_run_is_truthy,
+            error: driver.runs_day1.is_none() && driver.runs_day2.is_none() && !best_run_is_falsy,
             rookie: driver.rookie.map_or(false, |value| value != 0),
             ladies_championship: driver.ladies.map_or(false, |value| value != 0),
             position: None,
@@ -142,14 +143,14 @@ impl Driver {
         }
     }
 
-    pub fn get_times(&self, time_selection: Option<TimeSelection>) -> Option<Vec<LapTime>> {
+    pub fn get_times(&self, time_selection: Option<TimeSelection>) -> &Option<Vec<LapTime>> {
         let selection = match time_selection {
             Some(t) => t,
             None => TimeSelection::Day1,
         };
         match selection {
-            TimeSelection::Day1 => self.day_1_times.clone(),
-            TimeSelection::Day2 => self.day_2_times.clone(),
+            TimeSelection::Day1 => &self.day_1_times,
+            TimeSelection::Day2 => &self.day_2_times,
             TimeSelection::Combined => {
                 panic!("Silly person! I can't give you an array of times for the 'combined' time!")
             }
@@ -158,7 +159,7 @@ impl Driver {
 
     pub fn differences(
         &self,
-        fastest_of_day: Option<Time>,
+        fastest_of_day: Time,
         use_pax: Option<bool>,
         time_selection: Option<TimeSelection>,
     ) -> String {
@@ -171,15 +172,10 @@ impl Driver {
                     1.
                 };
                 let indexed_time = multiplier * t;
-                match fastest_of_day {
-                    Some(fastest) => {
-                        if indexed_time == fastest {
-                            String::from("")
-                        } else {
-                            String::from(format!("{:.3}", fastest - indexed_time))
-                        }
-                    }
-                    None => panic!("Asking for time difference but no fastest given"),
+                if approx_eq!(Time, indexed_time, fastest_of_day) {
+                    String::from("")
+                } else {
+                    String::from(format!("{:.3}", fastest_of_day - indexed_time))
                 }
             }
             None => String::from("N/A"),
@@ -223,12 +219,16 @@ impl Eq for Driver {}
 
 #[cfg(test)]
 mod test {
+    use panic::catch_unwind;
+    use std::panic;
+
     use rstest::rstest;
 
     use crate::models::driver::{Driver, TimeSelection};
     use crate::models::exported_driver::ExportedDriver;
     use crate::models::lap_time::{LapTime, Penalty};
     use crate::models::short_car_class::ShortCarClass;
+    use crate::models::type_aliases::Time;
 
     fn build_driver(
         d1: Option<Vec<LapTime>>,
@@ -253,7 +253,7 @@ mod test {
                 dsq: Some(if dsq { 1 } else { 0 }),
                 region: None,
                 best_run: "".to_string(),
-                pax_multiplier: 0.0,
+                pax_multiplier: 0.5,
                 pax_time: 0.0,
                 runs_day1: None,
                 runs_day2: None,
@@ -496,5 +496,142 @@ mod test {
             .best_lap(Some(TimeSelection::Combined)),
             LapTime::new(66., 3, None)
         );
+    }
+
+    #[test]
+    fn get_times_happy_path() {
+        let d1 = Some(vec![LapTime::new(1., 0, None)]);
+        let d2 = Some(vec![LapTime::new(2., 0, None)]);
+        let testable = build_driver(d1.clone(), d2.clone(), false, true);
+        assert_eq!(testable.get_times(None), &d1);
+        assert_eq!(testable.get_times(Some(TimeSelection::Day1)), &d1);
+        assert_eq!(testable.get_times(Some(TimeSelection::Day2)), &d2);
+    }
+
+    #[test]
+    fn get_times_should_fail_for_combined() {
+        let d1 = Some(vec![LapTime::new(1., 0, None)]);
+        let d2 = Some(vec![LapTime::new(2., 0, None)]);
+        let testable = build_driver(d1.clone(), d2.clone(), false, true);
+
+        let actual = catch_unwind(|| testable.get_times(Some(TimeSelection::Combined)));
+        assert!(actual.is_err());
+    }
+
+    #[rstest]
+    #[case(3., None, None, "-2.000")]
+    #[case(3., Some(false), None, "-2.000")]
+    #[case(3., Some(false), Some(TimeSelection::Day1), "-2.000")]
+    #[case(4.5, Some(false), Some(TimeSelection::Day1), "-0.500")]
+    #[case(2.3336, Some(false), Some(TimeSelection::Day1), "-2.666")]
+    #[case(2.3335, Some(false), Some(TimeSelection::Day1), "-2.667")]
+    #[case(5., Some(false), Some(TimeSelection::Day1), "")]
+    #[case(8., Some(false), Some(TimeSelection::Day2), "-2.000")]
+    #[case(13., Some(false), Some(TimeSelection::Combined), "-2.000")]
+    #[case(2., Some(true), Some(TimeSelection::Day1), "-0.500")]
+    #[case(4., Some(true), Some(TimeSelection::Day2), "-1.000")]
+    #[case(7., Some(true), Some(TimeSelection::Combined), "-0.500")]
+    fn difference_happy_path(
+        #[case] fastest: Time,
+        #[case] use_pax: Option<bool>,
+        #[case] ts: Option<TimeSelection>,
+        #[case] expected: &str,
+    ) {
+        let testable = build_driver(
+            Some(vec![LapTime::new(5., 0, None)]),
+            Some(vec![LapTime::new(10., 0, None)]),
+            false,
+            true,
+        );
+
+        assert_eq!(
+            testable.differences(fastest, use_pax, ts),
+            String::from(expected)
+        );
+    }
+
+    #[test]
+    fn difference_no_best_lap() {
+        let d1 = Some(vec![LapTime::new(2., 0, None)]);
+        let d2 = Some(vec![LapTime::new(3., 0, None)]);
+        assert_eq!(
+            build_driver(d1.clone(), d2.clone(), true, false).differences(1., None, None),
+            String::from("N/A")
+        );
+        assert_eq!(
+            build_driver(None, d2.clone(), false, false).differences(1., None, None),
+            String::from("N/A")
+        );
+        assert_eq!(
+            build_driver(None, d2.clone(), false, false).differences(
+                1.,
+                None,
+                Some(TimeSelection::Day1)
+            ),
+            String::from("N/A")
+        );
+        assert_eq!(
+            build_driver(d1.clone(), None, false, false).differences(
+                1.,
+                None,
+                Some(TimeSelection::Day2)
+            ),
+            String::from("N/A")
+        );
+        assert_eq!(
+            build_driver(d1.clone(), None, false, true).differences(
+                1.,
+                None,
+                Some(TimeSelection::Combined)
+            ),
+            String::from("N/A")
+        );
+        assert_eq!(
+            build_driver(None, d2.clone(), false, true).differences(
+                1.,
+                None,
+                Some(TimeSelection::Combined)
+            ),
+            String::from("N/A")
+        );
+    }
+
+    #[test]
+    fn sortable_one_day_event_day1() {
+        let d1 = build_driver(Some(vec![LapTime::new(10., 0, None)]), None, false, false);
+        let d2 = build_driver(Some(vec![LapTime::new(20., 0, None)]), None, false, false);
+        let d3 = build_driver(Some(vec![LapTime::new(30., 0, None)]), None, false, false);
+
+        let mut actual = vec![d3.clone(), d1.clone(), d2.clone()];
+        actual.sort();
+
+        assert_eq!(actual, vec![d1, d2, d3]);
+    }
+
+    #[test]
+    fn sortable_two_day_event() {
+        let d1 = build_driver(
+            Some(vec![LapTime::new(10., 0, None)]),
+            Some(vec![LapTime::new(11., 0, None)]),
+            false,
+            true,
+        );
+        let d2 = build_driver(
+            Some(vec![LapTime::new(20., 0, None)]),
+            Some(vec![LapTime::new(22., 0, None)]),
+            false,
+            true,
+        );
+        let d3 = build_driver(
+            Some(vec![LapTime::new(30., 0, None)]),
+            Some(vec![LapTime::new(33., 0, None)]),
+            false,
+            true,
+        );
+
+        let mut actual = vec![d3.clone(), d1.clone(), d2.clone()];
+        actual.sort();
+
+        assert_eq!(actual, vec![d1, d2, d3]);
     }
 }
