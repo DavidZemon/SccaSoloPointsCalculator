@@ -227,7 +227,7 @@ mod test {
 
     use crate::models::driver::{Driver, TimeSelection};
     use crate::models::exported_driver::ExportedDriver;
-    use crate::models::lap_time::LapTime;
+    use crate::models::lap_time::{LapTime, Penalty};
     use crate::models::short_car_class::ShortCarClass;
 
     fn build_driver(
@@ -333,6 +333,168 @@ mod test {
         assert_eq!(
             build_driver(d1.clone(), d2.clone(), false, true).best_lap(ts),
             LapTime::dns()
+        );
+    }
+
+    #[rstest]
+    #[case(
+        Some(vec![
+            LapTime::new(2., 0, Some(Penalty::DNF)),
+            LapTime::new(6., 1, None),
+            LapTime::new(9., 0, None)
+        ]),
+        None,
+        false,
+        None,
+        LapTime::new(6., 1, None),
+    )]
+    #[case(
+        Some(vec![
+            LapTime::new(2., 0, Some(Penalty::DNF)),
+            LapTime::new(6., 1, None),
+            LapTime::new(9., 0, None)
+        ]),
+        None,
+        false,
+        Some(TimeSelection::Day1),
+        LapTime::new(6., 1, None),
+    )]
+    #[case(
+        Some(vec![
+            LapTime::new(2., 0, Some(Penalty::DNF)),
+            LapTime::new(6., 1, None),
+            LapTime::new(9., 0, None)
+        ]),
+        Some(vec![]),
+        false,
+        Some(TimeSelection::Day1),
+        LapTime::new(6., 1, None),
+    )]
+    #[case(
+        Some(vec![
+            LapTime::new(2., 0, Some(Penalty::DNF)),
+            LapTime::new(6., 1, None),
+            LapTime::new(9., 0, None)
+        ]),
+        None,
+        true,
+        Some(TimeSelection::Day1),
+        LapTime::new(6., 1, None),
+    )]
+    #[case(
+        Some(vec![
+            LapTime::new(2., 0, Some(Penalty::DNF)),
+            LapTime::new(6., 1, None),
+            LapTime::new(9., 0, None)
+        ]),
+        Some(vec![]),
+        true,
+        Some(TimeSelection::Day1),
+        LapTime::new(6., 1, None),
+    )]
+    #[case(
+        Some(vec![
+            LapTime::new(2., 0, Some(Penalty::DNF)),
+            LapTime::new(6., 1, None),
+            LapTime::new(9., 0, None)
+        ]),
+        Some(vec![LapTime::new(1., 0, None)]),
+        true,
+        Some(TimeSelection::Day1),
+        LapTime::new(6., 1, None),
+    )]
+    fn best_lap_happy_path_day1(
+        #[case] d1: Option<Vec<LapTime>>,
+        #[case] d2: Option<Vec<LapTime>>,
+        #[case] two_day: bool,
+        #[case] ts: Option<TimeSelection>,
+        #[case] expected: LapTime,
+    ) {
+        assert_eq!(build_driver(d1, d2, false, two_day).best_lap(ts), expected);
+    }
+
+    #[rstest]
+    #[case(
+        None,
+        Some(vec![
+            LapTime::new(2., 0, Some(Penalty::DNF)),
+            LapTime::new(6., 1, None),
+            LapTime::new(9., 0, None)
+        ]),
+        false,
+        LapTime::new(6., 1, None),
+    )]
+    #[case(
+        Some(vec![]),
+        Some(vec![
+            LapTime::new(2., 0, Some(Penalty::DNF)),
+            LapTime::new(6., 1, None),
+            LapTime::new(9., 0, None)
+        ]),
+        false,
+        LapTime::new(6., 1, None),
+    )]
+    #[case(
+        None,
+        Some(vec![
+            LapTime::new(2., 0, Some(Penalty::DNF)),
+            LapTime::new(6., 1, None),
+            LapTime::new(9., 0, None)
+        ]),
+        true,
+        LapTime::new(6., 1, None),
+    )]
+    #[case(
+        Some(vec![]),
+        Some(vec![
+            LapTime::new(2., 0, Some(Penalty::DNF)),
+            LapTime::new(6., 1, None),
+            LapTime::new(9., 0, None)
+        ]),
+        true,
+        LapTime::new(6., 1, None),
+    )]
+    #[case(
+        Some(vec![LapTime::new(1., 0, None)]),
+        Some(vec![
+            LapTime::new(2., 0, Some(Penalty::DNF)),
+            LapTime::new(6., 1, None),
+            LapTime::new(9., 0, None)
+        ]),
+        true,
+        LapTime::new(6., 1, None),
+    )]
+    fn best_lap_happy_path_day2(
+        #[case] d1: Option<Vec<LapTime>>,
+        #[case] d2: Option<Vec<LapTime>>,
+        #[case] two_day: bool,
+        #[case] expected: LapTime,
+    ) {
+        assert_eq!(
+            build_driver(d1, d2, false, two_day).best_lap(Some(TimeSelection::Day2)),
+            expected
+        );
+    }
+
+    #[test]
+    fn best_lap_happy_path_combined() {
+        assert_eq!(
+            build_driver(
+                Some(vec![
+                    LapTime::new(20., 0, Some(Penalty::DNF)),
+                    LapTime::new(60., 2, None),
+                    LapTime::new(90., 0, None)
+                ]),
+                Some(vec![
+                    LapTime::new(2., 0, Some(Penalty::DNF)),
+                    LapTime::new(6., 1, None),
+                    LapTime::new(9., 0, None)
+                ]),
+                false,
+                true
+            )
+            .best_lap(Some(TimeSelection::Combined)),
+            LapTime::new(66., 3, None)
         );
     }
 }
