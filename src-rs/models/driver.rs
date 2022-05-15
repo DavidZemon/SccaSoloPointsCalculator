@@ -1,11 +1,16 @@
-use float_cmp::approx_eq;
 use std::cmp::Ordering;
+
+use float_cmp::approx_eq;
+use getset::{Getters, Setters};
+use serde::{Deserialize, Serialize};
+use wasm_bindgen::prelude::*;
 
 use crate::models::car_class::{get_car_class, CarClass};
 use crate::models::exported_driver::ExportedDriver;
-use crate::models::lap_time::LapTime;
+use crate::models::lap_time::{dns, dsq, LapTime};
 use crate::models::type_aliases::{DriverId, Time};
 
+#[wasm_bindgen]
 #[derive(Copy, Clone, Debug)]
 pub enum TimeSelection {
     Day1,
@@ -13,27 +18,145 @@ pub enum TimeSelection {
     Combined,
 }
 
-#[derive(Clone, Debug)]
+#[wasm_bindgen]
+#[derive(Clone, Debug, Getters, Setters, Deserialize, Serialize)]
 pub struct Driver {
-    pub error: bool,
-    pub id: DriverId,
-    pub name: String,
-    pub car_number: u16,
-    pub car_class: CarClass,
-    pub car_description: String,
-    pub region: String,
-    pub rookie: bool,
-    pub ladies_championship: bool,
-    pub position: Option<usize>,
-    pub dsq: bool,
-    pub pax_multiplier: f64,
+    #[get = "pub"]
+    #[set = "pub(crate)"]
+    error: bool,
+    #[get = "pub"]
+    #[set = "pub(crate)"]
+    id: DriverId,
+    #[get = "pub"]
+    #[set = "pub(crate)"]
+    name: String,
+    #[get = "pub"]
+    #[set = "pub(crate)"]
+    car_number: u16,
+    #[get = "pub"]
+    #[set = "pub(crate)"]
+    car_class: CarClass,
+    #[get = "pub"]
+    #[set = "pub(crate)"]
+    car_description: String,
+    #[get = "pub"]
+    #[set = "pub(crate)"]
+    region: String,
+    #[get = "pub"]
+    #[set = "pub(crate)"]
+    rookie: bool,
+    #[get = "pub"]
+    #[set = "pub(crate)"]
+    ladies_championship: bool,
+    #[get = "pub"]
+    #[set = "pub(crate)"]
+    position: Option<usize>,
+    #[get = "pub"]
+    #[set = "pub(crate)"]
+    dsq: bool,
+    #[get = "pub"]
+    #[set = "pub(crate)"]
+    pax_multiplier: f64,
 
-    pub day_1_times: Option<Vec<LapTime>>,
-    pub day_2_times: Option<Vec<LapTime>>,
-    pub combined: LapTime,
+    #[get = "pub(crate)"]
+    #[set = "pub(crate)"]
+    day_1_times: Option<Vec<LapTime>>,
+    #[get = "pub(crate)"]
+    #[set = "pub(crate)"]
+    day_2_times: Option<Vec<LapTime>>,
+    #[get = "pub"]
+    #[set = "pub(crate)"]
+    combined: LapTime,
 
     /// For internal use only to help sort and compute combined time
     two_day_event: bool,
+}
+
+#[wasm_bindgen]
+impl Driver {
+    pub fn best_lap(&self, time_selection: Option<TimeSelection>) -> LapTime {
+        if self.dsq {
+            dsq()
+        } else {
+            match time_selection.unwrap_or(TimeSelection::Day1) {
+                TimeSelection::Day1 => self
+                    .day_1_times
+                    .clone()
+                    .map(|times| times.get(0).map(|t| t.clone()))
+                    .flatten()
+                    .unwrap_or(dns()),
+                TimeSelection::Day2 => self
+                    .day_2_times
+                    .clone()
+                    .map(|times| times.get(0).map(|t| t.clone()))
+                    .flatten()
+                    .unwrap_or(dns()),
+                TimeSelection::Combined => {
+                    let day_1_empty = self
+                        .day_1_times
+                        .clone()
+                        .map(|times| times.is_empty())
+                        .unwrap_or(true);
+                    let day_2_empty = self
+                        .day_2_times
+                        .clone()
+                        .map(|times| times.is_empty())
+                        .unwrap_or(true);
+
+                    if self.two_day_event {
+                        if day_1_empty || day_2_empty {
+                            dns()
+                        } else {
+                            self.best_lap(Some(TimeSelection::Day1))
+                                .add(self.best_lap(Some(TimeSelection::Day2)))
+                        }
+                    } else {
+                        if day_2_empty {
+                            self.best_lap(Some(TimeSelection::Day1))
+                        } else if day_1_empty {
+                            self.best_lap(Some(TimeSelection::Day2))
+                        } else {
+                            panic!("Asking for combined time for a one-day event but driver {} has times for both days!", self.name)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    pub fn get_js_times(&self, time_selection: Option<TimeSelection>) -> Option<Vec<JsValue>> {
+        self.get_times(time_selection).clone().map(|times| {
+            times
+                .into_iter()
+                .map(|t| JsValue::from_serde(&t).unwrap())
+                .collect::<Vec<JsValue>>()
+        })
+    }
+
+    pub fn differences(
+        &self,
+        fastest_of_day: Time,
+        use_pax: Option<bool>,
+        time_selection: Option<TimeSelection>,
+    ) -> String {
+        let time_to_compare = self.best_lap(time_selection);
+        match time_to_compare.time {
+            Some(t) => {
+                let multiplier = if use_pax.unwrap_or(false) {
+                    self.pax_multiplier
+                } else {
+                    1.
+                };
+                let indexed_time = multiplier * t;
+                if approx_eq!(Time, indexed_time, fastest_of_day) {
+                    String::from("")
+                } else {
+                    String::from(format!("{:.3}", fastest_of_day - indexed_time))
+                }
+            }
+            None => String::from("N/A"),
+        }
+    }
 }
 
 impl Driver {
@@ -86,61 +209,11 @@ impl Driver {
             pax_multiplier: driver.pax_multiplier,
             day_1_times: day_1_times.clone(),
             day_2_times: day_2_times.clone(),
-            combined: LapTime::dns(),
+            combined: dns(),
             two_day_event,
         };
         driver.combined = driver.best_lap(Some(TimeSelection::Combined));
         driver
-    }
-
-    pub fn best_lap(&self, time_selection: Option<TimeSelection>) -> LapTime {
-        if self.dsq {
-            LapTime::dsq()
-        } else {
-            match time_selection.unwrap_or(TimeSelection::Day1) {
-                TimeSelection::Day1 => self
-                    .day_1_times
-                    .clone()
-                    .map(|times| times.get(0).map(|t| t.clone()))
-                    .flatten()
-                    .unwrap_or(LapTime::dns()),
-                TimeSelection::Day2 => self
-                    .day_2_times
-                    .clone()
-                    .map(|times| times.get(0).map(|t| t.clone()))
-                    .flatten()
-                    .unwrap_or(LapTime::dns()),
-                TimeSelection::Combined => {
-                    let day_1_empty = self
-                        .day_1_times
-                        .clone()
-                        .map(|times| times.is_empty())
-                        .unwrap_or(true);
-                    let day_2_empty = self
-                        .day_2_times
-                        .clone()
-                        .map(|times| times.is_empty())
-                        .unwrap_or(true);
-
-                    if self.two_day_event {
-                        if day_1_empty || day_2_empty {
-                            LapTime::dns()
-                        } else {
-                            self.best_lap(Some(TimeSelection::Day1))
-                                .add(self.best_lap(Some(TimeSelection::Day2)))
-                        }
-                    } else {
-                        if day_2_empty {
-                            self.best_lap(Some(TimeSelection::Day1))
-                        } else if day_1_empty {
-                            self.best_lap(Some(TimeSelection::Day2))
-                        } else {
-                            panic!("Asking for combined time for a one-day event but driver {} has times for both days!", self.name)
-                        }
-                    }
-                }
-            }
-        }
     }
 
     pub fn get_times(&self, time_selection: Option<TimeSelection>) -> &Option<Vec<LapTime>> {
@@ -154,31 +227,6 @@ impl Driver {
             TimeSelection::Combined => {
                 panic!("Silly person! I can't give you an array of times for the 'combined' time!")
             }
-        }
-    }
-
-    pub fn differences(
-        &self,
-        fastest_of_day: Time,
-        use_pax: Option<bool>,
-        time_selection: Option<TimeSelection>,
-    ) -> String {
-        let time_to_compare = self.best_lap(time_selection);
-        match time_to_compare.time {
-            Some(t) => {
-                let multiplier = if use_pax.unwrap_or(false) {
-                    self.pax_multiplier
-                } else {
-                    1.
-                };
-                let indexed_time = multiplier * t;
-                if approx_eq!(Time, indexed_time, fastest_of_day) {
-                    String::from("")
-                } else {
-                    String::from(format!("{:.3}", fastest_of_day - indexed_time))
-                }
-            }
-            None => String::from("N/A"),
         }
     }
 }
@@ -226,7 +274,7 @@ mod test {
 
     use crate::models::driver::{Driver, TimeSelection};
     use crate::models::exported_driver::ExportedDriver;
-    use crate::models::lap_time::{LapTime, Penalty};
+    use crate::models::lap_time::{dns, dsq, LapTime, Penalty};
     use crate::models::short_car_class::ShortCarClass;
     use crate::models::type_aliases::Time;
 
@@ -281,11 +329,11 @@ mod test {
         ] {
             assert_eq!(
                 build_driver(d1.clone(), d2.clone(), true, false).best_lap(ts),
-                LapTime::dsq()
+                dsq()
             );
             assert_eq!(
                 build_driver(d1.clone(), d2.clone(), true, true).best_lap(ts),
-                LapTime::dsq()
+                dsq()
             );
         }
     }
@@ -312,11 +360,11 @@ mod test {
     ) {
         assert_eq!(
             build_driver(d1.clone(), d2.clone(), false, false).best_lap(ts),
-            LapTime::dns()
+            dns()
         );
         assert_eq!(
             build_driver(d1.clone(), d2.clone(), false, true).best_lap(ts),
-            LapTime::dns()
+            dns()
         );
     }
 
@@ -332,7 +380,7 @@ mod test {
     ) {
         assert_eq!(
             build_driver(d1.clone(), d2.clone(), false, true).best_lap(ts),
-            LapTime::dns()
+            dns()
         );
     }
 

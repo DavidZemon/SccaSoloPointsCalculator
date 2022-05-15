@@ -1,67 +1,14 @@
-use crate::models::type_aliases::{PaxMultiplier, Time};
-use float_cmp;
-use float_cmp::F64Margin;
 use std::cmp::Ordering;
 use std::fmt;
 use std::fmt::Formatter;
+
+use float_cmp;
+use float_cmp::F64Margin;
+use getset::Getters;
+use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
 
-#[wasm_bindgen]
-#[derive(Clone, Debug)]
-pub struct LapTime {
-    pub raw: Option<Time>,
-    pub time: Option<Time>,
-    pub cones: u8,
-    pub dnf: bool,
-    pub rerun: bool,
-    pub dsq: bool,
-    pub dns: bool,
-}
-
-impl PartialOrd<Self> for LapTime {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        if self.time.is_none() && other.time.is_none() {
-            Some(Ordering::Equal)
-        } else if self.time.is_none() {
-            Some(Ordering::Greater)
-        } else if other.time.is_none() {
-            Some(Ordering::Less)
-        } else {
-            let self_time = self.time.unwrap();
-            let other_time = other.time.unwrap();
-
-            if float_cmp::ApproxEq::approx_eq(self_time, other_time, F64Margin::default()) {
-                Some(Ordering::Equal)
-            } else {
-                self_time.partial_cmp(&other_time)
-            }
-        }
-    }
-}
-
-impl Ord for LapTime {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.partial_cmp(other).unwrap_or(Ordering::Equal)
-    }
-}
-
-impl PartialEq for LapTime {
-    fn eq(&self, other: &Self) -> bool {
-        self.raw == other.raw
-            && self.time == other.time
-            && self.cones == other.cones
-            && self.dnf == other.dnf
-            && self.rerun == other.rerun
-            && self.dsq == other.dsq
-            && self.dns == other.dns
-    }
-
-    fn ne(&self, other: &Self) -> bool {
-        !self.eq(other)
-    }
-}
-
-impl Eq for LapTime {}
+use crate::models::type_aliases::{PaxMultiplier, Time};
 
 #[wasm_bindgen]
 #[derive(Copy, Clone, Debug)]
@@ -70,6 +17,18 @@ pub enum Penalty {
     RRN,
     DSQ,
     DNS,
+}
+
+#[wasm_bindgen]
+#[derive(Copy, Clone, Debug, Deserialize, Serialize, Getters)]
+pub struct LapTime {
+    pub raw: Option<Time>,
+    pub time: Option<Time>,
+    pub cones: u8,
+    pub dnf: bool,
+    pub rerun: bool,
+    pub dsq: bool,
+    pub dns: bool,
 }
 
 #[wasm_bindgen]
@@ -169,14 +128,59 @@ impl LapTime {
             Ordering::Equal => 0,
         }
     }
+}
 
-    pub fn dsq() -> LapTime {
-        LapTime::new(0., 0, Some(Penalty::DSQ))
+impl PartialOrd<Self> for LapTime {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        if self.time.is_none() && other.time.is_none() {
+            Some(Ordering::Equal)
+        } else if self.time.is_none() {
+            Some(Ordering::Greater)
+        } else if other.time.is_none() {
+            Some(Ordering::Less)
+        } else {
+            let self_time = self.time.unwrap();
+            let other_time = other.time.unwrap();
+
+            if float_cmp::ApproxEq::approx_eq(self_time, other_time, F64Margin::default()) {
+                Some(Ordering::Equal)
+            } else {
+                self_time.partial_cmp(&other_time)
+            }
+        }
+    }
+}
+
+impl Ord for LapTime {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.partial_cmp(other).unwrap_or(Ordering::Equal)
+    }
+}
+
+impl PartialEq for LapTime {
+    fn eq(&self, other: &Self) -> bool {
+        self.raw == other.raw
+            && self.time == other.time
+            && self.cones == other.cones
+            && self.dnf == other.dnf
+            && self.rerun == other.rerun
+            && self.dsq == other.dsq
+            && self.dns == other.dns
     }
 
-    pub fn dns() -> LapTime {
-        LapTime::new(0., 0, Some(Penalty::DNS))
+    fn ne(&self, other: &Self) -> bool {
+        !self.eq(other)
     }
+}
+
+impl Eq for LapTime {}
+
+pub fn dsq() -> LapTime {
+    LapTime::new(0., 0, Some(Penalty::DSQ))
+}
+
+pub fn dns() -> LapTime {
+    LapTime::new(0., 0, Some(Penalty::DNS))
 }
 
 impl fmt::Display for LapTime {
@@ -187,7 +191,7 @@ impl fmt::Display for LapTime {
 
 #[cfg(test)]
 mod test {
-    use crate::models::lap_time::{LapTime, Penalty};
+    use crate::models::lap_time::{dns, dsq, LapTime, Penalty};
 
     #[test]
     fn constructor_should_build_valid_time_without_cones() {
@@ -248,7 +252,7 @@ mod test {
         assert_eq!(actual.dsq, true);
         assert_eq!(actual.dns, false);
 
-        let actual = LapTime::dsq();
+        let actual = dsq();
         assert_eq!(actual.raw, None);
         assert_eq!(actual.time, None);
         assert_eq!(actual.cones, 0);
@@ -269,7 +273,7 @@ mod test {
         assert_eq!(actual.dsq, false);
         assert_eq!(actual.dns, true);
 
-        let actual = LapTime::dns();
+        let actual = dns();
         assert_eq!(actual.raw, None);
         assert_eq!(actual.time, None);
         assert_eq!(actual.cones, 0);

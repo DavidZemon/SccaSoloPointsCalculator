@@ -1,12 +1,15 @@
+use std::collections::HashMap;
+
+use lazy_static::lazy_static;
+use serde::{Deserialize, Serialize};
+use wasm_bindgen::prelude::*;
+
 use crate::models::class_category::ClassCategory;
 use crate::models::long_car_class::LongCarClass;
 use crate::models::short_car_class::ShortCarClass;
-use lazy_static::lazy_static;
-use std::collections::HashMap;
-use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Deserialize, Serialize)]
 pub struct CarClass {
     pub short: ShortCarClass,
     pub long: LongCarClass,

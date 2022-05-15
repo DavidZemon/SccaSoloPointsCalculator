@@ -4,7 +4,7 @@ macro_rules! enum_str {
         $($variant:ident),*,
     }) => {
         #[wasm_bindgen]
-        #[derive(Copy, Clone, Debug, Deserialize, PartialEq, Eq, Hash)]
+        #[derive(Copy, Clone, Debug, Deserialize, Serialize, PartialEq, Eq, Hash)]
         #[allow(non_camel_case_types)]
         pub enum $name {
             $($variant),*
@@ -23,7 +23,7 @@ macro_rules! enum_str {
 
 #[cfg(test)]
 mod test {
-    use serde::Deserialize;
+    use serde::{Deserialize, Serialize};
     use wasm_bindgen::prelude::*;
 
     enum_str! {

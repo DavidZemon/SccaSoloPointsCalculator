@@ -1,5 +1,5 @@
 use crate::enum_str;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
 
 enum_str! {

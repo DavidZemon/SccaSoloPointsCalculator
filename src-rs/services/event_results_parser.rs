@@ -2,12 +2,22 @@ use std::collections::HashMap;
 use std::num::{ParseFloatError, ParseIntError};
 
 use csv::{StringRecord, Trim};
+use wasm_bindgen::prelude::*;
 
 use crate::models::class_results::{ClassResults, EventResults};
 use crate::models::driver::Driver;
 use crate::models::exported_driver::ExportedDriver;
 use crate::models::lap_time::{LapTime, Penalty};
 use crate::utilities::swap;
+
+#[wasm_bindgen(
+    typescript_type = "export function parse_to_js(fileContents: string, twoDayEvent: bool): EventResults | String"
+)]
+// #[wasm_bindgen]
+pub fn parse_to_js(file_contents: String, two_day_event: bool) -> Result<JsValue, String> {
+    let event_results = parse(file_contents, two_day_event)?;
+    Ok(serde_wasm_bindgen::to_value(&event_results).map_err(|e| e.to_string())?)
+}
 
 pub fn parse(file_contents: String, two_day_event: bool) -> Result<EventResults, String> {
     let mut reader1 = csv::ReaderBuilder::new()
@@ -31,7 +41,7 @@ pub fn parse(file_contents: String, two_day_event: bool) -> Result<EventResults,
     for (deserialized, string_rec) in records {
         let driver = perform_second_parsing(deserialized, string_rec, final_column_index + 1)?;
         let driver = Driver::from(driver, two_day_event);
-        let class = driver.car_class.short;
+        let class = driver.car_class().short;
 
         if !event_results.contains_key(&class) {
             event_results.insert(class, ClassResults::new(class));
@@ -107,6 +117,7 @@ fn build_lap_time(next_fields: &[&str]) -> Result<LapTime, String> {
 
 #[cfg(test)]
 mod test {
+    use crate::models::class_results::EventResults;
     use std::fs;
 
     use crate::models::driver::TimeSelection;
@@ -116,7 +127,7 @@ mod test {
     use crate::services::event_results_parser::parse;
 
     #[test]
-    fn test() {
+    fn parse_event_results() {
         let sample_contents =
             fs::read_to_string("./SampleData/2022_Event1-DavidExport.csv").unwrap();
         let actual = parse(sample_contents, false).unwrap();
@@ -166,31 +177,31 @@ mod test {
         );
 
         let robert = a_street.get_drivers()[0].clone();
-        assert_eq!(robert.error, false);
-        assert_eq!(robert.id, "robert fullriede");
-        assert_eq!(robert.name, "Robert Fullriede");
-        assert_eq!(robert.car_number, 52);
-        assert_eq!(robert.car_class.short, ShortCarClass::AS);
-        assert_eq!(robert.car_description, "2010 Porsche Cayman");
-        assert_eq!(robert.region, "");
-        assert_eq!(robert.rookie, false);
-        assert_eq!(robert.ladies_championship, false);
-        assert_eq!(robert.position, Some(1));
-        assert_eq!(robert.dsq, false);
-        assert_eq!(robert.pax_multiplier, 0.821);
+        assert_eq!(robert.error(), &false);
+        assert_eq!(robert.id(), "robert fullriede");
+        assert_eq!(robert.name(), "Robert Fullriede");
+        assert_eq!(robert.car_number(), &52);
+        assert_eq!(robert.car_class().short, ShortCarClass::AS);
+        assert_eq!(robert.car_description(), "2010 Porsche Cayman");
+        assert_eq!(robert.region(), "");
+        assert_eq!(robert.rookie(), &false);
+        assert_eq!(robert.ladies_championship(), &false);
+        assert_eq!(robert.position(), &Some(1));
+        assert_eq!(robert.dsq(), &false);
+        assert_eq!(robert.pax_multiplier(), &0.821);
         assert_eq!(
-            robert.day_1_times,
-            Some(vec![
+            robert.day_1_times(),
+            &Some(vec![
                 LapTime::new(52.288, 0, None),
                 LapTime::new(53.351, 0, None),
                 LapTime::new(0., 0, Some(Penalty::DNF)),
             ])
         );
-        assert_eq!(robert.day_2_times, None);
-        assert_eq!(robert.combined, LapTime::new(52.288, 0, None));
+        assert_eq!(robert.day_2_times(), &None);
+        assert_eq!(robert.combined(), &LapTime::new(52.288, 0, None));
 
         for (index, driver) in a_street.get_drivers().iter().enumerate() {
-            assert_eq!(driver.position, Some(index + 1));
+            assert_eq!(driver.position(), &Some(index + 1));
         }
     }
 }

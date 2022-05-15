@@ -1,12 +1,16 @@
 use std::collections::HashMap;
 
+use serde::{Deserialize, Serialize};
+use wasm_bindgen::prelude::*;
+
 use crate::models::car_class::{get_car_class, CarClass};
 use crate::models::driver::{Driver, TimeSelection};
 use crate::models::lap_time::LapTime;
 use crate::models::short_car_class::ShortCarClass;
 use crate::models::type_aliases::Time;
 
-#[derive(Clone)]
+#[wasm_bindgen]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct ClassResults {
     pub trophy_count: u8,
     pub car_class: CarClass,
@@ -26,8 +30,8 @@ impl ClassResults {
         self.drivers.push(driver);
         self.trophy_count = self.calculate_trophies();
         self.drivers.sort();
-        for (index, mut driver) in self.drivers.iter_mut().enumerate() {
-            driver.position = Some(index + 1);
+        for (index, driver) in self.drivers.iter_mut().enumerate() {
+            driver.set_position(Some(index + 1));
         }
     }
 
@@ -44,7 +48,7 @@ impl ClassResults {
         best_laps.sort();
         best_laps
             .get(0)
-            .map(|t| t.time)
+            .map(|t| t.time.clone())
             .flatten()
             .unwrap_or(Time::INFINITY)
     }
@@ -61,6 +65,9 @@ impl ClassResults {
     }
 }
 
+#[wasm_bindgen(typescript_custom_section)]
+const EVENT_RESULTS_TYPE: &'static str =
+    r#"type EventResults = Record<ShortCarClass, ClassResults>"#;
 pub type EventResults = HashMap<ShortCarClass, ClassResults>;
 
 #[cfg(test)]
