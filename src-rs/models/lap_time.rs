@@ -175,12 +175,19 @@ impl PartialEq for LapTime {
 
 impl Eq for LapTime {}
 
+#[wasm_bindgen]
 pub fn dsq() -> LapTime {
     LapTime::new(0., 0, Some(Penalty::DSQ))
 }
 
+#[wasm_bindgen]
 pub fn dns() -> LapTime {
     LapTime::new(0., 0, Some(Penalty::DNS))
+}
+
+#[wasm_bindgen]
+pub fn lap_time(v: JsValue) -> LapTime {
+    v.into_serde().unwrap()
 }
 
 impl fmt::Display for LapTime {

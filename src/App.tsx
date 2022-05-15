@@ -15,6 +15,7 @@ import {
 import { EventResults as EventResultsComponent } from './components/EventResults';
 import { FileUploadBox } from './components/FileUploadBox';
 import { ChampionshipResults as ChampionshipResultsComponent } from './components/ChampionshipResults';
+import {parse_to_js, ShortCarClass, lap_time} from 'rusty/rusty';
 
 interface AppState {
   eventResultsFile?: File;
@@ -69,31 +70,43 @@ class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
                 accept={'.csv'}
                 onFileSelect={async (f) => {
                   try {
-                    const eventResults = await this.eventResultsParser.parse(
-                      await f.text(),
-                    );
-                    const driversInError = Object.entries(eventResults)
-                      .map(([_, classResults]) => classResults.drivers)
-                      .flat()
-                      .filter((driver) => driver.error);
-                    console.dir(driversInError);
-                    if (driversInError.length)
-                      this.setState({ eventResultsFile: f, driversInError });
-                    else {
-                      this.setState({
-                        eventResultsFile: f,
-                        eventResults,
-                      });
-                      await this.processChampionships();
-                    }
-                    return true;
+                    let results = parse_to_js(await f.text(),false) as EventResults;
+                    console.dir(results);
+                    console.dir();
+                    // @ts-expect-error
+                    const combined = results.get(ShortCarClass[ShortCarClass.SSC] as keyof typeof ShortCarClass).drivers[0].combined;
+                    console.dir(lap_time(combined));
+                    return false;
                   } catch (e) {
                     console.error(e);
-                    toast.error(
-                      'File format does not match expected. Please export event results with raw times, grouped by class.',
-                    );
                     return false;
                   }
+                  // try {
+                  //   const eventResults = await this.eventResultsParser.parse(
+                  //     await f.text(),
+                  //   );
+                  //   const driversInError = Object.entries(eventResults)
+                  //     .map(([_, classResults]) => classResults.drivers)
+                  //     .flat()
+                  //     .filter((driver) => driver.error);
+                  //   console.dir(driversInError);
+                  //   if (driversInError.length)
+                  //     this.setState({ eventResultsFile: f, driversInError });
+                  //   else {
+                  //     this.setState({
+                  //       eventResultsFile: f,
+                  //       eventResults,
+                  //     });
+                  //     await this.processChampionships();
+                  //   }
+                  //   return true;
+                  // } catch (e) {
+                  //   console.error(e);
+                  //   toast.error(
+                  //     'File format does not match expected. Please export event results with raw times, grouped by class.',
+                  //   );
+                  //   return false;
+                  // }
                 }}
                 fileSelectedMessage={(f) => {
                   const elements = [
@@ -187,37 +200,37 @@ class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
           </Row>
 
           {/* Process button */}
-          <Row>
-            <Col>
-              <Button
-                style={{ width: '150px' }}
-                disabled={
-                  Object.values(this.state.championshipResultsFiles).filter(
-                    (v) => v,
-                  ).length === 0
-                }
-                variant={'primary'}
-                onClick={async () => await this.processChampionships()}
-              >
-                {this.state.processing ? (
-                  <Spinner animation={'border'} />
-                ) : (
-                  <span>Reprocess Championship</span>
-                )}
-              </Button>
-            </Col>
-          </Row>
+          {/*<Row>*/}
+          {/*  <Col>*/}
+          {/*    <Button*/}
+          {/*      style={{ width: '150px' }}*/}
+          {/*      disabled={*/}
+          {/*        Object.values(this.state.championshipResultsFiles).filter(*/}
+          {/*          (v) => v,*/}
+          {/*        ).length === 0*/}
+          {/*      }*/}
+          {/*      variant={'primary'}*/}
+          {/*      onClick={async () => await this.processChampionships()}*/}
+          {/*    >*/}
+          {/*      {this.state.processing ? (*/}
+          {/*        <Spinner animation={'border'} />*/}
+          {/*      ) : (*/}
+          {/*        <span>Reprocess Championship</span>*/}
+          {/*      )}*/}
+          {/*    </Button>*/}
+          {/*  </Col>*/}
+          {/*</Row>*/}
 
-          <EventResultsComponent
-            results={this.state.eventResults}
-            ladiesIds={this.state.championshipResults?.Ladies?.drivers?.map(
-              (driver) => driver.id,
-            )}
-          />
+          {/*<EventResultsComponent*/}
+          {/*  results={this.state.eventResults}*/}
+          {/*  ladiesIds={this.state.championshipResults?.Ladies?.drivers?.map(*/}
+          {/*    (driver) => driver.id,*/}
+          {/*  )}*/}
+          {/*/>*/}
 
-          <ChampionshipResultsComponent
-            results={this.state.championshipResults}
-          />
+          {/*<ChampionshipResultsComponent*/}
+          {/*  results={this.state.championshipResults}*/}
+          {/*/>*/}
         </Container>
       </div>
     );

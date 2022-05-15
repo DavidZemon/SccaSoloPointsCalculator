@@ -10,10 +10,7 @@ use crate::models::exported_driver::ExportedDriver;
 use crate::models::lap_time::{LapTime, Penalty};
 use crate::utilities::swap;
 
-#[wasm_bindgen(
-    typescript_type = "export function parse_to_js(fileContents: string, twoDayEvent: bool): EventResults | String"
-)]
-// #[wasm_bindgen]
+#[wasm_bindgen]
 pub fn parse_to_js(file_contents: String, two_day_event: bool) -> Result<JsValue, String> {
     let event_results = parse(file_contents, two_day_event)?;
     Ok(serde_wasm_bindgen::to_value(&event_results).map_err(|e| e.to_string())?)

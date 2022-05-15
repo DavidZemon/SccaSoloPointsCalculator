@@ -245,7 +245,7 @@ export class EventResults extends Component<
                     <td>
                       {driver
                         .bestLap()
-                        .toString(
+                        .to_string(
                           resultsType === 'Raw'
                             ? undefined
                             : driver.paxMultiplier,
@@ -308,8 +308,8 @@ export class EventResults extends Component<
           driver.carDescription,
           rusty.ShortCarClass[classResults.carClass.short],
           `${driver.carNumber}`,
-          driver.bestLap().toString(undefined, false),
-          driver.bestLap().toString(driver.paxMultiplier, false),
+          driver.bestLap().to_string(undefined, false),
+          driver.bestLap().to_string(driver.paxMultiplier, false),
           index === 0
             ? ''
             : driver.difference(
@@ -361,7 +361,7 @@ export class EventResults extends Component<
           `${driver.carNumber}`,
           driver
             .bestLap('day1')
-            .toString(isRawTime ? undefined : driver.paxMultiplier, false),
+            .to_string(isRawTime ? undefined : driver.paxMultiplier, false),
           index === 0
             ? ''
             : driver.difference(

@@ -80,19 +80,19 @@ export class Driver {
     this.combined =
       this.day1Times?.length && this.day2Times?.length
         ? this.bestLap('day1').add(this.bestLap('day2'))
-        : rusty.LapTime.dns();
+        : rusty.dns();
   }
 
   bestLap(timeSelection: TimeSelection = 'day1'): rusty.LapTime {
-    if (this.dsq) return rusty.LapTime.dsq();
+    if (this.dsq) return rusty.dsq();
     else {
       switch (timeSelection) {
         case 'day1':
-          return [...(this.getTimes('day1') || [rusty.LapTime.dns()])].sort(
+          return [...(this.getTimes('day1') || [rusty.dns()])].sort(
             rusty.LapTime.compare,
           )[0];
         case 'day2':
-          return [...(this.getTimes('day2') || [rusty.LapTime.dns()])].sort(
+          return [...(this.getTimes('day2') || [rusty.dns()])].sort(
             rusty.LapTime.compare,
           )[0];
         case 'combined':

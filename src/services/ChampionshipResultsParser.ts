@@ -1,28 +1,25 @@
-import { read as xlsxRead, Sheet, utils as xlsxUtils } from 'xlsx';
-import { toast } from 'react-toastify';
-import { parse } from 'csv-parse/lib/sync';
+import {Sheet, utils as xlsxUtils} from 'xlsx';
+import {parse} from 'csv-parse/lib/sync';
 import {
   ChampionshipDriver,
   ChampionshipResults,
   ChampionshipType,
-  CLASS_MAP,
   ClassChampionshipDriver,
   ClassChampionshipResults,
   Driver,
   DriverId,
   EventResults,
   IndexedChampionshipResults,
-  IndexedChampionshipType,
   ShortCarClass,
 } from '../models';
-import { calculatePointsForDriver } from './utilities';
+import {calculatePointsForDriver} from './utilities';
 
 export class ChampionshipResultsParser {
   async parse(
     inputFiles: Partial<Record<ChampionshipType, File>>,
     eventResults: EventResults,
     newLadies: string[],
-  ): Promise<ChampionshipResults> {
+  ): Promise<ChampionshipResults> /*{
     const allDriversForEvent = Object.values(eventResults)
       .filter((classResults) => classResults.carClass !== CLASS_MAP.FUN)
       .map((classResults) => classResults.drivers)
@@ -115,12 +112,12 @@ export class ChampionshipResultsParser {
         }),
     );
     return results;
-  }
+  }*/ {return Promise.resolve({})}
 
   private parseClassResults(
     rows: string[][],
     eventResults: EventResults,
-  ): ClassChampionshipResults {
+  ): ClassChampionshipResults /*{
     // Two header rows (rank + driver), plus two total rows (points + "Best N of M")
     const pastEventCount = rows[5].length - 4;
 
@@ -231,6 +228,12 @@ export class ChampionshipResultsParser {
       year: parseInt(rows[1][0].split(' ')[0]),
       driversByClass,
     };
+  }*/ {
+    return {
+      year: 9,
+      driversByClass: {} as Record<ShortCarClass, ClassChampionshipDriver[]>,
+      organization: 'SCCA'
+    }
   }
 
   private parseIndexedResults(

@@ -67,7 +67,7 @@ impl ClassResults {
 
 #[wasm_bindgen(typescript_custom_section)]
 const EVENT_RESULTS_TYPE: &'static str =
-    r#"type EventResults = Record<ShortCarClass, ClassResults>"#;
+    r#"type EventResults = Map<keyof typeof ShortCarClass, ClassResults>"#;
 pub type EventResults = HashMap<ShortCarClass, ClassResults>;
 
 #[cfg(test)]

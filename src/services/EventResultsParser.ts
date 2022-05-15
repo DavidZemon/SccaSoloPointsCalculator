@@ -1,7 +1,6 @@
 import { parse } from 'csv-parse/lib/sync';
 import * as rusty from 'rusty/rusty';
 import {
-  CarClass,
   ClassResults,
   Driver,
   EventResults,
@@ -10,7 +9,7 @@ import {
 import { calculateTrophies } from './utilities';
 
 export class EventResultsParser {
-  async parse(fileContents: string): Promise<EventResults> {
+  async parse(fileContents: string): Promise<EventResults> /*{
     await EventResultsParser.validateHeaderRow(fileContents);
     const header: string[] = parse(fileContents, {
       columns: false,
@@ -77,6 +76,8 @@ export class EventResultsParser {
       });
 
     return eventResults;
+  }*/ {
+    return Promise.resolve({});
   }
 
   private static csvRecordInterceptor(
