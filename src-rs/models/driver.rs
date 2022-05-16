@@ -2,7 +2,6 @@ use std::cmp::Ordering;
 
 use float_cmp::approx_eq;
 use getset::{Getters, Setters};
-use js_sys::Array;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
 
@@ -71,23 +70,25 @@ impl Driver {
         self.region.clone()
     }
 
-    pub fn get_day_1_times(&self) -> Result<Option<Array>, String> {
+    pub fn get_day_1_times(&self) -> Result<Option<Vec<JsValue>>, String> {
         Ok(match self.day_1_times.clone() {
             Some(times) => Some(
-                serde_wasm_bindgen::to_value(&times)
-                    .map(|times| Array::from(&times))
-                    .map_err(|e| e.to_string())?,
+                times
+                    .iter()
+                    .map(|t| serde_wasm_bindgen::to_value(t).unwrap())
+                    .collect(),
             ),
             None => None,
         })
     }
 
-    pub fn get_day_2_times(&self) -> Result<Option<Array>, String> {
+    pub fn get_day_2_times(&self) -> Result<Option<Vec<JsValue>>, String> {
         Ok(match self.day_2_times.clone() {
             Some(times) => Some(
-                serde_wasm_bindgen::to_value(&times)
-                    .map(|times| Array::from(&times))
-                    .map_err(|e| e.to_string())?,
+                times
+                    .iter()
+                    .map(|t| serde_wasm_bindgen::to_value(t).unwrap())
+                    .collect(),
             ),
             None => None,
         })
@@ -148,7 +149,7 @@ impl Driver {
             times
                 .into_iter()
                 .map(|t| JsValue::from_serde(&t).unwrap())
-                .collect::<Vec<JsValue>>()
+                .collect()
         })
     }
 

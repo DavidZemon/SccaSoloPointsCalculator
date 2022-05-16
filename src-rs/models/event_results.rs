@@ -23,6 +23,14 @@ impl EventResults {
         self.results.contains_key(&car_class)
     }
 
+    pub fn values(&self) -> Result<Vec<JsValue>, String> {
+        Ok(self
+            .results
+            .iter()
+            .map(|(_, v)| serde_wasm_bindgen::to_value(v).unwrap())
+            .collect::<Vec<JsValue>>())
+    }
+
     pub fn len(&self) -> usize {
         self.results.len()
     }

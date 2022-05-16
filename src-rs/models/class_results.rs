@@ -1,4 +1,3 @@
-use js_sys::Array;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
 
@@ -19,10 +18,11 @@ pub struct ClassResults {
 
 #[wasm_bindgen]
 impl ClassResults {
-    pub fn get_drivers(&self) -> Result<Array, String> {
-        Ok(serde_wasm_bindgen::to_value(&self.drivers)
-            .map(|drivers| Array::from(&drivers))
-            .map_err(|e| e.to_string())?)
+    pub fn get_drivers(&self) -> Vec<JsValue> {
+        self.drivers
+            .iter()
+            .map(|d| serde_wasm_bindgen::to_value(d).unwrap())
+            .collect()
     }
 }
 

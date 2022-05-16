@@ -69,9 +69,7 @@ class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
                 accept={'.csv'}
                 onFileSelect={async (f) => {
                   try {
-                    // const js_results = parse_to_js(await f.text(), false);
-                    // console.dir(js_results);
-                    const results = parse(await f.text(), false); //new EventResults(js_results);
+                    const results = parse(await f.text(), false);
                     const ssc = convertClassResults(
                       results.get(ShortCarClass.SSC),
                     );
