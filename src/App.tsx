@@ -8,7 +8,14 @@ import { ToastContainer } from 'react-toastify';
 import { ChampionshipResultsParser } from './services';
 import { ChampionshipResults, ChampionshipType } from './models';
 import { FileUploadBox } from './components/FileUploadBox';
-import { EventResults, parse, ShortCarClass, Driver } from 'rusty/rusty';
+import {
+  Driver,
+  EventResults,
+  LapTime,
+  parse,
+  ShortCarClass,
+} from 'rusty/rusty';
+import { convertClassResults } from './services/rust_helpers';
 
 interface AppState {
   eventResultsFile?: File;
@@ -65,12 +72,17 @@ class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
                     // const js_results = parse_to_js(await f.text(), false);
                     // console.dir(js_results);
                     const results = parse(await f.text(), false); //new EventResults(js_results);
-                    const drivers: Driver[] = results
-                      .get(ShortCarClass.SSC)!
-                      .get_drivers()
-                      .map((d: any) => new Driver(JSON.stringify(d)));
-                    console.dir(drivers);
-                    console.log(`Best lap: ${drivers[0].best_lap()}`);
+                    const ssc = convertClassResults(
+                      results.get(ShortCarClass.SSC),
+                    );
+                    console.dir(ssc);
+
+                    const driver = ssc!.drivers[0];
+                    console.log(`Best lap: ${driver.best_lap()}`);
+                    console.log(
+                      `${driver.get_name()} times: ${driver.day_1_times}`,
+                    );
+
                     return false;
                   } catch (e) {
                     console.error(e);

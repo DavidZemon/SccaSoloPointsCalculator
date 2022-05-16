@@ -2,6 +2,7 @@ use std::cmp::Ordering;
 
 use float_cmp::approx_eq;
 use getset::{Getters, Setters};
+use js_sys::Array;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
 
@@ -70,12 +71,26 @@ impl Driver {
         self.region.clone()
     }
 
-    pub fn get_day_1_times(&self) -> Result<JsValue, String> {
-        Ok(serde_wasm_bindgen::to_value(&self.day_1_times).map_err(|e| e.to_string())?)
+    pub fn get_day_1_times(&self) -> Result<Option<Array>, String> {
+        Ok(match self.day_1_times.clone() {
+            Some(times) => Some(
+                serde_wasm_bindgen::to_value(&times)
+                    .map(|times| Array::from(&times))
+                    .map_err(|e| e.to_string())?,
+            ),
+            None => None,
+        })
     }
 
-    pub fn get_day_2_times(&self) -> Result<JsValue, String> {
-        Ok(serde_wasm_bindgen::to_value(&self.day_2_times).map_err(|e| e.to_string())?)
+    pub fn get_day_2_times(&self) -> Result<Option<Array>, String> {
+        Ok(match self.day_2_times.clone() {
+            Some(times) => Some(
+                serde_wasm_bindgen::to_value(&times)
+                    .map(|times| Array::from(&times))
+                    .map_err(|e| e.to_string())?,
+            ),
+            None => None,
+        })
     }
 
     pub fn best_lap(&self, time_selection: Option<TimeSelection>) -> LapTime {

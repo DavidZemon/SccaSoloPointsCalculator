@@ -6,7 +6,6 @@ import reportWebVitals from './reportWebVitals';
 import { default as init } from 'rusty/rusty';
 
 init('rusty_bg.wasm').then(() => {
-  console.log('Loaded!');
   ReactDOM.render(
     <React.StrictMode>
       <App />
