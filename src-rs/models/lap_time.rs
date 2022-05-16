@@ -33,7 +33,65 @@ pub struct LapTime {
 
 #[wasm_bindgen]
 impl LapTime {
+    /// Rebuild a LapTime object from a serialized & deserialized instance passed over the WASM
+    /// boundary
     #[wasm_bindgen(constructor)]
+    pub fn from_js(v: JsValue) -> LapTime {
+        v.into_serde().unwrap()
+    }
+
+    pub fn to_string(
+        &self,
+        pax_multiplier: Option<PaxMultiplier>,
+        display_cone_count: Option<bool>,
+    ) -> String {
+        if self.dnf {
+            String::from("DNF")
+        } else if self.rerun {
+            String::from("Re-run")
+        } else if self.dsq {
+            String::from("DSQ")
+        } else if self.dns {
+            String::from("DNS")
+        } else {
+            let result = format!("{:.3}", self.time.unwrap() * pax_multiplier.unwrap_or(1.));
+            if display_cone_count.unwrap_or(true) && self.cones != 0 {
+                format!("{} ({})", result, self.cones)
+            } else {
+                result
+            }
+        }
+    }
+
+    #[allow(non_snake_case)]
+    pub fn toString(&self) -> String {
+        self.to_string(None, None)
+    }
+
+    pub fn add(&self, rhs: LapTime) -> LapTime {
+        if self.dnf || self.rerun || self.dsq || self.dns {
+            self.clone()
+        } else if rhs.dnf || rhs.rerun || rhs.dsq || rhs.dns {
+            rhs.clone()
+        } else {
+            LapTime::new(
+                self.raw.unwrap() + rhs.raw.unwrap(),
+                self.cones + rhs.cones,
+                None,
+            )
+        }
+    }
+
+    pub fn compare(self: &LapTime, rhs: &LapTime) -> i8 {
+        match self.cmp(rhs) {
+            Ordering::Less => -1,
+            Ordering::Greater => 1,
+            Ordering::Equal => 0,
+        }
+    }
+}
+
+impl LapTime {
     pub fn new(raw_time: Time, cones: u8, penalty: Option<Penalty>) -> LapTime {
         match penalty {
             None => LapTime {
@@ -81,51 +139,6 @@ impl LapTime {
                 dsq: false,
                 dns: true,
             },
-        }
-    }
-
-    pub fn to_string(
-        &self,
-        pax_multiplier: Option<PaxMultiplier>,
-        display_cone_count: Option<bool>,
-    ) -> String {
-        if self.dnf {
-            String::from("DNF")
-        } else if self.rerun {
-            String::from("Re-run")
-        } else if self.dsq {
-            String::from("DSQ")
-        } else if self.dns {
-            String::from("DNS")
-        } else {
-            let result = format!("{:.3}", self.time.unwrap() * pax_multiplier.unwrap_or(1.));
-            if display_cone_count.unwrap_or(true) && self.cones != 0 {
-                format!("{} ({})", result, self.cones)
-            } else {
-                result
-            }
-        }
-    }
-
-    pub fn add(&self, rhs: LapTime) -> LapTime {
-        if self.dnf || self.rerun || self.dsq || self.dns {
-            self.clone()
-        } else if rhs.dnf || rhs.rerun || rhs.dsq || rhs.dns {
-            rhs.clone()
-        } else {
-            LapTime::new(
-                self.raw.unwrap() + rhs.raw.unwrap(),
-                self.cones + rhs.cones,
-                None,
-            )
-        }
-    }
-
-    pub fn compare(self: &LapTime, rhs: &LapTime) -> i8 {
-        match self.cmp(rhs) {
-            Ordering::Less => -1,
-            Ordering::Greater => 1,
-            Ordering::Equal => 0,
         }
     }
 }
@@ -183,11 +196,6 @@ pub fn dsq() -> LapTime {
 #[wasm_bindgen]
 pub fn dns() -> LapTime {
     LapTime::new(0., 0, Some(Penalty::DNS))
-}
-
-#[wasm_bindgen]
-pub fn lap_time(v: JsValue) -> LapTime {
-    v.into_serde().unwrap()
 }
 
 impl fmt::Display for LapTime {

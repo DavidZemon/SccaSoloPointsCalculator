@@ -21,52 +21,27 @@ pub enum TimeSelection {
 #[wasm_bindgen]
 #[derive(Clone, Debug, Getters, Setters, Deserialize, Serialize)]
 pub struct Driver {
-    #[get = "pub"]
-    #[set = "pub(crate)"]
-    error: bool,
-    #[get = "pub"]
-    #[set = "pub(crate)"]
-    id: DriverId,
-    #[get = "pub"]
-    #[set = "pub(crate)"]
-    name: String,
-    #[get = "pub"]
-    #[set = "pub(crate)"]
-    car_number: u16,
-    #[get = "pub"]
-    #[set = "pub(crate)"]
-    car_class: CarClass,
-    #[get = "pub"]
-    #[set = "pub(crate)"]
-    car_description: String,
-    #[get = "pub"]
-    #[set = "pub(crate)"]
-    region: String,
-    #[get = "pub"]
-    #[set = "pub(crate)"]
-    rookie: bool,
-    #[get = "pub"]
-    #[set = "pub(crate)"]
-    ladies_championship: bool,
-    #[get = "pub"]
-    #[set = "pub(crate)"]
-    position: Option<usize>,
-    #[get = "pub"]
-    #[set = "pub(crate)"]
-    dsq: bool,
-    #[get = "pub"]
-    #[set = "pub(crate)"]
-    pax_multiplier: f64,
-
-    #[get = "pub(crate)"]
-    #[set = "pub(crate)"]
-    day_1_times: Option<Vec<LapTime>>,
-    #[get = "pub(crate)"]
-    #[set = "pub(crate)"]
-    day_2_times: Option<Vec<LapTime>>,
-    #[get = "pub"]
-    #[set = "pub(crate)"]
-    combined: LapTime,
+    pub error: bool,
+    #[wasm_bindgen(skip)]
+    pub id: DriverId,
+    #[wasm_bindgen(skip)]
+    pub name: String,
+    pub car_number: u16,
+    pub car_class: CarClass,
+    #[wasm_bindgen(skip)]
+    pub car_description: String,
+    #[wasm_bindgen(skip)]
+    pub region: String,
+    pub rookie: bool,
+    pub ladies_championship: bool,
+    pub position: Option<usize>,
+    pub dsq: bool,
+    pub pax_multiplier: f64,
+    #[wasm_bindgen(skip)]
+    pub day_1_times: Option<Vec<LapTime>>,
+    #[wasm_bindgen(skip)]
+    pub day_2_times: Option<Vec<LapTime>>,
+    pub combined: LapTime,
 
     /// For internal use only to help sort and compute combined time
     two_day_event: bool,
@@ -74,6 +49,35 @@ pub struct Driver {
 
 #[wasm_bindgen]
 impl Driver {
+    #[wasm_bindgen(constructor)]
+    pub fn from_js(v: String) -> Result<Driver, String> {
+        serde_json::from_str(&v).map_err(|e| e.to_string())
+    }
+
+    pub fn get_id(&self) -> DriverId {
+        self.id.clone()
+    }
+
+    pub fn get_name(&self) -> String {
+        self.name.clone()
+    }
+
+    pub fn get_car_description(&self) -> String {
+        self.car_description.clone()
+    }
+
+    pub fn get_region(&self) -> String {
+        self.region.clone()
+    }
+
+    pub fn get_day_1_times(&self) -> Result<JsValue, String> {
+        Ok(serde_wasm_bindgen::to_value(&self.day_1_times).map_err(|e| e.to_string())?)
+    }
+
+    pub fn get_day_2_times(&self) -> Result<JsValue, String> {
+        Ok(serde_wasm_bindgen::to_value(&self.day_2_times).map_err(|e| e.to_string())?)
+    }
+
     pub fn best_lap(&self, time_selection: Option<TimeSelection>) -> LapTime {
         if self.dsq {
             dsq()
@@ -133,7 +137,7 @@ impl Driver {
         })
     }
 
-    pub fn differences(
+    pub fn difference(
         &self,
         fastest_of_day: Time,
         use_pax: Option<bool>,
@@ -593,7 +597,7 @@ mod test {
         );
 
         assert_eq!(
-            testable.differences(fastest, use_pax, ts),
+            testable.difference(fastest, use_pax, ts),
             String::from(expected)
         );
     }
@@ -603,15 +607,15 @@ mod test {
         let d1 = Some(vec![LapTime::new(2., 0, None)]);
         let d2 = Some(vec![LapTime::new(3., 0, None)]);
         assert_eq!(
-            build_driver(d1.clone(), d2.clone(), true, false).differences(1., None, None),
+            build_driver(d1.clone(), d2.clone(), true, false).difference(1., None, None),
             String::from("N/A")
         );
         assert_eq!(
-            build_driver(None, d2.clone(), false, false).differences(1., None, None),
+            build_driver(None, d2.clone(), false, false).difference(1., None, None),
             String::from("N/A")
         );
         assert_eq!(
-            build_driver(None, d2.clone(), false, false).differences(
+            build_driver(None, d2.clone(), false, false).difference(
                 1.,
                 None,
                 Some(TimeSelection::Day1)
@@ -619,7 +623,7 @@ mod test {
             String::from("N/A")
         );
         assert_eq!(
-            build_driver(d1.clone(), None, false, false).differences(
+            build_driver(d1.clone(), None, false, false).difference(
                 1.,
                 None,
                 Some(TimeSelection::Day2)
@@ -627,7 +631,7 @@ mod test {
             String::from("N/A")
         );
         assert_eq!(
-            build_driver(d1.clone(), None, false, true).differences(
+            build_driver(d1.clone(), None, false, true).difference(
                 1.,
                 None,
                 Some(TimeSelection::Combined)
@@ -635,7 +639,7 @@ mod test {
             String::from("N/A")
         );
         assert_eq!(
-            build_driver(None, d2.clone(), false, true).differences(
+            build_driver(None, d2.clone(), false, true).difference(
                 1.,
                 None,
                 Some(TimeSelection::Combined)

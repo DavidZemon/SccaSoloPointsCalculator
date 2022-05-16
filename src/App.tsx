@@ -2,20 +2,13 @@ import 'react-toastify/dist/ReactToastify.css';
 import 'bootswatch/dist/slate/bootstrap.css';
 import 'react-bootstrap-typeahead/css/Typeahead.css';
 import { Component, ComponentPropsWithoutRef } from 'react';
-import { Button, Col, Container, Row, Spinner } from 'react-bootstrap';
+import { Col, Container, Row } from 'react-bootstrap';
 import { Typeahead } from 'react-bootstrap-typeahead';
-import { toast, ToastContainer } from 'react-toastify';
-import { ChampionshipResultsParser, EventResultsParser } from './services';
-import {
-  ChampionshipResults,
-  ChampionshipType,
-  Driver,
-  EventResults,
-} from './models';
-import { EventResults as EventResultsComponent } from './components/EventResults';
+import { ToastContainer } from 'react-toastify';
+import { ChampionshipResultsParser } from './services';
+import { ChampionshipResults, ChampionshipType } from './models';
 import { FileUploadBox } from './components/FileUploadBox';
-import { ChampionshipResults as ChampionshipResultsComponent } from './components/ChampionshipResults';
-import {parse_to_js, ShortCarClass, lap_time} from 'rusty/rusty';
+import { EventResults, parse, ShortCarClass, Driver } from 'rusty/rusty';
 
 interface AppState {
   eventResultsFile?: File;
@@ -31,7 +24,6 @@ interface AppState {
 }
 
 class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
-  private readonly eventResultsParser = new EventResultsParser();
   private readonly championshipResultsProcessor =
     new ChampionshipResultsParser();
 
@@ -70,12 +62,15 @@ class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
                 accept={'.csv'}
                 onFileSelect={async (f) => {
                   try {
-                    let results = parse_to_js(await f.text(),false) as EventResults;
-                    console.dir(results);
-                    console.dir();
-                    // @ts-expect-error
-                    const combined = results.get(ShortCarClass[ShortCarClass.SSC] as keyof typeof ShortCarClass).drivers[0].combined;
-                    console.dir(lap_time(combined));
+                    // const js_results = parse_to_js(await f.text(), false);
+                    // console.dir(js_results);
+                    const results = parse(await f.text(), false); //new EventResults(js_results);
+                    const drivers: Driver[] = results
+                      .get(ShortCarClass.SSC)!
+                      .get_drivers()
+                      .map((d: any) => new Driver(JSON.stringify(d)));
+                    console.dir(drivers);
+                    console.log(`Best lap: ${drivers[0].best_lap()}`);
                     return false;
                   } catch (e) {
                     console.error(e);
@@ -123,10 +118,10 @@ class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
                       <ul key={'errorList'}>
                         {this.state.driversInError.map((driver) => (
                           <li
-                            key={`driverInError-${driver.carNumber}${driver.carClass.short}`}
+                            key={`driverInError-${driver.car_number}${driver.car_class.short}`}
                           >
-                            {driver.name} {driver.carNumber}{' '}
-                            {driver.carClass.short}
+                            {driver.get_name()} {driver.car_number}{' '}
+                            {driver.car_class.short}
                           </li>
                         ))}
                       </ul>,
@@ -251,7 +246,7 @@ class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
         processing: false,
         championshipResults: await this.championshipResultsProcessor.parse(
           mergedFiles,
-          this.state.eventResults,
+          {}, //this.state.eventResults,
           this.state.newLadies,
         ),
       });

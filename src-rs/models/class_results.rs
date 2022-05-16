@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
 
@@ -10,11 +8,19 @@ use crate::models::short_car_class::ShortCarClass;
 use crate::models::type_aliases::Time;
 
 #[wasm_bindgen]
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ClassResults {
     pub trophy_count: u8,
     pub car_class: CarClass,
-    drivers: Vec<Driver>,
+    #[wasm_bindgen(skip)]
+    pub drivers: Vec<Driver>,
+}
+
+#[wasm_bindgen]
+impl ClassResults {
+    pub fn get_drivers(&self) -> Result<JsValue, String> {
+        Ok(serde_wasm_bindgen::to_value(&self.drivers).map_err(|e| e.to_string())?)
+    }
 }
 
 impl ClassResults {
@@ -31,12 +37,8 @@ impl ClassResults {
         self.trophy_count = self.calculate_trophies();
         self.drivers.sort();
         for (index, driver) in self.drivers.iter_mut().enumerate() {
-            driver.set_position(Some(index + 1));
+            driver.position = Some(index + 1);
         }
-    }
-
-    pub fn get_drivers(&self) -> &Vec<Driver> {
-        &self.drivers
     }
 
     pub fn get_best_in_class(&self, time_selection: Option<TimeSelection>) -> Time {
@@ -64,11 +66,6 @@ impl ClassResults {
         }
     }
 }
-
-#[wasm_bindgen(typescript_custom_section)]
-const EVENT_RESULTS_TYPE: &'static str =
-    r#"type EventResults = Map<keyof typeof ShortCarClass, ClassResults>"#;
-pub type EventResults = HashMap<ShortCarClass, ClassResults>;
 
 #[cfg(test)]
 mod test {
