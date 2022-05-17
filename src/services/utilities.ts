@@ -1,25 +1,12 @@
-import { ChampionshipDriver, ClassChampionshipDriver, Driver } from '../models';
-
-export const SPECIAL_CLASS_MAP: Record<string, string> = {
-  'Fun Class': 'FUN',
-};
-
-export function toShortClassName(longClassName: string): string {
-  return (
-    SPECIAL_CLASS_MAP[longClassName] ||
-    longClassName
-      .split(' ')
-      .map((word) => word[0])
-      .join('')
-  );
-}
+import { Driver } from './rust_helpers';
+import { ChampionshipDriver, ClassChampionshipDriver } from '../models';
 
 export function calculatePointsForDriver(
   fastest: number,
   driver: Driver,
   paxMultiplier = 1,
 ): number {
-  const actual = (driver.bestLap().time || Infinity) * paxMultiplier;
+  const actual = (driver.best_lap().time || Infinity) * paxMultiplier;
   if (fastest === actual) {
     return 10000;
   } else {

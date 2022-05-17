@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::fmt::{Display, Formatter};
 
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
@@ -25,6 +26,12 @@ impl CarClass {
             long,
             category,
         }
+    }
+}
+
+impl Display for CarClass {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.short.name())
     }
 }
 

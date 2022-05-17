@@ -4,18 +4,13 @@ import 'react-bootstrap-typeahead/css/Typeahead.css';
 import { Component, ComponentPropsWithoutRef } from 'react';
 import { Col, Container, Row } from 'react-bootstrap';
 import { Typeahead } from 'react-bootstrap-typeahead';
-import { ToastContainer } from 'react-toastify';
+import { toast, ToastContainer } from 'react-toastify';
+import { parse } from 'rusty/rusty';
+import { EventResults as EventResultsComponent } from './components/EventResults';
 import { ChampionshipResultsParser } from './services';
 import { ChampionshipResults, ChampionshipType } from './models';
 import { FileUploadBox } from './components/FileUploadBox';
-import {
-  Driver,
-  EventResults,
-  LapTime,
-  parse,
-  ShortCarClass,
-} from 'rusty/rusty';
-import { convertClassResults } from './services/rust_helpers';
+import { convertEventResults, EventResults } from './services/rust_helpers';
 
 interface AppState {
   eventResultsFile?: File;
@@ -24,7 +19,7 @@ interface AppState {
   processing: boolean;
 
   eventResults?: EventResults;
-  driversInError?: Driver[];
+  driversInError?: string[];
   championshipResults?: ChampionshipResults;
 
   newLadies: string[];
@@ -69,49 +64,29 @@ class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
                 accept={'.csv'}
                 onFileSelect={async (f) => {
                   try {
-                    const results = parse(await f.text(), false);
-                    const ssc = convertClassResults(
-                      results.get(ShortCarClass.SSC),
+                    const eventResults = convertEventResults(
+                      parse(await f.text(), false),
                     );
-                    console.dir(ssc);
+                    const driversInError = eventResults.drivers_in_error();
+                    if (driversInError.length) {
+                      console.error(`array=${JSON.stringify(driversInError)}`);
+                      this.setState({ eventResultsFile: f, driversInError });
+                    } else {
+                      this.setState({
+                        eventResultsFile: f,
+                        eventResults,
+                      });
+                      await this.processChampionships();
+                    }
 
-                    const driver = ssc!.drivers[0];
-                    console.log(`Best lap: ${driver.best_lap()}`);
-                    console.log(
-                      `${driver.get_name()} times: ${driver.day_1_times}`,
-                    );
-
-                    return false;
+                    return true;
                   } catch (e) {
                     console.error(e);
+                    toast.error(
+                      'File format does not match expected. Please export event results with raw times, grouped by class.',
+                    );
                     return false;
                   }
-                  // try {
-                  //   const eventResults = await this.eventResultsParser.parse(
-                  //     await f.text(),
-                  //   );
-                  //   const driversInError = Object.entries(eventResults)
-                  //     .map(([_, classResults]) => classResults.drivers)
-                  //     .flat()
-                  //     .filter((driver) => driver.error);
-                  //   console.dir(driversInError);
-                  //   if (driversInError.length)
-                  //     this.setState({ eventResultsFile: f, driversInError });
-                  //   else {
-                  //     this.setState({
-                  //       eventResultsFile: f,
-                  //       eventResults,
-                  //     });
-                  //     await this.processChampionships();
-                  //   }
-                  //   return true;
-                  // } catch (e) {
-                  //   console.error(e);
-                  //   toast.error(
-                  //     'File format does not match expected. Please export event results with raw times, grouped by class.',
-                  //   );
-                  //   return false;
-                  // }
                 }}
                 fileSelectedMessage={(f) => {
                   const elements = [
@@ -127,12 +102,7 @@ class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
                       </p>,
                       <ul key={'errorList'}>
                         {this.state.driversInError.map((driver) => (
-                          <li
-                            key={`driverInError-${driver.car_number}${driver.car_class.short}`}
-                          >
-                            {driver.get_name()} {driver.car_number}{' '}
-                            {driver.car_class.short}
-                          </li>
+                          <li key={`driverInError-${driver}`}>{driver}</li>
                         ))}
                       </ul>,
                       <p key={'demandRefresh'}>
@@ -153,10 +123,7 @@ class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
                 id={'newLadiesInput'}
                 placeholder={'Names of first-time ladies championship drivers'}
                 disabled={!this.state.eventResults}
-                options={Object.values(this.state.eventResults || {})
-                  .map((classResults) => classResults.drivers)
-                  .flat()
-                  .map((driver) => driver.name)}
+                options={this.state.eventResults?.get_all_driver_names() || []}
                 multiple
                 onChange={(newLadies) => {
                   this.setState({ newLadies });
@@ -226,12 +193,12 @@ class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
           {/*  </Col>*/}
           {/*</Row>*/}
 
-          {/*<EventResultsComponent*/}
-          {/*  results={this.state.eventResults}*/}
-          {/*  ladiesIds={this.state.championshipResults?.Ladies?.drivers?.map(*/}
-          {/*    (driver) => driver.id,*/}
-          {/*  )}*/}
-          {/*/>*/}
+          <EventResultsComponent
+            results={this.state.eventResults}
+            ladiesIds={this.state.championshipResults?.Ladies?.drivers?.map(
+              (driver) => driver.id,
+            )}
+          />
 
           {/*<ChampionshipResultsComponent*/}
           {/*  results={this.state.championshipResults}*/}
@@ -256,7 +223,7 @@ class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
         processing: false,
         championshipResults: await this.championshipResultsProcessor.parse(
           mergedFiles,
-          {}, //this.state.eventResults,
+          this.state.eventResults,
           this.state.newLadies,
         ),
       });

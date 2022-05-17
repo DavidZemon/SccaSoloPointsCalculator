@@ -1,6 +1,6 @@
 use std::cmp::Ordering;
 use std::fmt;
-use std::fmt::Formatter;
+use std::fmt::{Display, Formatter};
 
 use float_cmp;
 use float_cmp::F64Margin;
@@ -87,6 +87,13 @@ impl LapTime {
             Ordering::Less => -1,
             Ordering::Greater => 1,
             Ordering::Equal => 0,
+        }
+    }
+
+    pub fn with_pax(&self, pax_multiplier: f64) -> Time {
+        match self.time {
+            Some(t) => t * pax_multiplier,
+            None => Time::INFINITY,
         }
     }
 }
@@ -198,9 +205,9 @@ pub fn dns() -> LapTime {
     LapTime::new(0., 0, Some(Penalty::DNS))
 }
 
-impl fmt::Display for LapTime {
+impl Display for LapTime {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.to_string(None, None))
+        f.write_str(self.to_string(None, None).as_str())
     }
 }
 

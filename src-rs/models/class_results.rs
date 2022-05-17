@@ -18,11 +18,30 @@ pub struct ClassResults {
 
 #[wasm_bindgen]
 impl ClassResults {
+    #[wasm_bindgen(constructor)]
+    pub fn from_js(value: JsValue) -> ClassResults {
+        value.into_serde().unwrap()
+    }
+
     pub fn get_drivers(&self) -> Vec<JsValue> {
         self.drivers
             .iter()
             .map(|d| serde_wasm_bindgen::to_value(d).unwrap())
             .collect()
+    }
+
+    pub fn get_best_in_class(&self, time_selection: Option<TimeSelection>) -> Time {
+        let mut best_laps: Vec<LapTime> = self
+            .drivers
+            .iter()
+            .map(|d| d.best_lap(time_selection))
+            .collect();
+        best_laps.sort();
+        best_laps
+            .get(0)
+            .map(|t| t.time.clone())
+            .flatten()
+            .unwrap_or(Time::INFINITY)
     }
 }
 
@@ -42,20 +61,6 @@ impl ClassResults {
         for (index, driver) in self.drivers.iter_mut().enumerate() {
             driver.position = Some(index + 1);
         }
-    }
-
-    pub fn get_best_in_class(&self, time_selection: Option<TimeSelection>) -> Time {
-        let mut best_laps: Vec<LapTime> = self
-            .drivers
-            .iter()
-            .map(|d| d.best_lap(time_selection))
-            .collect();
-        best_laps.sort();
-        best_laps
-            .get(0)
-            .map(|t| t.time.clone())
-            .flatten()
-            .unwrap_or(Time::INFINITY)
     }
 
     fn calculate_trophies(&self) -> u8 {

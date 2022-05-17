@@ -50,8 +50,8 @@ pub struct Driver {
 #[wasm_bindgen]
 impl Driver {
     #[wasm_bindgen(constructor)]
-    pub fn from_js(v: String) -> Result<Driver, String> {
-        serde_json::from_str(&v).map_err(|e| e.to_string())
+    pub fn from_js(v: JsValue) -> Result<Driver, String> {
+        v.into_serde().map_err(|e| e.to_string())
     }
 
     pub fn get_id(&self) -> DriverId {
@@ -259,7 +259,9 @@ impl Ord for Driver {
 
 impl PartialOrd<Self> for Driver {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        self.combined.partial_cmp(&other.combined)
+        self.combined
+            .with_pax(self.pax_multiplier)
+            .partial_cmp(&other.combined.with_pax(other.pax_multiplier))
     }
 }
 

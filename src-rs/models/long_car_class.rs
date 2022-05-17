@@ -96,8 +96,8 @@ enum_str! {
 }
 
 #[wasm_bindgen]
-pub fn to_display_name(car_class: LongCarClass) -> String {
-    car_class
+pub fn to_display_name(long_car_class: LongCarClass) -> String {
+    long_car_class
         .name()
         .replace("Front_Wheel_Drive", "Front-Wheel-Drive")
         .replace("_", " ")

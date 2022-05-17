@@ -1,18 +1,16 @@
-import {Sheet, utils as xlsxUtils} from 'xlsx';
-import {parse} from 'csv-parse/lib/sync';
+import { Sheet, utils as xlsxUtils } from 'xlsx';
+import { parse } from 'csv-parse/lib/sync';
+import { DriverId, EventResults, ShortCarClass } from 'rusty/rusty';
 import {
   ChampionshipDriver,
   ChampionshipResults,
   ChampionshipType,
   ClassChampionshipDriver,
   ClassChampionshipResults,
-  Driver,
-  DriverId,
-  EventResults,
   IndexedChampionshipResults,
-  ShortCarClass,
 } from '../models';
-import {calculatePointsForDriver} from './utilities';
+import { calculatePointsForDriver } from './utilities';
+import { Driver } from './rust_helpers';
 
 export class ChampionshipResultsParser {
   async parse(
@@ -112,7 +110,9 @@ export class ChampionshipResultsParser {
         }),
     );
     return results;
-  }*/ {return Promise.resolve({})}
+  }*/ {
+    return Promise.resolve({});
+  }
 
   private parseClassResults(
     rows: string[][],
@@ -231,9 +231,12 @@ export class ChampionshipResultsParser {
   }*/ {
     return {
       year: 9,
-      driversByClass: {} as Record<ShortCarClass, ClassChampionshipDriver[]>,
-      organization: 'SCCA'
-    }
+      driversByClass: {} as Record<
+        keyof typeof ShortCarClass,
+        ClassChampionshipDriver[]
+      >,
+      organization: 'SCCA',
+    };
   }
 
   private parseIndexedResults(
@@ -326,7 +329,7 @@ export class ChampionshipResultsParser {
       const pointsForNewEvent = calculatePointsForDriver(
         bestPaxTimeOfDay,
         driverNewResults,
-        driverNewResults.paxMultiplier,
+        driverNewResults.pax_multiplier,
       );
       const newPointListing = [...driverHistory.points, pointsForNewEvent];
       return {
@@ -348,12 +351,12 @@ export class ChampionshipResultsParser {
         calculatePointsForDriver(
           bestPaxTimeOfDay,
           newDriver,
-          newDriver.paxMultiplier,
+          newDriver.pax_multiplier,
         ),
       ];
       return {
         id: driverId,
-        name: newDriver.name,
+        name: newDriver.get_name(),
         points: newPoints,
         totalPoints: ChampionshipResultsParser.sumPoints(newPoints),
       };
