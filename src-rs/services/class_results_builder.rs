@@ -1,7 +1,10 @@
 use csv::Writer;
+use mem::discriminant;
+use std::cmp::Ordering;
+use std::mem;
 use wasm_bindgen::prelude::*;
 
-use crate::models::car_class::get_car_class;
+use crate::models::car_class::{get_car_class, CarClass};
 use crate::models::class_results::ClassResults;
 use crate::models::event_results::EventResults;
 use crate::models::type_aliases::Time;
@@ -22,7 +25,7 @@ impl ClassResultsBuilder {
     }
 
     pub fn to_csvs(&self, results: &EventResults) -> Vec<JsValue> {
-        results
+        let mut results = results
             .results
             .iter()
             .map(|(class, results)| {
@@ -32,6 +35,18 @@ impl ClassResultsBuilder {
                     results,
                 )
             })
+            .collect::<Vec<(CarClass, &ClassResults)>>();
+
+        results.sort_by(|(lhs, ..), (rhs, ..)| {
+            if lhs.category == rhs.category {
+                lhs.short.cmp(&rhs.short)
+            } else {
+                lhs.category.cmp(&rhs.category)
+            }
+        });
+
+        results
+            .iter()
             .map(|(class, results)| {
                 JsValue::from_serde(&(class, self.export_class(results))).expect(
                     format!("Failed to serialize class CSV for {}", class.long.name()).as_str(),

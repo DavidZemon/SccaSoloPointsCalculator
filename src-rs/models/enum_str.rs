@@ -4,7 +4,7 @@ macro_rules! enum_str {
         $($variant:ident),*,
     }) => {
         #[wasm_bindgen]
-        #[derive(Copy, Clone, Debug, Deserialize, Serialize, PartialEq, Eq, Hash)]
+        #[derive(Copy, Clone, Debug, Deserialize, Serialize, PartialEq, Eq, Hash, Ord, PartialOrd)]
         #[allow(non_camel_case_types)]
         pub enum $name {
             $($variant),*
