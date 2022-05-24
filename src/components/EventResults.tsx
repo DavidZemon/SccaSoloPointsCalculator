@@ -141,7 +141,7 @@ export class EventResults extends Component<
                     <Card.Body>
                       {this.displayTable(
                         `${header}\n${csv}`,
-                        (driver) => `${carClass.short} - ${driver[2]}`,
+                        (driver) => `${carClass.short} - ${driver[1]}`,
                       )}
                     </Card.Body>
                   </Accordion.Collapse>
@@ -189,7 +189,7 @@ export class EventResults extends Component<
           <Card.Body>
             {this.displayTable(
               csvContent,
-              (driver) => `${DriverGroup[driverGroup]} - ${driver[2]}`,
+              (driver) => `${DriverGroup[driverGroup]} - ${driver[1]}`,
             )}
           </Card.Body>
         </Accordion.Collapse>
