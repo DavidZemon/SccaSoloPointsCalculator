@@ -1,4 +1,4 @@
-import { Driver } from './rust_helpers';
+import { Driver } from 'rusty/rusty';
 import { ChampionshipDriver, ClassChampionshipDriver } from '../models';
 
 export function calculatePointsForDriver(

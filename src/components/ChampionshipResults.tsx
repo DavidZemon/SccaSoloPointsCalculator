@@ -6,7 +6,6 @@ import {
   ChampionshipType,
   ClassChampionshipDriver,
   IndexedChampionshipResults,
-  ShortCarClass,
 } from '../models';
 import {
   calculateClassChampionshipTrophies,
@@ -17,7 +16,7 @@ import { RamDownload } from './DownloadButton';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faDownload } from '@fortawesome/free-solid-svg-icons';
 import { EOL } from 'os';
-import * as rusty from 'rusty/rusty';
+import {get_car_class, ShortCarClass, to_display_name} from 'rusty/rusty';
 
 interface ChampionshipResultsProps extends PropsWithoutRef<any> {
   results?: ChampionshipResultsData;
@@ -157,11 +156,15 @@ export class ChampionshipResults extends Component<
           <Accordion.Collapse eventKey={championshipType}>
             <Card.Body>
               <Table striped hover borderless>
-                {(Object.keys(results.driversByClass) as ShortCarClass[])
+                {(
+                  Object.keys(
+                    results.driversByClass,
+                  ) as (keyof typeof ShortCarClass)[]
+                )
                   .sort()
                   .map((carClass) => {
                     const trophyCount = calculateClassChampionshipTrophies(
-                      results?.driversByClass[carClass],
+                      results?.driversByClass[ShortCarClass[carClass]],
                     );
                     return [
                       <thead key={0}>
@@ -186,7 +189,7 @@ export class ChampionshipResults extends Component<
                         </tr>
                       </thead>,
                       <tbody key={1}>
-                        {results!.driversByClass[carClass]
+                        {results!.driversByClass[ShortCarClass[carClass]]
                           // Reverse sort by doing `d2 - d1`, so top points shows up at the top
                           .sort((d1, d2) => d2.totalPoints - d1.totalPoints)
                           .map((driver, index) => (
@@ -253,19 +256,19 @@ export class ChampionshipResults extends Component<
       ...header,
       ...(
         Object.entries(results.driversByClass) as [
-          ShortCarClass,
+          keyof typeof ShortCarClass,
           ClassChampionshipDriver[],
         ][]
       )
         .map(([carClass, drivers]) => {
-          if (!rusty.get_car_class(rusty.ShortCarClass[carClass])) {
+          if (!get_car_class(ShortCarClass[carClass])) {
             console.error(`Can not map class "${carClass}"`);
           }
           const trophyCount = calculateClassChampionshipTrophies(drivers);
           return [
             [
-              `${carClass} - ${rusty.to_display_name(
-                rusty.get_car_class(rusty.ShortCarClass[carClass])!.long,
+              `${carClass} - ${to_display_name(
+                get_car_class(ShortCarClass[carClass])!.long,
               )}`,
             ],
             ...drivers

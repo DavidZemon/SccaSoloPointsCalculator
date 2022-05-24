@@ -49,7 +49,7 @@ impl ClassResults {
     pub fn new(car_class: ShortCarClass) -> ClassResults {
         ClassResults {
             trophy_count: 0,
-            car_class: get_car_class(car_class).unwrap(),
+            car_class: get_car_class(&car_class).unwrap(),
             drivers: Vec::new(),
         }
     }

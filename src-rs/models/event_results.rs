@@ -1,4 +1,3 @@
-use js_sys::Array;
 use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
@@ -18,24 +17,9 @@ pub struct EventResults {
 
 #[wasm_bindgen]
 impl EventResults {
-    pub fn get_js(&self, car_class: ShortCarClass) -> Option<ClassResults> {
-        self.results.get(&car_class).map(|r| r.clone())
-    }
-
-    pub fn get_all_js(&self) -> Vec<JsValue> {
-        self.results
-            .values()
-            .map(|class_results| JsValue::from_serde(class_results).unwrap())
-            .collect()
-    }
-
-    pub fn contains_key(&self, car_class: ShortCarClass) -> bool {
-        self.results.contains_key(&car_class)
-    }
-
     /// Driver descriptors (string consisting of name + number + class) of any driver that we
     /// found to be in an error state during import
-    pub fn js_drivers_in_error(&self) -> Array {
+    pub fn js_drivers_in_error(&self) -> Vec<JsValue> {
         self.results
             .values()
             .map(|class_results| class_results.drivers.iter().filter(|d| d.error))
@@ -54,12 +38,27 @@ impl EventResults {
             .collect()
     }
 
+    pub fn get_all_driver_js_names(&self) -> Vec<JsValue> {
+        self.results
+            .values()
+            .map(|class_results| {
+                class_results
+                    .drivers
+                    .iter()
+                    .map(|d| JsValue::from_str(d.name.as_str()))
+            })
+            .flatten()
+            .collect()
+    }
+
     pub fn len(&self) -> usize {
         self.results.len()
     }
+}
 
+impl EventResults {
     /// Get a sorted list of drivers
-    pub fn get_js_drivers(&self, filter: Option<DriverGroup>) -> Vec<JsValue> {
+    pub fn get_drivers(&self, filter: Option<DriverGroup>) -> Vec<&Driver> {
         let mut drivers = self
             .results
             .values()
@@ -76,23 +75,6 @@ impl EventResults {
             .collect::<Vec<&Driver>>();
 
         drivers.sort();
-
         drivers
-            .iter()
-            .map(|d| serde_wasm_bindgen::to_value(d).unwrap())
-            .collect()
-    }
-
-    pub fn get_all_driver_js_names(&self) -> Array {
-        self.results
-            .values()
-            .map(|class_results| {
-                class_results
-                    .drivers
-                    .iter()
-                    .map(|d| JsValue::from_str(d.name.as_str()))
-            })
-            .flatten()
-            .collect()
     }
 }

@@ -5,12 +5,11 @@ import { Component, ComponentPropsWithoutRef } from 'react';
 import { Col, Container, Row } from 'react-bootstrap';
 import { Typeahead } from 'react-bootstrap-typeahead';
 import { toast, ToastContainer } from 'react-toastify';
-import { parse } from 'rusty/rusty';
+import { EventResults, parse } from 'rusty/rusty';
 import { EventResults as EventResultsComponent } from './components/EventResults';
 import { ChampionshipResultsParser } from './services';
 import { ChampionshipResults, ChampionshipType } from './models';
 import { FileUploadBox } from './components/FileUploadBox';
-import { convertEventResults, EventResults } from './services/rust_helpers';
 
 interface AppState {
   eventResultsFile?: File;
@@ -64,10 +63,9 @@ class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
                 accept={'.csv'}
                 onFileSelect={async (f) => {
                   try {
-                    const eventResults = convertEventResults(
-                      parse(await f.text(), false),
-                    );
-                    const driversInError = eventResults.drivers_in_error();
+                    const eventResults = parse(await f.text(), false);
+                    const driversInError =
+                      eventResults.js_drivers_in_error() as string[];
                     if (driversInError.length) {
                       console.error(`array=${JSON.stringify(driversInError)}`);
                       this.setState({ eventResultsFile: f, driversInError });
@@ -123,7 +121,9 @@ class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
                 id={'newLadiesInput'}
                 placeholder={'Names of first-time ladies championship drivers'}
                 disabled={!this.state.eventResults}
-                options={this.state.eventResults?.get_all_driver_names() || []}
+                options={
+                  this.state.eventResults?.get_all_driver_js_names() || []
+                }
                 multiple
                 onChange={(newLadies) => {
                   this.setState({ newLadies });

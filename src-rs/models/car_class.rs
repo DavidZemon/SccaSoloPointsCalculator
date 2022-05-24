@@ -746,10 +746,13 @@ lazy_static! {
     };
 }
 
-#[wasm_bindgen]
-pub fn get_car_class(car_class: ShortCarClass) -> Option<CarClass> {
-    if CLASS_MAP.contains_key(&car_class) {
-        Some(CLASS_MAP[&car_class])
+#[wasm_bindgen(js_name = get_car_class)]
+pub fn _get_car_class(car_class: ShortCarClass) -> Option<CarClass> {
+    get_car_class(&car_class)
+}
+pub fn get_car_class(car_class: &ShortCarClass) -> Option<CarClass> {
+    if CLASS_MAP.contains_key(car_class) {
+        Some(CLASS_MAP[car_class])
     } else {
         None
     }

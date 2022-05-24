@@ -1,6 +1,6 @@
 import { Sheet, utils as xlsxUtils } from 'xlsx';
 import { parse } from 'csv-parse/lib/sync';
-import { DriverId, EventResults, ShortCarClass } from 'rusty/rusty';
+import {Driver, DriverId, EventResults, ShortCarClass} from 'rusty/rusty';
 import {
   ChampionshipDriver,
   ChampionshipResults,
@@ -10,7 +10,6 @@ import {
   IndexedChampionshipResults,
 } from '../models';
 import { calculatePointsForDriver } from './utilities';
-import { Driver } from './rust_helpers';
 
 export class ChampionshipResultsParser {
   async parse(

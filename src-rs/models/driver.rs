@@ -195,7 +195,7 @@ impl Driver {
             .clone()
             .unwrap_or(String::from("<Missing Last Name>"));
         let name = format!("{} {}", first_name, last_name);
-        let car_class = match get_car_class(driver.car_class) {
+        let car_class = match get_car_class(&driver.car_class) {
             Some(c) => c,
             None => panic!("Unable to map class for driver {}", driver.car_class.name()),
         };
