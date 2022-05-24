@@ -1,7 +1,4 @@
 use csv::Writer;
-use mem::discriminant;
-use std::cmp::Ordering;
-use std::mem;
 use wasm_bindgen::prelude::*;
 
 use crate::models::car_class::{get_car_class, CarClass};
