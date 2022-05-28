@@ -1,19 +1,22 @@
-use crate::models::championship_driver::ChampionshipDriver;
-use crate::models::short_car_class::ShortCarClass;
-use getset::Setters;
 use std::collections::HashMap;
 
+use serde::Serialize;
+
+use crate::models::championship_driver::{ClassedChampionshipDriver, IndexedChampionshipDriver};
+use crate::models::short_car_class::ShortCarClass;
+
+#[derive(Serialize)]
 pub struct IndexedChampionshipResults {
     pub year: u16,
     pub organization: String,
-    pub drivers: Vec<ChampionshipDriver>,
+    pub drivers: Vec<IndexedChampionshipDriver>,
 }
 
 impl IndexedChampionshipResults {
     pub fn new(
         year: u16,
         organization: String,
-        drivers: Vec<ChampionshipDriver>,
+        drivers: Vec<IndexedChampionshipDriver>,
     ) -> IndexedChampionshipResults {
         IndexedChampionshipResults {
             year,
@@ -23,41 +26,23 @@ impl IndexedChampionshipResults {
     }
 }
 
+#[derive(Serialize)]
 pub struct ClassChampionshipResults {
     pub year: u16,
     pub organization: String,
-    pub drivers_by_class: HashMap<ShortCarClass, Vec<ChampionshipDriver>>,
+    pub drivers_by_class: HashMap<ShortCarClass, Vec<ClassedChampionshipDriver>>,
 }
 
 impl ClassChampionshipResults {
     pub fn new(
         year: u16,
         organization: String,
-        drivers_by_class: HashMap<ShortCarClass, Vec<ChampionshipDriver>>,
+        drivers_by_class: HashMap<ShortCarClass, Vec<ClassedChampionshipDriver>>,
     ) -> ClassChampionshipResults {
         ClassChampionshipResults {
             year,
             organization,
             drivers_by_class,
-        }
-    }
-}
-
-#[derive(Setters)]
-pub struct ChampionshipResults {
-    pub class: Option<ClassChampionshipResults>,
-    pub pax: Option<IndexedChampionshipResults>,
-    pub novice: Option<IndexedChampionshipResults>,
-    pub ladies: Option<IndexedChampionshipResults>,
-}
-
-impl ChampionshipResults {
-    pub fn new() -> ChampionshipResults {
-        ChampionshipResults {
-            class: None,
-            pax: None,
-            novice: None,
-            ladies: None,
         }
     }
 }

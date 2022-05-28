@@ -2,11 +2,12 @@ import 'react-toastify/dist/ReactToastify.css';
 import 'bootswatch/dist/slate/bootstrap.css';
 import 'react-bootstrap-typeahead/css/Typeahead.css';
 import { Component, ComponentPropsWithoutRef } from 'react';
-import { Col, Container, Row } from 'react-bootstrap';
+import { Button, Col, Container, Row, Spinner } from 'react-bootstrap';
 import { Typeahead } from 'react-bootstrap-typeahead';
 import { toast, ToastContainer } from 'react-toastify';
 import { EventResults, parse } from 'rusty/rusty';
 import { EventResults as EventResultsComponent } from './components/EventResults';
+import { ChampionshipResults as ChampionshipResultsComponent } from './components/ChampionshipResults';
 import { ChampionshipResultsParser } from './services';
 import { ChampionshipResults, ChampionshipType } from './models';
 import { FileUploadBox } from './components/FileUploadBox';
@@ -172,26 +173,26 @@ class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
           </Row>
 
           {/* Process button */}
-          {/*<Row>*/}
-          {/*  <Col>*/}
-          {/*    <Button*/}
-          {/*      style={{ width: '150px' }}*/}
-          {/*      disabled={*/}
-          {/*        Object.values(this.state.championshipResultsFiles).filter(*/}
-          {/*          (v) => v,*/}
-          {/*        ).length === 0*/}
-          {/*      }*/}
-          {/*      variant={'primary'}*/}
-          {/*      onClick={async () => await this.processChampionships()}*/}
-          {/*    >*/}
-          {/*      {this.state.processing ? (*/}
-          {/*        <Spinner animation={'border'} />*/}
-          {/*      ) : (*/}
-          {/*        <span>Reprocess Championship</span>*/}
-          {/*      )}*/}
-          {/*    </Button>*/}
-          {/*  </Col>*/}
-          {/*</Row>*/}
+          <Row>
+            <Col>
+              <Button
+                style={{ width: '150px' }}
+                disabled={
+                  Object.values(this.state.championshipResultsFiles).filter(
+                    (v) => v,
+                  ).length === 0
+                }
+                variant={'primary'}
+                onClick={async () => await this.processChampionships()}
+              >
+                {this.state.processing ? (
+                  <Spinner animation={'border'} />
+                ) : (
+                  <span>Reprocess Championship</span>
+                )}
+              </Button>
+            </Col>
+          </Row>
 
           <EventResultsComponent
             results={this.state.eventResults}
@@ -199,10 +200,9 @@ class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
               (driver) => driver.id,
             )}
           />
-
-          {/*<ChampionshipResultsComponent*/}
-          {/*  results={this.state.championshipResults}*/}
-          {/*/>*/}
+          <ChampionshipResultsComponent
+            results={this.state.championshipResults}
+          />
         </Container>
       </div>
     );

@@ -1,6 +1,6 @@
 import { Sheet, utils as xlsxUtils } from 'xlsx';
 import { parse } from 'csv-parse/lib/sync';
-import {Driver, DriverId, EventResults, ShortCarClass} from 'rusty/rusty';
+import { Driver, DriverId, EventResults, ShortCarClass } from 'rusty/rusty';
 import {
   ChampionshipDriver,
   ChampionshipResults,
@@ -16,7 +16,7 @@ export class ChampionshipResultsParser {
     inputFiles: Partial<Record<ChampionshipType, File>>,
     eventResults: EventResults,
     newLadies: string[],
-  ): Promise<ChampionshipResults> /*{
+  ): Promise<ChampionshipResults> {
     const allDriversForEvent = Object.values(eventResults)
       .filter((classResults) => classResults.carClass !== CLASS_MAP.FUN)
       .map((classResults) => classResults.drivers)
@@ -109,14 +109,12 @@ export class ChampionshipResultsParser {
         }),
     );
     return results;
-  }*/ {
-    return Promise.resolve({});
   }
 
   private parseClassResults(
     rows: string[][],
     eventResults: EventResults,
-  ): ClassChampionshipResults /*{
+  ): ClassChampionshipResults {
     // Two header rows (rank + driver), plus two total rows (points + "Best N of M")
     const pastEventCount = rows[5].length - 4;
 
@@ -140,9 +138,6 @@ export class ChampionshipResultsParser {
         if (isNaN(parseInt(row[0]))) {
           const delimiter = row[0].includes(' - ') ? ' - ' : ' – ';
           currentClass = row[0].split(delimiter)[0] as ShortCarClass;
-          if (!currentClass) {
-            currentClass = row[0].split(delimiter)[0] as ShortCarClass;
-          }
           rowsByClassAndDriverId[currentClass] = rowsForOneClass = {};
         } else {
           const id = row[1].toLowerCase().trim();
@@ -226,15 +221,6 @@ export class ChampionshipResultsParser {
       organization: rows[0][0].trim(),
       year: parseInt(rows[1][0].split(' ')[0]),
       driversByClass,
-    };
-  }*/ {
-    return {
-      year: 9,
-      driversByClass: {} as Record<
-        keyof typeof ShortCarClass,
-        ClassChampionshipDriver[]
-      >,
-      organization: 'SCCA',
     };
   }
 
