@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::io::Cursor;
 
@@ -10,15 +11,19 @@ use crate::models::championship_type::ChampionshipType;
 use crate::models::driver::Driver;
 use crate::models::event_results::EventResults;
 use crate::models::short_car_class::ShortCarClass;
-use crate::models::type_aliases::DriverId;
+use crate::models::type_aliases::{DriverId, Time};
 use crate::services::class_championship_results_parser::{
     ClassChampionshipResultsParser, DefaultClassChampionshipResultsParser,
+};
+use crate::services::index_championship_results_parser::{
+    DefaultIndexChampionshipResultsParser, IndexChampionshipResultsParser,
 };
 
 #[wasm_bindgen]
 #[derive(Setters)]
 pub struct ChampionshipResultsParser {
     class_results_parser: Box<dyn ClassChampionshipResultsParser>,
+    index_results_parser: Box<dyn IndexChampionshipResultsParser>,
 
     event_results: EventResults,
     class: Option<ClassChampionshipResults>,
@@ -33,6 +38,7 @@ impl ChampionshipResultsParser {
     pub fn new(event_results: EventResults) -> ChampionshipResultsParser {
         ChampionshipResultsParser {
             class_results_parser: Box::new(DefaultClassChampionshipResultsParser::new()),
+            index_results_parser: Box::new(DefaultIndexChampionshipResultsParser::new()),
             event_results,
             class: None,
             pax: None,
@@ -47,16 +53,11 @@ impl ChampionshipResultsParser {
         new_results: &[u8],
         file_name: String,
     ) -> Result<(), String> {
-        let all_drivers = self
+        let event_drivers_by_id = self
             .event_results
             .get_drivers(None)
             .iter()
             .filter(|d| d.car_class.short != ShortCarClass::FUN && !d.dsq)
-            .map(|d| d.clone())
-            .collect::<Vec<&Driver>>();
-
-        let drivers_by_id = all_drivers
-            .iter()
             .map(|d| (d.id.clone(), d.clone()))
             .collect::<HashMap<DriverId, &Driver>>();
 
@@ -64,18 +65,37 @@ impl ChampionshipResultsParser {
         match new_results_type {
             ChampionshipType::Class => {
                 self.class = Some(self.class_results_parser.parse(data, &self.event_results)?);
-                Ok(())
             }
-            _ => Err("Not implemented".to_string()),
-        }
-    }
-
-    fn update_ladies(&mut self, new_ladies: Vec<JsValue>) -> Result<(), String> {
-        let new_ladies = new_ladies
-            .iter()
-            .map(|l| l.as_string().unwrap_or("Invalid Driver".to_string()))
-            .collect::<Vec<String>>();
-
+            ChampionshipType::PAX => {
+                let fastest = Self::compute_fastest(&event_drivers_by_id);
+                self.pax = Some(self.index_results_parser.parse(
+                    data,
+                    event_drivers_by_id,
+                    fastest,
+                )?);
+            }
+            ChampionshipType::Novice => {
+                let new_novices = event_drivers_by_id
+                    .iter()
+                    .filter(|(_, d)| d.rookie)
+                    .map(|(id, d)| (id.clone(), d.clone()))
+                    .collect::<HashMap<DriverId, &Driver>>();
+                let fastest = Self::compute_fastest(&new_novices);
+                self.novice = Some(
+                    self.index_results_parser
+                        .parse(data, new_novices, fastest)?,
+                );
+            }
+            ChampionshipType::Ladies => {
+                let new_ladies = event_drivers_by_id
+                    .iter()
+                    .filter(|(_, d)| d.ladies_championship)
+                    .map(|(id, d)| (id.clone(), d.clone()))
+                    .collect::<HashMap<DriverId, &Driver>>();
+                let fastest = Self::compute_fastest(&new_ladies);
+                self.ladies = Some(self.index_results_parser.parse(data, new_ladies, fastest)?);
+            }
+        };
         Ok(())
     }
 }
@@ -114,5 +134,14 @@ impl ChampionshipResultsParser {
         } else {
             Err(format!("File {} contains no non-empty sheets", file_name))
         }
+    }
+
+    fn compute_fastest(drivers: &HashMap<DriverId, &Driver>) -> Time {
+        let mut times = drivers
+            .iter()
+            .map(|(_, d)| d.best_lap(None).time.unwrap_or(Time::INFINITY))
+            .collect::<Vec<Time>>();
+        times.sort_by(|lhs, rhs| lhs.partial_cmp(rhs).unwrap_or(Ordering::Equal));
+        times.get(0).cloned().unwrap_or(Time::INFINITY)
     }
 }

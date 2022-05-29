@@ -61,7 +61,7 @@ impl ClassChampionshipResultsParser for DefaultClassChampionshipResultsParser {
 
 impl DefaultClassChampionshipResultsParser {
     pub fn new() -> Self {
-        DefaultClassChampionshipResultsParser {
+        Self {
             points_calculator: Box::new(DefaultChampionshipPointsCalculator {}),
         }
     }
