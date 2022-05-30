@@ -29,8 +29,7 @@ impl IndexChampionshipResultsParser for DefaultIndexChampionshipResultsParser {
         event_drivers: HashMap<DriverId, &Driver>,
         best_index_time_of_day: Time,
     ) -> Result<IndexedChampionshipResults, String> {
-        let previous_drivers = data.range()
-
+        // let previous_drivers = data
 
         Err("Not implemented".to_string())
     }

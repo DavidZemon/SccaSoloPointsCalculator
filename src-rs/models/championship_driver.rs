@@ -1,4 +1,3 @@
-use getset::Getters;
 use serde::Serialize;
 
 use crate::models::car_class::CarClass;
@@ -21,7 +20,7 @@ pub trait ClassChampionshipDriver {
     fn get_car_class(&self) -> &CarClass;
 }
 
-#[derive(Clone, Getters, Serialize)]
+#[derive(Clone, Serialize)]
 pub struct IndexedChampionshipDriver {
     id: String,
     name: String,
@@ -29,17 +28,12 @@ pub struct IndexedChampionshipDriver {
     total_points: i64,
 }
 
-#[derive(Clone, Getters, Serialize)]
+#[derive(Clone, Serialize)]
 pub struct ClassedChampionshipDriver {
-    #[get = "pub"]
     id: String,
-    #[get = "pub"]
     name: String,
-    #[get = "pub"]
     points: Vec<i64>,
-    #[get = "pub"]
     total_points: i64,
-    #[get = "pub"]
     car_class: CarClass,
 }
 
@@ -52,8 +46,30 @@ impl IndexedChampionshipDriver {
             total_points: 0,
         }
     }
+}
 
-    pub fn add_event(&mut self, event_points: i64) {
+impl ChampionshipDriver for IndexedChampionshipDriver {
+    fn id(&self) -> &String {
+        &self.id
+    }
+
+    fn name(&self) -> &String {
+        &self.name
+    }
+
+    fn points(&self) -> &Vec<i64> {
+        &self.points
+    }
+
+    fn total_points(&self) -> i64 {
+        self.total_points
+    }
+
+    fn event_count(&self) -> usize {
+        self.points.len()
+    }
+
+    fn add_event(&mut self, event_points: i64) {
         self.points.push(event_points);
         self.total_points += event_points;
     }
@@ -70,10 +86,34 @@ impl ClassedChampionshipDriver {
         }
     }
 
-    pub fn add_event(&mut self, event_points: i64) {
+    pub fn car_class(&self) -> &CarClass {
+        &self.car_class
+    }
+}
+
+impl ChampionshipDriver for ClassedChampionshipDriver {
+    fn id(&self) -> &String {
+        &self.id
+    }
+
+    fn name(&self) -> &String {
+        &self.name
+    }
+
+    fn points(&self) -> &Vec<i64> {
+        &self.points
+    }
+
+    fn total_points(&self) -> i64 {
+        self.total_points
+    }
+
+    fn event_count(&self) -> usize {
+        self.points.len()
+    }
+
+    fn add_event(&mut self, event_points: i64) {
         self.points.push(event_points);
         self.total_points += event_points;
-
-        self.id();
     }
 }

@@ -1,5 +1,5 @@
 use crate::models::car_class::get_car_class;
-use crate::models::championship_driver::ClassedChampionshipDriver;
+use crate::models::championship_driver::{ChampionshipDriver, ClassedChampionshipDriver};
 use crate::models::championship_results::ClassChampionshipResults;
 use crate::models::driver::Driver;
 use crate::models::event_results::EventResults;

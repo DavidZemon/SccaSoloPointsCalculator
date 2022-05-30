@@ -2,32 +2,36 @@ import 'react-toastify/dist/ReactToastify.css';
 import 'bootswatch/dist/slate/bootstrap.css';
 import 'react-bootstrap-typeahead/css/Typeahead.css';
 import { Component, ComponentPropsWithoutRef } from 'react';
-import { Button, Col, Container, Row, Spinner } from 'react-bootstrap';
-import { Typeahead } from 'react-bootstrap-typeahead';
+import { Col, Container, Row } from 'react-bootstrap';
 import { toast, ToastContainer } from 'react-toastify';
-import { EventResults, parse } from 'rusty/rusty';
+import {
+  ChampionshipResultsParser,
+  ChampionshipType,
+  EventResults,
+  parse,
+} from 'rusty/rusty';
 import { EventResults as EventResultsComponent } from './components/EventResults';
 import { ChampionshipResults as ChampionshipResultsComponent } from './components/ChampionshipResults';
-import { ChampionshipResultsParser } from './services';
-import { ChampionshipResults, ChampionshipType } from './models';
 import { FileUploadBox } from './components/FileUploadBox';
 
 interface AppState {
   eventResultsFile?: File;
-  championshipResultsFiles: Partial<Record<ChampionshipType, File>>;
+  championshipResultsFiles: Partial<
+    Record<keyof typeof ChampionshipType, File | undefined>
+  >;
 
   processing: boolean;
 
   eventResults?: EventResults;
   driversInError?: string[];
-  championshipResults?: ChampionshipResults;
+  championshipResults?: Partial<Record<ChampionshipType, string>>;
 
   newLadies: string[];
 }
 
 class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
-  private readonly championshipResultsProcessor =
-    new ChampionshipResultsParser();
+  private championshipResultsProcessor: ChampionshipResultsParser | undefined =
+    undefined;
 
   constructor(props: Readonly<ComponentPropsWithoutRef<any>>) {
     super(props);
@@ -47,6 +51,7 @@ class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
     return (
       <div>
         <ToastContainer pauseOnHover />
+
         <Container fluid>
           {/* Page header */}
           <Row>
@@ -117,89 +122,53 @@ class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
                   return elements;
                 }}
               />
-
-              <Typeahead
-                id={'newLadiesInput'}
-                placeholder={'Names of first-time ladies championship drivers'}
-                disabled={!this.state.eventResults}
-                options={
-                  this.state.eventResults?.get_all_driver_js_names() || []
-                }
-                multiple
-                onChange={(newLadies) => {
-                  this.setState({ newLadies });
-                }}
-              />
             </Col>
 
             <Col>
               {Object.keys(this.state.championshipResultsFiles).map(
-                (championshipType, index) => (
-                  <FileUploadBox
-                    key={index}
-                    label={`${championshipType} Championship Standings`}
-                    accept={'.xls,.xlsx'}
-                    file={
-                      this.state.championshipResultsFiles[
-                        championshipType as ChampionshipType
-                      ]
-                    }
-                    onFileSelect={async (f) => {
-                      await this.processChampionships(
-                        championshipType as ChampionshipType,
-                        f,
-                      );
-                      return true;
-                    }}
-                    fileSelectedMessage={(f) =>
-                      this.state.eventResultsFile ? (
-                        <p>
-                          Showing <strong>{championshipType}</strong>{' '}
-                          championship standings based on <code>{f.name}</code>
-                        </p>
-                      ) : (
-                        <p>
-                          <code>{f.name}</code> set as{' '}
-                          <strong>{championshipType}</strong> championship
-                          standings. Please add event results to begin
-                          processing.
-                        </p>
-                      )
-                    }
-                  />
-                ),
+                (champTypeStr, index) => {
+                  const championshipType =
+                    champTypeStr as keyof typeof ChampionshipType;
+                  return (
+                    <FileUploadBox
+                      key={index}
+                      label={`${championshipType} Championship Standings`}
+                      accept={'.xls,.xlsx'}
+                      file={
+                        this.state.championshipResultsFiles[championshipType]
+                      }
+                      onFileSelect={async (f) => {
+                        await this.processChampionships({
+                          championshipType,
+                          newFile: f,
+                        });
+                        return true;
+                      }}
+                      fileSelectedMessage={(f) =>
+                        this.state.eventResultsFile ? (
+                          <p>
+                            Showing <strong>{championshipType}</strong>{' '}
+                            championship standings based on{' '}
+                            <code>{f.name}</code>
+                          </p>
+                        ) : (
+                          <p>
+                            <code>{f.name}</code> set as{' '}
+                            <strong>{championshipType}</strong> championship
+                            standings. Please add event results to begin
+                            processing.
+                          </p>
+                        )
+                      }
+                    />
+                  );
+                },
               )}
             </Col>
           </Row>
 
-          {/* Process button */}
-          <Row>
-            <Col>
-              <Button
-                style={{ width: '150px' }}
-                disabled={
-                  Object.values(this.state.championshipResultsFiles).filter(
-                    (v) => v,
-                  ).length === 0
-                }
-                variant={'primary'}
-                onClick={async () => await this.processChampionships()}
-              >
-                {this.state.processing ? (
-                  <Spinner animation={'border'} />
-                ) : (
-                  <span>Reprocess Championship</span>
-                )}
-              </Button>
-            </Col>
-          </Row>
+          <EventResultsComponent results={this.state.eventResults} />
 
-          <EventResultsComponent
-            results={this.state.eventResults}
-            ladiesIds={this.state.championshipResults?.Ladies?.drivers?.map(
-              (driver) => driver.id,
-            )}
-          />
           <ChampionshipResultsComponent
             results={this.state.championshipResults}
           />
@@ -208,25 +177,58 @@ class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
     );
   }
 
-  private async processChampionships(
-    championshipType?: ChampionshipType,
-    newFile?: File,
-  ): Promise<void> {
-    const mergedFiles = { ...this.state.championshipResultsFiles };
-    if (championshipType && newFile) {
+  private async processChampionships(params?: {
+    championshipType: keyof typeof ChampionshipType;
+    newFile: File;
+  }): Promise<void> {
+    if (params) {
+      const { championshipType, newFile } = params;
+
+      const mergedFiles = { ...this.state.championshipResultsFiles };
       mergedFiles[championshipType] = newFile;
       this.setState({ championshipResultsFiles: mergedFiles });
-    }
-    if (this.state.eventResults) {
-      this.setState({ processing: true });
-      this.setState({
-        processing: false,
-        championshipResults: await this.championshipResultsProcessor.parse(
-          mergedFiles,
-          this.state.eventResults,
-          this.state.newLadies,
+
+      if (this.state.eventResults) {
+        if (!this.championshipResultsProcessor)
+          this.championshipResultsProcessor = new ChampionshipResultsParser(
+            this.state.eventResults,
+          );
+
+        this.setState({ processing: true });
+
+        this.championshipResultsProcessor.process_results(
+          ChampionshipType[championshipType],
+          new Uint8Array(await newFile.arrayBuffer()),
+          newFile.name,
+        );
+
+        const newResults: Partial<
+          Record<keyof typeof ChampionshipType, string>
+        > = {
+          ...this.state.championshipResults,
+        };
+        newResults[championshipType] = this.championshipResultsProcessor.get(
+          ChampionshipType[championshipType],
+        );
+        this.setState({
+          processing: false,
+          championshipResults: newResults,
+        });
+      }
+    } else {
+      await Promise.all(
+        Object.entries(this.state.championshipResultsFiles).map(
+          async ([championshipType, newFile]) => {
+            if (championshipType && newFile) {
+              await this.processChampionships({
+                championshipType:
+                  championshipType as keyof typeof ChampionshipType,
+                newFile,
+              });
+            }
+          },
         ),
-      });
+      );
     }
   }
 }

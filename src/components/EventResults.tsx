@@ -1,23 +1,29 @@
 import { Component, ComponentPropsWithoutRef } from 'react';
-import { Accordion, Button, Card, Col, Row, Table } from 'react-bootstrap';
+import { Accordion, Button, Card, Col, Row } from 'react-bootstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faDownload } from '@fortawesome/free-solid-svg-icons';
-import { parse } from 'csv-parse/lib/sync';
 import {
+  CarClass,
+  ClassCategory,
   ClassResultsBuilder,
   CombinedResultsBuilder,
   DriverGroup,
-  DriverId,
   EventResults as EventResultsData,
   LongCarClass,
+  ShortCarClass,
   to_display_name,
 } from 'rusty/rusty';
 import { RamDownload } from './DownloadButton';
-import { MangledCarClass } from '../models';
+import { CsvTable } from './CsvTable';
+
+type MangledCarClass = Omit<CarClass, 'short' | 'long' | 'category'> & {
+  short: keyof typeof ShortCarClass;
+  long: keyof typeof LongCarClass;
+  category: keyof typeof ClassCategory;
+};
 
 interface EventResultsProps extends ComponentPropsWithoutRef<any> {
   results?: EventResultsData;
-  ladiesIds?: DriverId[]; // IDs of Ladies drivers from championship results
 }
 
 interface EventResultsState {
@@ -63,9 +69,7 @@ export class EventResults extends Component<
                   this.displayCombinedResults(DriverGroup.Novice)}
 
                 {this.comboResultsBldr &&
-                  (this.props.ladiesIds
-                    ? this.displayCombinedResults(DriverGroup.Ladies)
-                    : null)}
+                  this.displayCombinedResults(DriverGroup.Ladies)}
               </Accordion>
             </Col>
           </Row>
@@ -139,10 +143,12 @@ export class EventResults extends Component<
                     eventKey={`class-table-${carClass.short}`}
                   >
                     <Card.Body>
-                      {this.displayTable(
-                        `${header}\n${csv}`,
-                        (driver) => `${carClass.short} - ${driver[1]}`,
-                      )}
+                      <CsvTable
+                        csv={`${header}\n${csv}`}
+                        keyBuilder={(driver) =>
+                          `${carClass.short} - ${driver[1]}`
+                        }
+                      />
                     </Card.Body>
                   </Accordion.Collapse>
                 </Card>
@@ -187,45 +193,15 @@ export class EventResults extends Component<
 
         <Accordion.Collapse eventKey={DriverGroup[driverGroup]}>
           <Card.Body>
-            {this.displayTable(
-              csvContent,
-              (driver) => `${DriverGroup[driverGroup]} - ${driver[1]}`,
-            )}
+            <CsvTable
+              csv={csvContent}
+              keyBuilder={(driver) =>
+                `${DriverGroup[driverGroup]} - ${driver[1]}`
+              }
+            />
           </Card.Body>
         </Accordion.Collapse>
       </Card>
-    );
-  }
-
-  private displayTable(
-    csvContent: string,
-    keyBuilder: (row: string[]) => string,
-  ): JSX.Element {
-    const lines: string[][] = parse(csvContent, { columns: false });
-    const [header, ...drivers] = lines;
-    return (
-      <Table striped hover borderless>
-        <thead>
-          <tr>
-            {header.map((h) => (
-              <th key={h}>{h}</th>
-            ))}
-          </tr>
-        </thead>
-
-        <tbody>
-          {drivers.map((row) => {
-            const rowKey = keyBuilder(row);
-            return (
-              <tr key={rowKey}>
-                {row.map((column, i) => (
-                  <td key={`${rowKey} - ${header[i]}`}>{column}</td>
-                ))}
-              </tr>
-            );
-          })}
-        </tbody>
-      </Table>
     );
   }
 
