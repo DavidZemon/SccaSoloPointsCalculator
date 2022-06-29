@@ -9,7 +9,10 @@ interface CsvTableProps extends ComponentPropsWithoutRef<any> {
 
 export class CsvTable extends Component<CsvTableProps> {
   public render(): JSX.Element {
-    const lines: string[][] = parse(this.props.csv, { columns: false });
+    const lines: string[][] = parse(this.props.csv, {
+      columns: false,
+      relax_column_count_less: true,
+    });
     const [header, ...drivers] = lines;
     return (
       <Table striped hover borderless>
@@ -27,7 +30,12 @@ export class CsvTable extends Component<CsvTableProps> {
             return (
               <tr key={rowKey}>
                 {row.map((column, i) => (
-                  <td key={`${rowKey} - ${header[i]}`}>{column}</td>
+                  <td
+                    key={`${rowKey} - ${header[i]}`}
+                    colSpan={row.length === 1 ? drivers[1].length : 1}
+                  >
+                    {column}
+                  </td>
                 ))}
               </tr>
             );

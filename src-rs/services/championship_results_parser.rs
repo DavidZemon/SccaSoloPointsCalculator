@@ -218,12 +218,7 @@ impl ChampionshipResultsParser {
 
     fn build_initial(event_count: usize) -> String {
         let mut header = vec!["Rank".to_string(), "Driver".to_string()];
-        header.extend(
-            [0..event_count]
-                .iter()
-                .enumerate()
-                .map(|(i, _)| format!("#{}", i + 1)),
-        );
+        header.extend((0..event_count).map(|i| format!("#{}", i + 1)));
         header.push("Points".to_string());
         header.push(format!(
             "Best {} of {}",

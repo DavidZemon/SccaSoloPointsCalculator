@@ -1,16 +1,25 @@
+use std::cmp::Ordering;
+use std::collections::{HashMap, HashSet};
+
+use calamine::{DataType, Range};
+
 use crate::models::car_class::get_car_class;
 use crate::models::championship_driver::{ChampionshipDriver, ClassedChampionshipDriver};
 use crate::models::championship_results::ClassChampionshipResults;
 use crate::models::driver::Driver;
 use crate::models::event_results::EventResults;
 use crate::models::short_car_class::ShortCarClass;
-use crate::models::type_aliases::DriverId;
+use crate::models::type_aliases::{DriverId, Time};
 use crate::services::championship_points_calculator::{
     ChampionshipPointsCalculator, DefaultChampionshipPointsCalculator,
 };
-use calamine::{DataType, Range};
-use std::cmp::Ordering;
-use std::collections::{HashMap, HashSet};
+
+struct CalculationContext {
+    rows_by_class_and_driver_id:
+        HashMap<ShortCarClass, HashMap<DriverId, ClassedChampionshipDriver>>,
+    new_event_drivers_by_class_and_id: HashMap<ShortCarClass, HashMap<DriverId, Driver>>,
+    past_event_count: usize,
+}
 
 pub trait ClassChampionshipResultsParser {
     fn parse(
@@ -50,11 +59,11 @@ impl ClassChampionshipResultsParser for DefaultClassChampionshipResultsParser {
         Ok(ClassChampionshipResults::new(
             year,
             org,
-            self.calculate_results(
+            self.calculate_results(&CalculationContext {
                 past_event_count,
-                &self.parse_sheet(data),
-                &self.get_new_event_drivers(event_results),
-            ),
+                rows_by_class_and_driver_id: self.parse_sheet(data),
+                new_event_drivers_by_class_and_id: self.get_new_event_drivers(event_results),
+            }),
         ))
     }
 }
@@ -165,83 +174,106 @@ impl DefaultClassChampionshipResultsParser {
 
     fn calculate_results(
         &self,
-        past_event_count: usize,
-        rows_by_class_and_driver_id: &HashMap<
-            ShortCarClass,
-            HashMap<DriverId, ClassedChampionshipDriver>,
-        >,
-        new_event_drivers_by_class_and_id: &HashMap<ShortCarClass, HashMap<DriverId, Driver>>,
+        ctx: &CalculationContext,
     ) -> HashMap<ShortCarClass, Vec<ClassedChampionshipDriver>> {
         self.get_all_driver_ids_by_class(
-            rows_by_class_and_driver_id,
-            new_event_drivers_by_class_and_id,
+            &ctx.rows_by_class_and_driver_id,
+            &ctx.new_event_drivers_by_class_and_id,
         )
         .iter()
-        .map(|(class, driver_ids)| {
-            let empty_class_history: HashMap<DriverId, ClassedChampionshipDriver> = HashMap::new();
-            let empty_driver_list: HashMap<DriverId, Driver> = HashMap::new();
-
-            let class_history = rows_by_class_and_driver_id
-                .get(class)
-                .unwrap_or(&empty_class_history);
-            let new_event_drivers_by_id = new_event_drivers_by_class_and_id
-                .get(class)
-                .unwrap_or(&empty_driver_list);
-
-            let best_time_of_day = new_event_drivers_by_id
-                .values()
-                .map(|d| (d.best_lap(None).time, d.pax_multiplier))
-                .filter(|(t, _)| t.is_some())
-                .map(|(t, pax)| t.unwrap() * pax)
-                .min_by(|lhs, rhs| lhs.partial_cmp(rhs).unwrap_or(Ordering::Equal))
-                .expect("Apparently no drivers got a valid time all day long?!");
-
-            (
-                class.clone(),
-                driver_ids
-                    .iter()
-                    .map(|id| {
-                        let driver_history = class_history.get(id);
-                        let driver_new_results = new_event_drivers_by_id.get(id);
-
-                        if driver_history.is_some() && driver_new_results.is_some() {
-                            let mut driver_history = driver_history.unwrap().clone();
-                            let driver_new_results = driver_new_results.unwrap();
-
-                            driver_history.add_event(self.points_calculator.calculate(
-                                best_time_of_day,
-                                driver_new_results,
-                                Some(driver_new_results.pax_multiplier),
-                            ) as i64);
-
-                            driver_history
-                        } else if driver_history.is_some() {
-                            let mut driver_history = driver_history.unwrap().clone();
-                            driver_history.add_event(0);
-                            driver_history
-                        } else {
-                            let driver_new_results = driver_new_results.unwrap();
-
-                            let mut new_driver = ClassedChampionshipDriver::new(
-                                id.clone(),
-                                driver_new_results.name.clone(),
-                                get_car_class(class).unwrap(),
-                            );
-                            [0..past_event_count]
-                                .iter()
-                                .for_each(|_| new_driver.add_event(0));
-                            new_driver.add_event(self.points_calculator.calculate(
-                                best_time_of_day,
-                                driver_new_results,
-                                Some(driver_new_results.pax_multiplier),
-                            ) as i64);
-                            new_driver
-                        }
-                    })
-                    .collect::<Vec<ClassedChampionshipDriver>>(),
-            )
-        })
+        .map(|(class, driver_ids)| self.calculate_results_for_class(&ctx, class, driver_ids))
         .collect()
+    }
+
+    fn calculate_results_for_class(
+        &self,
+        ctx: &CalculationContext,
+        class: &ShortCarClass,
+        driver_ids: &HashSet<DriverId>,
+    ) -> (ShortCarClass, Vec<ClassedChampionshipDriver>) {
+        let empty_class_history: HashMap<DriverId, ClassedChampionshipDriver> = HashMap::new();
+        let empty_driver_list: HashMap<DriverId, Driver> = HashMap::new();
+
+        let class_history = ctx
+            .rows_by_class_and_driver_id
+            .get(class)
+            .unwrap_or(&empty_class_history);
+        let new_event_drivers_by_id = ctx
+            .new_event_drivers_by_class_and_id
+            .get(class)
+            .unwrap_or(&empty_driver_list);
+
+        let best_time_of_day = new_event_drivers_by_id
+            .values()
+            .map(|d| (d.best_lap(None).time, d.pax_multiplier))
+            .filter(|(t, _)| t.is_some())
+            .map(|(t, pax)| t.unwrap_or(Time::INFINITY) * pax)
+            .min_by(|lhs, rhs| lhs.partial_cmp(rhs).unwrap_or(Ordering::Equal))
+            .unwrap_or(Time::INFINITY);
+
+        (
+            class.clone(),
+            driver_ids
+                .iter()
+                .map(|id| {
+                    self.create_classed_championship_driver(
+                        ctx,
+                        best_time_of_day,
+                        class,
+                        id,
+                        class_history,
+                        new_event_drivers_by_id,
+                    )
+                })
+                .collect(),
+        )
+    }
+
+    fn create_classed_championship_driver(
+        &self,
+        ctx: &CalculationContext,
+        best_time_of_day: Time,
+        class: &ShortCarClass,
+        id: &DriverId,
+        class_history: &HashMap<DriverId, ClassedChampionshipDriver>,
+        new_event_drivers_by_id: &HashMap<DriverId, Driver>,
+    ) -> ClassedChampionshipDriver {
+        let driver_history = class_history.get(id);
+        let driver_new_results = new_event_drivers_by_id.get(id);
+
+        if driver_history.is_some() && driver_new_results.is_some() {
+            let mut driver_history = driver_history.unwrap().clone();
+            let driver_new_results = driver_new_results.unwrap();
+
+            driver_history.add_event(self.points_calculator.calculate(
+                best_time_of_day,
+                driver_new_results,
+                Some(driver_new_results.pax_multiplier),
+            ) as i64);
+
+            driver_history
+        } else if driver_history.is_some() {
+            let mut driver_history = driver_history.unwrap().clone();
+            driver_history.add_event(0);
+            driver_history
+        } else {
+            let driver_new_results = driver_new_results.unwrap();
+
+            let mut new_driver = ClassedChampionshipDriver::new(
+                id.clone(),
+                driver_new_results.name.clone(),
+                get_car_class(class).unwrap(),
+            );
+            (0..ctx.past_event_count).for_each(|i| {
+                new_driver.add_event(0);
+            });
+            new_driver.add_event(self.points_calculator.calculate(
+                best_time_of_day,
+                driver_new_results,
+                Some(driver_new_results.pax_multiplier),
+            ) as i64);
+            new_driver
+        }
     }
 
     fn get_all_driver_ids_by_class(

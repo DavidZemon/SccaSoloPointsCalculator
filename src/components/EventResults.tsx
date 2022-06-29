@@ -93,6 +93,12 @@ export class EventResults extends Component<
   }
 
   private displayClassResults(): JSX.Element {
+    // @ts-expect-error
+    if (this.props.results!.ptr === 0) {
+      console.warn('displayClassResults: got 0. Returning empty');
+      return <></>;
+    }
+
     const header = this.classResultsBldr!.get_header();
     const classResults = this.classResultsBldr!.to_csvs(
       this.props.results!,
@@ -161,6 +167,12 @@ export class EventResults extends Component<
   }
 
   private displayCombinedResults(driverGroup: DriverGroup): JSX.Element {
+    // @ts-expect-error
+    if (this.props.results!.ptr === 0) {
+      console.warn('displayCombinedResults: got 0. Returning empty');
+      return <></>;
+    }
+
     const csvContent = this.comboResultsBldr!.to_combined_csv(
       this.props.results!,
       driverGroup,
