@@ -196,20 +196,20 @@ class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
 
         this.setState({ processing: true });
 
-        this.championshipResultsProcessor.process_results(
-          ChampionshipType[championshipType],
-          new Uint8Array(await newFile.arrayBuffer()),
-          newFile.name,
-        );
-
         const newResults: Partial<
           Record<keyof typeof ChampionshipType, string>
         > = {
           ...this.state.championshipResults,
         };
-        newResults[championshipType] = this.championshipResultsProcessor.get(
-          ChampionshipType[championshipType],
-        );
+
+        const resultsType = ChampionshipType[championshipType];
+        const fileName = newFile.name;
+        newResults[championshipType] =
+          this.championshipResultsProcessor.process_results(
+            resultsType,
+            new Uint8Array(await newFile.arrayBuffer()),
+            fileName,
+          );
         this.setState({
           processing: false,
           championshipResults: newResults,

@@ -56,7 +56,7 @@ impl ChampionshipResultsParser {
         new_results_type: ChampionshipType,
         new_results: &[u8],
         file_name: String,
-    ) -> Result<(), String> {
+    ) -> Result<String, JsValue> {
         let event_drivers_by_id = self
             .event_results
             .get_drivers(None)
@@ -100,7 +100,12 @@ impl ChampionshipResultsParser {
                 self.ladies = Some(self.index_results_parser.parse(data, new_ladies, fastest)?);
             }
         };
-        Ok(())
+        self.get(new_results_type)
+            .map(|results| match results {
+                Some(results) => results,
+                None => format!("No results for {}", new_results_type.name()),
+            })
+            .map_err(|e| JsValue::from_str(e.as_str()))
     }
 
     pub fn get(&self, champ_type: ChampionshipType) -> Result<Option<String>, String> {
