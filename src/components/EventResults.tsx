@@ -192,8 +192,13 @@ export class EventResults extends Component<
         }
         throw new Error(`Unrecognized eventResultsType: ${resultsType}`);
       });
-    const fastestOfDay = sortedDrivers[0][1];
-    const trophyCount = calculateTrophies(sortedDrivers);
+
+    let fastestOfDay = Infinity;
+    let trophyCount = 0;
+    if (sortedDrivers.length) {
+      fastestOfDay = sortedDrivers[0][1];
+      trophyCount = calculateTrophies(sortedDrivers);
+    }
     return (
       <Card>
         <Card.Header key={resultsType}>

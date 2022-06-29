@@ -23,8 +23,8 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
-    "react-scripts": "^4.0.3",
     "prettier": "^2.6.1",
+    "react-scripts": "^4.0.3",
     "ts-node": "^10.7.0"
   },
   "scripts": {
