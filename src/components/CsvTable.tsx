@@ -32,7 +32,7 @@ export class CsvTable extends Component<CsvTableProps> {
                 {row.map((column, i) => (
                   <td
                     key={`${rowKey} - ${header[i]}`}
-                    colSpan={row.length === 1 ? drivers[1].length : 1}
+                    colSpan={row.length === 1 ? header.length : 1}
                   >
                     {column}
                   </td>

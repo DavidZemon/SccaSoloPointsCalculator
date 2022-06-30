@@ -2,35 +2,32 @@ use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::io::Cursor;
 
-use crate::models::car_class::get_car_class;
-use crate::models::championship_driver::{ChampionshipDriver, ClassedChampionshipDriver};
 use calamine::{DataType, Range, Reader, Xls};
 use getset::Setters;
 use wasm_bindgen::prelude::*;
 
-use crate::models::championship_results::{ClassChampionshipResults, IndexedChampionshipResults};
+use crate::models::championship_results::IndexedChampionshipResults;
 use crate::models::championship_type::ChampionshipType;
 use crate::models::driver::Driver;
 use crate::models::event_results::EventResults;
-use crate::models::long_car_class::to_display_name;
 use crate::models::short_car_class::ShortCarClass;
 use crate::models::type_aliases::{DriverId, Time};
 use crate::services::class_championship_results_parser::{
     ClassChampionshipResultsParser, DefaultClassChampionshipResultsParser,
 };
+use crate::services::csv::class_csv_builder::{ClassCsvBuilder, DefaultClassCsvBuilder};
 use crate::services::index_championship_results_parser::{
     DefaultIndexChampionshipResultsParser, IndexChampionshipResultsParser,
 };
-use crate::utilities::events_to_count;
 
 #[wasm_bindgen]
 #[derive(Setters)]
 pub struct ChampionshipResultsParser {
     class_results_parser: Box<dyn ClassChampionshipResultsParser>,
     index_results_parser: Box<dyn IndexChampionshipResultsParser>,
+    class_csv_builder: Box<dyn ClassCsvBuilder>,
 
     event_results: EventResults,
-    class: Option<ClassChampionshipResults>,
     pax: Option<IndexedChampionshipResults>,
     novice: Option<IndexedChampionshipResults>,
     ladies: Option<IndexedChampionshipResults>,
@@ -43,8 +40,8 @@ impl ChampionshipResultsParser {
         ChampionshipResultsParser {
             class_results_parser: Box::new(DefaultClassChampionshipResultsParser::new()),
             index_results_parser: Box::new(DefaultIndexChampionshipResultsParser::new()),
+            class_csv_builder: Box::new(DefaultClassCsvBuilder::new()),
             event_results,
-            class: None,
             pax: None,
             novice: None,
             ladies: None,
@@ -66,10 +63,10 @@ impl ChampionshipResultsParser {
             .collect::<HashMap<DriverId, &Driver>>();
 
         let data = self.extract_sheet(file_name, new_results)?;
-        match new_results_type {
-            ChampionshipType::Class => {
-                self.class = Some(self.class_results_parser.parse(data, &self.event_results)?);
-            }
+        let csv = match new_results_type {
+            ChampionshipType::Class => self
+                .class_csv_builder
+                .create(self.class_results_parser.parse(data, &self.event_results)?),
             ChampionshipType::PAX => {
                 let fastest = Self::compute_fastest(&event_drivers_by_id);
                 self.pax = Some(self.index_results_parser.parse(
@@ -77,6 +74,7 @@ impl ChampionshipResultsParser {
                     event_drivers_by_id,
                     fastest,
                 )?);
+                Ok(None)
             }
             ChampionshipType::Novice => {
                 let new_novices = event_drivers_by_id
@@ -89,6 +87,7 @@ impl ChampionshipResultsParser {
                     self.index_results_parser
                         .parse(data, new_novices, fastest)?,
                 );
+                Ok(None)
             }
             ChampionshipType::Ladies => {
                 let new_ladies = event_drivers_by_id
@@ -98,76 +97,14 @@ impl ChampionshipResultsParser {
                     .collect::<HashMap<DriverId, &Driver>>();
                 let fastest = Self::compute_fastest(&new_ladies);
                 self.ladies = Some(self.index_results_parser.parse(data, new_ladies, fastest)?);
+                Ok(None)
             }
         };
-        self.get(new_results_type)
-            .map(|results| match results {
-                Some(results) => results,
-                None => format!("No results for {}", new_results_type.name()),
-            })
-            .map_err(|e| JsValue::from_str(e.as_str()))
-    }
-
-    pub fn get(&self, champ_type: ChampionshipType) -> Result<Option<String>, String> {
-        match champ_type {
-            ChampionshipType::Class => match &self.class {
-                None => Ok(None),
-                Some(class) => {
-                    let event_count = class
-                        .drivers_by_class
-                        .values()
-                        .next()
-                        .expect("Expected at least one class")
-                        .get(0)
-                        .expect("Expected at least one driver in at least one class")
-                        .event_count();
-                    let header = Self::build_initial(event_count);
-
-                    let mut results = vec![
-                        class.organization.clone(),
-                        format!(
-                            "{} Class Championship -- Best {} of {} Events",
-                            class.year,
-                            events_to_count(event_count),
-                            event_count
-                        ),
-                        "".to_string(),
-                        header,
-                    ];
-
-                    let mut sorted = class
-                        .drivers_by_class
-                        .iter()
-                        .map(|(k, v)| {
-                            let mut v = v.clone();
-                            v.sort_by(|lhs, rhs| lhs.total_points().cmp(&rhs.total_points()));
-                            (k.clone(), v)
-                        })
-                        .collect::<Vec<(ShortCarClass, Vec<ClassedChampionshipDriver>)>>();
-                    sorted.sort_by(|(lhs, _), (rhs, _)| lhs.cmp(rhs));
-
-                    sorted.iter().for_each(|(class, drivers)| {
-                        results.push(format!(
-                            "{} - {}",
-                            class.name(),
-                            to_display_name(get_car_class(class).unwrap().long)
-                        ));
-
-                        results.extend(drivers.iter().enumerate().map(|(index, d)| {
-                            let mut driver_row = vec![format!("{}", index + 1), d.name().clone()];
-                            d.points()
-                                .iter()
-                                .for_each(|points| driver_row.push(format!("{}", points)));
-                            driver_row.push(format!("{}", d.total_points()));
-                            driver_row.join(",")
-                        }))
-                    });
-
-                    Ok(Some(results.join("\n")))
-                }
-            },
-            _ => Ok(None),
-        }
+        csv.map(|results| match results {
+            Some(results) => results,
+            None => format!("No results for {}", new_results_type.name()),
+        })
+        .map_err(|e| JsValue::from_str(e.as_str()))
     }
 }
 
@@ -214,18 +151,5 @@ impl ChampionshipResultsParser {
             .collect::<Vec<Time>>();
         times.sort_by(|lhs, rhs| lhs.partial_cmp(rhs).unwrap_or(Ordering::Equal));
         times.get(0).cloned().unwrap_or(Time::INFINITY)
-    }
-
-    fn build_initial(event_count: usize) -> String {
-        let mut header = vec!["Rank".to_string(), "Driver".to_string()];
-        header.extend((0..event_count).map(|i| format!("#{}", i + 1)));
-        header.push("Points".to_string());
-        header.push(format!(
-            "Best {} of {}",
-            events_to_count(event_count),
-            event_count
-        ));
-
-        header.join(",")
     }
 }

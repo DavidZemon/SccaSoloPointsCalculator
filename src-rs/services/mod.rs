@@ -3,6 +3,7 @@ pub mod championship_results_parser;
 mod class_championship_results_parser;
 pub mod class_results_builder;
 pub mod combined_results_builder;
+mod csv;
 pub mod event_results_parser;
 mod index_championship_results_parser;
 mod trophy_calculator;
