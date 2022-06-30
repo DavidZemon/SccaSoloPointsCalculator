@@ -6,6 +6,11 @@ extern "C" {
     pub fn log(s: &str);
 }
 
+#[macro_export]
+macro_rules! console_log {
+    ($($t:tt)*) => (log(&format_args!($($t)*).to_string()))
+}
+
 pub fn swap<T, E>(input: Option<Result<T, E>>) -> Result<Option<T>, E> {
     match input {
         None => Ok(None),

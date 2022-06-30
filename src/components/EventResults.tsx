@@ -99,6 +99,8 @@ export class EventResults extends Component<
       return <></>;
     }
 
+    console.info('Got me some class results!');
+
     const header = this.classResultsBldr!.get_header();
     const classResults = this.classResultsBldr!.to_csvs(
       this.props.results!,
@@ -172,6 +174,8 @@ export class EventResults extends Component<
       console.warn('displayCombinedResults: got 0. Returning empty');
       return <></>;
     }
+
+    console.info('Got me some combined results!');
 
     const csvContent = this.comboResultsBldr!.to_combined_csv(
       this.props.results!,

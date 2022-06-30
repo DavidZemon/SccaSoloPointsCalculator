@@ -6,6 +6,7 @@ use calamine::{DataType, Range, Reader, Xls};
 use getset::Setters;
 use wasm_bindgen::prelude::*;
 
+use crate::console_log;
 use crate::models::championship_results::IndexedChampionshipResults;
 use crate::models::championship_type::ChampionshipType;
 use crate::models::driver::Driver;
@@ -139,7 +140,7 @@ impl ChampionshipResultsParser {
             .ok_or("Unable to find sheet with with name dissimilar to 'calculations'")?;
 
         if sheet_data.rows().len() >= 5 {
-            log(format!("Found sheet with name {}", sheet_name).as_str());
+            console_log!("Found sheet with name {}", sheet_name);
             Ok(sheet_data.clone())
         } else if sheets.len() > 1 {
             log(format!(
