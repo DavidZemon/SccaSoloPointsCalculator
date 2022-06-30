@@ -73,11 +73,20 @@ impl CombinedResultsBuilder {
                     ),
                     match previous_driver {
                         None => String::from(""),
-                        Some(prev) => driver.difference(
-                            prev.best_lap(None).time.unwrap_or(Time::INFINITY),
-                            Some(!is_raw_time),
-                            None,
-                        ),
+                        Some(prev) => {
+                            let use_pax = !is_raw_time;
+                            let previous_raw_time =
+                                prev.best_lap(None).time.unwrap_or(Time::INFINITY);
+                            driver.difference(
+                                if use_pax {
+                                    previous_raw_time * prev.pax_multiplier
+                                } else {
+                                    previous_raw_time
+                                },
+                                Some(use_pax),
+                                None,
+                            )
+                        }
                     },
                     driver.difference(fastest_of_day, Some(!is_raw_time), None),
                 ];

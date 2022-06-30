@@ -155,7 +155,7 @@ impl Driver {
 
     pub fn difference(
         &self,
-        fastest_of_day: Time,
+        comparison: Time,
         use_pax: Option<bool>,
         time_selection: Option<TimeSelection>,
     ) -> String {
@@ -168,10 +168,10 @@ impl Driver {
                     1.
                 };
                 let indexed_time = multiplier * t;
-                if approx_eq!(Time, indexed_time, fastest_of_day) {
+                if approx_eq!(Time, indexed_time, comparison) {
                     String::from("")
                 } else {
-                    String::from(format!("{:.3}", fastest_of_day - indexed_time))
+                    String::from(format!("{:.3}", comparison - indexed_time))
                 }
             }
             None => String::from("N/A"),
