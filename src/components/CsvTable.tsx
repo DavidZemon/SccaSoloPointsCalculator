@@ -4,7 +4,7 @@ import { Table } from 'react-bootstrap';
 
 interface CsvTableProps extends ComponentPropsWithoutRef<any> {
   csv: string;
-  keyBuilder: (row: string[]) => string;
+  keyBuilder: (row: string[], index: number) => string;
 }
 
 export class CsvTable extends Component<CsvTableProps> {
@@ -25,8 +25,8 @@ export class CsvTable extends Component<CsvTableProps> {
         </thead>
 
         <tbody>
-          {drivers.map((row) => {
-            const rowKey = this.props.keyBuilder(row);
+          {drivers.map((row, i) => {
+            const rowKey = this.props.keyBuilder(row, i);
             return (
               <tr key={rowKey}>
                 {row.map((column, i) => (

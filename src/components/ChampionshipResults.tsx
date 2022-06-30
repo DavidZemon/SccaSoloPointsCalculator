@@ -81,8 +81,8 @@ export class ChampionshipResults extends Component<
                           <Card.Body>
                             <CsvTable
                               csv={data.join('\n')}
-                              keyBuilder={(row) =>
-                                `Championship ${championshipType} - ${row[1]}`
+                              keyBuilder={(row, index) =>
+                                `Championship ${championshipType} - ${row[1]} - ${index}`
                               }
                             />
                           </Card.Body>
