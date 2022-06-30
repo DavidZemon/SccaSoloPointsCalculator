@@ -21,15 +21,14 @@ impl ClassCsvBuilder for DefaultClassCsvBuilder {
             .get(0)
             .expect("Expected at least one driver in at least one class")
             .event_count();
+        let events_to_count = events_to_count(event_count);
         let header = Self::build_header(event_count);
 
         let mut results = vec![
             class.organization.clone(),
             format!(
                 "{} Class Championship -- Best {} of {} Events",
-                class.year,
-                events_to_count(event_count),
-                event_count
+                class.year, events_to_count, event_count
             ),
             "".to_string(),
             header,
@@ -40,7 +39,10 @@ impl ClassCsvBuilder for DefaultClassCsvBuilder {
             .iter()
             .map(|(k, v)| {
                 let mut v = v.clone();
-                v.sort_by(|lhs, rhs| lhs.total_points().cmp(&rhs.total_points()));
+                v.sort_by(|lhs, rhs| {
+                    rhs.best_of(events_to_count)
+                        .cmp(&lhs.best_of(events_to_count))
+                });
                 (k.clone(), v)
             })
             .collect::<Vec<(ShortCarClass, Vec<ClassedChampionshipDriver>)>>();
@@ -59,6 +61,7 @@ impl ClassCsvBuilder for DefaultClassCsvBuilder {
                     .iter()
                     .for_each(|points| driver_row.push(format!("{}", points)));
                 driver_row.push(format!("{}", d.total_points()));
+                driver_row.push(format!("{}", d.best_of(events_to_count)));
                 driver_row.join(",")
             }))
         });

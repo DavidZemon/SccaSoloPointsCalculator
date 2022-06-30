@@ -14,6 +14,13 @@ pub trait ChampionshipDriver {
     fn event_count(&self) -> usize;
 
     fn add_event(&mut self, event_points: i64);
+
+    fn best_of(&self, events_to_count: usize) -> i64 {
+        let mut points = self.points().clone();
+        points.sort();
+        points.reverse();
+        points[0..events_to_count].iter().sum()
+    }
 }
 
 pub trait ClassChampionshipDriver {
