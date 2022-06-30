@@ -1,3 +1,11 @@
+use wasm_bindgen::prelude::wasm_bindgen;
+
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(js_namespace = console)]
+    pub fn log(s: &str);
+}
+
 pub fn swap<T, E>(input: Option<Result<T, E>>) -> Result<Option<T>, E> {
     match input {
         None => Ok(None),

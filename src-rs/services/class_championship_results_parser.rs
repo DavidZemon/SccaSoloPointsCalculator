@@ -129,11 +129,12 @@ impl DefaultClassChampionshipResultsParser {
             .as_str(),
         );
 
-        let id = r[1].to_string();
+        let name = r[1].to_string();
+        let id = name.to_lowercase();
 
         let mut driver = ClassedChampionshipDriver::new(
             id.clone(),
-            id.clone(),
+            name,
             get_car_class(&current_class).expect(
                 format!(
                     "Expected to find full CarClass struct for short class {:?} but did not",
@@ -143,11 +144,11 @@ impl DefaultClassChampionshipResultsParser {
             ),
         );
 
-        r[2..r.len() - 2].iter().for_each(|cell| {
-            driver.add_event(cell.get_int().unwrap_or_default());
+        r[2..r.len() - 2].iter().enumerate().for_each(|(i, cell)| {
+            driver.add_event(cell.get_int().unwrap_or(((i + 1) as i64) * -1));
         });
 
-        rows_for_one_class.insert(id.clone(), driver);
+        rows_for_one_class.insert(id, driver);
     }
 
     fn get_new_event_drivers(
@@ -264,7 +265,7 @@ impl DefaultClassChampionshipResultsParser {
                 driver_new_results.name.clone(),
                 get_car_class(class).unwrap(),
             );
-            (0..ctx.past_event_count).for_each(|i| {
+            (0..ctx.past_event_count).for_each(|_| {
                 new_driver.add_event(0);
             });
             new_driver.add_event(self.points_calculator.calculate(

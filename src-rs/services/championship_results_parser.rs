@@ -19,6 +19,7 @@ use crate::services::csv::class_csv_builder::{ClassCsvBuilder, DefaultClassCsvBu
 use crate::services::index_championship_results_parser::{
     DefaultIndexChampionshipResultsParser, IndexChampionshipResultsParser,
 };
+use crate::utilities::log;
 
 #[wasm_bindgen]
 #[derive(Setters)]
@@ -64,9 +65,10 @@ impl ChampionshipResultsParser {
 
         let data = self.extract_sheet(file_name, new_results)?;
         let csv = match new_results_type {
-            ChampionshipType::Class => self
-                .class_csv_builder
-                .create(self.class_results_parser.parse(data, &self.event_results)?),
+            ChampionshipType::Class => {
+                let class_results = self.class_results_parser.parse(data, &self.event_results)?;
+                self.class_csv_builder.create(class_results)
+            }
             ChampionshipType::PAX => {
                 let fastest = Self::compute_fastest(&event_drivers_by_id);
                 self.pax = Some(self.index_results_parser.parse(
@@ -121,6 +123,7 @@ impl ChampionshipResultsParser {
             .iter()
             .filter(|(name, _)| name.trim().to_lowercase() != "calculations")
             .collect::<Vec<&(String, Range<DataType>)>>();
+        sheets.sort_by(|(lhs_name, ..), (rhs_name, ..)| lhs_name.cmp(rhs_name));
         sheets.reverse();
 
         self.find_sheet(file_name, sheets.as_slice())
@@ -131,13 +134,19 @@ impl ChampionshipResultsParser {
         file_name: String,
         sheets: &[&(String, Range<DataType>)],
     ) -> Result<Range<DataType>, String> {
-        let (.., sheet_data) = sheets
+        let (sheet_name, sheet_data) = sheets
             .get(0)
             .ok_or("Unable to find sheet with with name dissimilar to 'calculations'")?;
 
         if sheet_data.rows().len() >= 5 {
+            log(format!("Found sheet with name {}", sheet_name).as_str());
             Ok(sheet_data.clone())
         } else if sheets.len() > 1 {
+            log(format!(
+                "Sheet '{}' doesn't have enough rows, checking next",
+                sheet_name
+            )
+            .as_str());
             self.find_sheet(file_name, &sheets[1..])
         } else {
             Err(format!("File {} contains no non-empty sheets", file_name))
