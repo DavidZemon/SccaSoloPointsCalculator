@@ -7,7 +7,6 @@ use getset::Setters;
 use wasm_bindgen::prelude::*;
 
 use crate::console_log;
-use crate::models::championship_results::IndexedChampionshipResults;
 use crate::models::championship_type::ChampionshipType;
 use crate::models::driver::Driver;
 use crate::models::event_results::EventResults;
@@ -17,6 +16,7 @@ use crate::services::class_championship_results_parser::{
     ClassChampionshipResultsParser, DefaultClassChampionshipResultsParser,
 };
 use crate::services::csv::class_csv_builder::{ClassCsvBuilder, DefaultClassCsvBuilder};
+use crate::services::csv::indexed_csv_builder::{DefaultIndexedCsvBuilder, IndexedCsvBuilder};
 use crate::services::index_championship_results_parser::{
     DefaultIndexChampionshipResultsParser, IndexChampionshipResultsParser,
 };
@@ -28,11 +28,9 @@ pub struct ChampionshipResultsParser {
     class_results_parser: Box<dyn ClassChampionshipResultsParser>,
     index_results_parser: Box<dyn IndexChampionshipResultsParser>,
     class_csv_builder: Box<dyn ClassCsvBuilder>,
+    indexed_csv_builder: Box<dyn IndexedCsvBuilder>,
 
     event_results: EventResults,
-    pax: Option<IndexedChampionshipResults>,
-    novice: Option<IndexedChampionshipResults>,
-    ladies: Option<IndexedChampionshipResults>,
 }
 
 #[wasm_bindgen]
@@ -43,10 +41,8 @@ impl ChampionshipResultsParser {
             class_results_parser: Box::new(DefaultClassChampionshipResultsParser::new()),
             index_results_parser: Box::new(DefaultIndexChampionshipResultsParser::new()),
             class_csv_builder: Box::new(DefaultClassCsvBuilder::new()),
+            indexed_csv_builder: Box::new(DefaultIndexedCsvBuilder::new()),
             event_results,
-            pax: None,
-            novice: None,
-            ladies: None,
         }
     }
 
@@ -72,12 +68,10 @@ impl ChampionshipResultsParser {
             }
             ChampionshipType::PAX => {
                 let fastest = Self::compute_fastest(&event_drivers_by_id);
-                self.pax = Some(self.index_results_parser.parse(
-                    data,
-                    event_drivers_by_id,
-                    fastest,
-                )?);
-                Ok(None)
+                let pax_results =
+                    self.index_results_parser
+                        .parse(data, event_drivers_by_id, fastest)?;
+                self.indexed_csv_builder.create(pax_results)
             }
             ChampionshipType::Novice => {
                 let new_novices = event_drivers_by_id
@@ -86,11 +80,10 @@ impl ChampionshipResultsParser {
                     .map(|(id, d)| (id.clone(), d.clone()))
                     .collect::<HashMap<DriverId, &Driver>>();
                 let fastest = Self::compute_fastest(&new_novices);
-                self.novice = Some(
-                    self.index_results_parser
-                        .parse(data, new_novices, fastest)?,
-                );
-                Ok(None)
+                let novice_results = self
+                    .index_results_parser
+                    .parse(data, new_novices, fastest)?;
+                self.indexed_csv_builder.create(novice_results)
             }
             ChampionshipType::Ladies => {
                 let new_ladies = event_drivers_by_id
@@ -99,8 +92,8 @@ impl ChampionshipResultsParser {
                     .map(|(id, d)| (id.clone(), d.clone()))
                     .collect::<HashMap<DriverId, &Driver>>();
                 let fastest = Self::compute_fastest(&new_ladies);
-                self.ladies = Some(self.index_results_parser.parse(data, new_ladies, fastest)?);
-                Ok(None)
+                let ladies_results = self.index_results_parser.parse(data, new_ladies, fastest)?;
+                self.indexed_csv_builder.create(ladies_results)
             }
         };
         csv.map(|results| match results {

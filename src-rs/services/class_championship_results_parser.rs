@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet};
 
 use calamine::{DataType, Range};
 
-use crate::models::car_class::get_car_class;
+use crate::models::car_class::{get_car_class, CarClass};
 use crate::models::championship_driver::{ChampionshipDriver, ClassedChampionshipDriver};
 use crate::models::championship_results::ClassChampionshipResults;
 use crate::models::driver::Driver;
@@ -41,17 +41,17 @@ impl ClassChampionshipResultsParser for DefaultClassChampionshipResultsParser {
     ) -> Result<ClassChampionshipResults, String> {
         let org = data
             .get((0, 0))
-            .expect("Empty sheet - no value at 0,0")
+            .ok_or("Empty sheet - no value at 0,0 for class championship input XLS")?
             .to_string()
             .trim()
             .to_string();
         let year = data
             .get((1, 0))
-            .expect("Invalid sheet - no value at 1,0")
+            .ok_or("Invalid sheet - no value at 1,0 for class championship input XLS")?
             .to_string()
             .split(" ")
             .next()
-            .expect("Invalid year cell contents")
+            .ok_or("Invalid 'year' cell contents for class championship input XLS")?
             .parse::<u16>()
             .map_err(|e| e.to_string())?;
         let past_event_count = data.width() - 4;
@@ -144,8 +144,8 @@ impl DefaultClassChampionshipResultsParser {
             ),
         );
 
-        r[2..r.len() - 2].iter().enumerate().for_each(|(i, cell)| {
-            driver.add_event(cell.get_int().unwrap_or(((i + 1) as i64) * -1));
+        r[2..r.len() - 2].iter().for_each(|cell| {
+            driver.add_event(cell.get_int().unwrap_or_default());
         });
 
         rows_for_one_class.insert(id, driver);
@@ -239,41 +239,46 @@ impl DefaultClassChampionshipResultsParser {
         class_history: &HashMap<DriverId, ClassedChampionshipDriver>,
         new_event_drivers_by_id: &HashMap<DriverId, Driver>,
     ) -> ClassedChampionshipDriver {
-        let driver_history = class_history.get(id);
-        let driver_new_results = new_event_drivers_by_id.get(id);
+        let driver_history_opt = class_history.get(id);
+        let driver_new_results_opt = new_event_drivers_by_id.get(id);
 
-        if driver_history.is_some() && driver_new_results.is_some() {
-            let mut driver_history = driver_history.unwrap().clone();
-            let driver_new_results = driver_new_results.unwrap();
+        match (driver_history_opt, driver_new_results_opt) {
+            (Some(driver_history), Some(driver_new_results)) => {
+                let mut driver_history = driver_history.clone();
+                driver_history.add_event(self.points_calculator.calculate(
+                    best_time_of_day,
+                    driver_new_results,
+                    Some(driver_new_results.pax_multiplier),
+                ));
 
-            driver_history.add_event(self.points_calculator.calculate(
-                best_time_of_day,
-                driver_new_results,
-                Some(driver_new_results.pax_multiplier),
-            ) as i64);
-
-            driver_history
-        } else if driver_history.is_some() {
-            let mut driver_history = driver_history.unwrap().clone();
-            driver_history.add_event(0);
-            driver_history
-        } else {
-            let driver_new_results = driver_new_results.unwrap();
-
-            let mut new_driver = ClassedChampionshipDriver::new(
-                id.clone(),
-                driver_new_results.name.clone(),
-                get_car_class(class).unwrap(),
-            );
-            (0..ctx.past_event_count).for_each(|_| {
-                new_driver.add_event(0);
-            });
-            new_driver.add_event(self.points_calculator.calculate(
-                best_time_of_day,
-                driver_new_results,
-                Some(driver_new_results.pax_multiplier),
-            ) as i64);
-            new_driver
+                driver_history
+            }
+            (Some(mut driver_history), None) => {
+                let mut driver_history = driver_history.clone();
+                driver_history.add_event(0);
+                driver_history
+            }
+            (None, Some(driver_new_results)) => {
+                let mut new_driver = ClassedChampionshipDriver::new(
+                    id.clone(),
+                    driver_new_results.name.clone(),
+                    get_car_class(class).unwrap(),
+                );
+                (0..ctx.past_event_count).for_each(|_| {
+                    new_driver.add_event(0);
+                });
+                new_driver.add_event(self.points_calculator.calculate(
+                    best_time_of_day,
+                    driver_new_results,
+                    Some(driver_new_results.pax_multiplier),
+                ) as i64);
+                new_driver
+            }
+            (None, None) => ClassedChampionshipDriver::new(
+                "impossible".to_string(),
+                "impossible".to_string(),
+                get_car_class(&ShortCarClass::AM).unwrap(),
+            ),
         }
     }
 
