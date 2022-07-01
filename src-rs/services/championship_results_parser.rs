@@ -71,7 +71,8 @@ impl ChampionshipResultsParser {
                 let pax_results =
                     self.index_results_parser
                         .parse(data, event_drivers_by_id, fastest)?;
-                self.indexed_csv_builder.create(pax_results)
+                self.indexed_csv_builder
+                    .create(new_results_type, pax_results)
             }
             ChampionshipType::Novice => {
                 let new_novices = event_drivers_by_id
@@ -83,7 +84,8 @@ impl ChampionshipResultsParser {
                 let novice_results = self
                     .index_results_parser
                     .parse(data, new_novices, fastest)?;
-                self.indexed_csv_builder.create(novice_results)
+                self.indexed_csv_builder
+                    .create(new_results_type, novice_results)
             }
             ChampionshipType::Ladies => {
                 let new_ladies = event_drivers_by_id
@@ -93,7 +95,8 @@ impl ChampionshipResultsParser {
                     .collect::<HashMap<DriverId, &Driver>>();
                 let fastest = Self::compute_fastest(&new_ladies);
                 let ladies_results = self.index_results_parser.parse(data, new_ladies, fastest)?;
-                self.indexed_csv_builder.create(ladies_results)
+                self.indexed_csv_builder
+                    .create(new_results_type, ladies_results)
             }
         };
         csv.map(|results| match results {

@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet};
 
 use calamine::{DataType, Range};
 
-use crate::models::car_class::{get_car_class, CarClass};
+use crate::models::car_class::get_car_class;
 use crate::models::championship_driver::{ChampionshipDriver, ClassedChampionshipDriver};
 use crate::models::championship_results::ClassChampionshipResults;
 use crate::models::driver::Driver;
@@ -253,7 +253,7 @@ impl DefaultClassChampionshipResultsParser {
 
                 driver_history
             }
-            (Some(mut driver_history), None) => {
+            (Some(driver_history), None) => {
                 let mut driver_history = driver_history.clone();
                 driver_history.add_event(0);
                 driver_history

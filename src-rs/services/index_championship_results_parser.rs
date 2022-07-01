@@ -115,7 +115,7 @@ impl DefaultIndexChampionshipResultsParser {
                 ));
                 driver_history
             }
-            (Some(mut driver_history), None) => {
+            (Some(driver_history), None) => {
                 let mut driver_history = driver_history.clone();
                 driver_history.add_event(0);
                 driver_history

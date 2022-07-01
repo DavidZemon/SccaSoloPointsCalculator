@@ -12,29 +12,29 @@ pub trait ClassCsvBuilder {
 pub struct DefaultClassCsvBuilder {}
 
 impl ClassCsvBuilder for DefaultClassCsvBuilder {
-    fn create(&self, class: ClassChampionshipResults) -> Result<Option<String>, String> {
-        let event_count = class
+    fn create(&self, results: ClassChampionshipResults) -> Result<Option<String>, String> {
+        let event_count = results
             .drivers_by_class
             .values()
             .next()
-            .expect("Expected at least one class")
+            .ok_or("Expected at least one class")?
             .get(0)
-            .expect("Expected at least one driver in at least one class")
+            .ok_or("Expected at least one driver in at least one class")?
             .event_count();
         let events_to_count = events_to_count(event_count);
-        let header = Self::build_header(event_count);
+        let header = Self::build_header(events_to_count, event_count);
 
-        let mut results = vec![
-            class.organization.clone(),
+        let mut rows = vec![
+            results.organization.clone(),
             format!(
                 "{} Class Championship -- Best {} of {} Events",
-                class.year, events_to_count, event_count
+                results.year, events_to_count, event_count
             ),
             "".to_string(),
             header,
         ];
 
-        let mut sorted = class
+        let mut sorted = results
             .drivers_by_class
             .iter()
             .map(|(k, v)| {
@@ -49,13 +49,13 @@ impl ClassCsvBuilder for DefaultClassCsvBuilder {
         sorted.sort_by(|(lhs, _), (rhs, _)| lhs.cmp(rhs));
 
         sorted.iter().for_each(|(class, drivers)| {
-            results.push(format!(
+            rows.push(format!(
                 "{} - {}",
                 class.name(),
                 to_display_name(get_car_class(class).unwrap().long)
             ));
 
-            results.extend(drivers.iter().enumerate().map(|(index, d)| {
+            rows.extend(drivers.iter().enumerate().map(|(index, d)| {
                 let mut driver_row = vec![format!("{}", index + 1), d.name().clone()];
                 d.points()
                     .iter()
@@ -66,7 +66,7 @@ impl ClassCsvBuilder for DefaultClassCsvBuilder {
             }))
         });
 
-        Ok(Some(results.join("\n")))
+        Ok(Some(rows.join("\n")))
     }
 }
 
@@ -75,15 +75,11 @@ impl DefaultClassCsvBuilder {
         DefaultClassCsvBuilder {}
     }
 
-    fn build_header(event_count: usize) -> String {
+    fn build_header(events_to_count: usize, event_count: usize) -> String {
         let mut header = vec!["Rank".to_string(), "Driver".to_string()];
-        header.extend((0..event_count).map(|i| format!("#{}", i + 1)));
-        header.push("Points".to_string());
-        header.push(format!(
-            "Best {} of {}",
-            events_to_count(event_count),
-            event_count
-        ));
+        header.extend((0..event_count).map(|i| format!("Event #{}", i + 1)));
+        header.push("Total Points".to_string());
+        header.push(format!("Best {} of {}", events_to_count, event_count));
 
         header.join(",")
     }
