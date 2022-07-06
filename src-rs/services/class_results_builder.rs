@@ -1,5 +1,5 @@
 use csv::Writer;
-use wasm_bindgen::prelude::*;
+use wasm_bindgen::JsValue;
 
 use crate::models::car_class::{get_car_class, CarClass};
 use crate::models::class_results::ClassResults;
@@ -9,16 +9,22 @@ use crate::services::championship_points_calculator::{
     ChampionshipPointsCalculator, DefaultChampionshipPointsCalculator,
 };
 
-#[wasm_bindgen]
 pub struct ClassResultsBuilder {
     points_calculator: Box<dyn ChampionshipPointsCalculator>,
 }
 
-#[wasm_bindgen]
 impl ClassResultsBuilder {
-    #[wasm_bindgen(constructor)]
     pub fn new() -> ClassResultsBuilder {
         ClassResultsBuilder::from(None)
+    }
+
+    fn from(
+        points_calculator: Option<Box<dyn ChampionshipPointsCalculator>>,
+    ) -> ClassResultsBuilder {
+        ClassResultsBuilder {
+            points_calculator: points_calculator
+                .unwrap_or(Box::new(DefaultChampionshipPointsCalculator {})),
+        }
     }
 
     pub fn to_csvs(&self, results: &EventResults) -> Vec<JsValue> {
@@ -66,17 +72,6 @@ impl ClassResultsBuilder {
             "Points".to_string(),
         ]
         .join(",")
-    }
-}
-
-impl ClassResultsBuilder {
-    pub fn from(
-        points_calculator: Option<Box<dyn ChampionshipPointsCalculator>>,
-    ) -> ClassResultsBuilder {
-        ClassResultsBuilder {
-            points_calculator: points_calculator
-                .unwrap_or(Box::new(DefaultChampionshipPointsCalculator {})),
-        }
     }
 
     fn export_class(&self, class_results: &ClassResults) -> String {

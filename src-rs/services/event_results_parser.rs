@@ -2,7 +2,6 @@ use std::collections::HashMap;
 use std::num::{ParseFloatError, ParseIntError};
 
 use csv::{StringRecord, Trim};
-use wasm_bindgen::prelude::*;
 
 use crate::models::class_results::ClassResults;
 use crate::models::driver::Driver;
@@ -11,13 +10,6 @@ use crate::models::exported_driver::ExportedDriver;
 use crate::models::lap_time::{LapTime, Penalty};
 use crate::utilities::swap;
 
-#[wasm_bindgen]
-pub fn parse_to_js(file_contents: String, two_day_event: bool) -> Result<JsValue, String> {
-    let event_results = parse(file_contents, two_day_event)?;
-    Ok(serde_wasm_bindgen::to_value(&event_results).map_err(|e| e.to_string())?)
-}
-
-#[wasm_bindgen]
 pub fn parse(file_contents: String, two_day_event: bool) -> Result<EventResults, String> {
     let mut reader1 = csv::ReaderBuilder::new()
         .flexible(true)

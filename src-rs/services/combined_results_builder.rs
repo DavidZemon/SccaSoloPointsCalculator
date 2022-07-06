@@ -1,7 +1,6 @@
-use crate::models::driver_group::DriverGroup;
 use csv::Writer;
-use wasm_bindgen::prelude::*;
 
+use crate::models::driver_group::DriverGroup;
 use crate::models::event_results::EventResults;
 use crate::models::type_aliases::Time;
 use crate::services::championship_points_calculator::{
@@ -9,15 +8,12 @@ use crate::services::championship_points_calculator::{
 };
 use crate::services::trophy_calculator::{DefaultTrophyCalculator, TrophyCalculator};
 
-#[wasm_bindgen]
 pub struct CombinedResultsBuilder {
     trophy_calculator: Box<dyn TrophyCalculator>,
     points_calculator: Box<dyn ChampionshipPointsCalculator>,
 }
 
-#[wasm_bindgen]
 impl CombinedResultsBuilder {
-    #[wasm_bindgen(constructor)]
     pub fn new() -> CombinedResultsBuilder {
         CombinedResultsBuilder::from(None, None)
     }
@@ -107,10 +103,8 @@ impl CombinedResultsBuilder {
             String::from_utf8(csv_byte_array).map_err(|e| e.to_string())
         }
     }
-}
 
-impl CombinedResultsBuilder {
-    pub fn from(
+    fn from(
         trophy_calculator: Option<Box<dyn TrophyCalculator>>,
         points_calculator: Option<Box<dyn ChampionshipPointsCalculator>>,
     ) -> CombinedResultsBuilder {

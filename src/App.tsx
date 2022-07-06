@@ -4,12 +4,7 @@ import 'react-bootstrap-typeahead/css/Typeahead.css';
 import { Component, ComponentPropsWithoutRef } from 'react';
 import { Col, Container, Row } from 'react-bootstrap';
 import { toast, ToastContainer } from 'react-toastify';
-import {
-  ChampionshipResultsParser,
-  ChampionshipType,
-  EventResults,
-  parse,
-} from 'rusty/rusty';
+import { ChampionshipType, Rusty } from 'rusty/rusty';
 import { EventResults as EventResultsComponent } from './components/EventResults';
 import { ChampionshipResults as ChampionshipResultsComponent } from './components/ChampionshipResults';
 import { FileUploadBox } from './components/FileUploadBox';
@@ -22,7 +17,7 @@ interface AppState {
 
   processing: boolean;
 
-  eventResults?: EventResults;
+  rusty?: Rusty;
   driversInError?: string[];
   championshipResults?: Partial<Record<ChampionshipType, string>>;
 
@@ -30,9 +25,6 @@ interface AppState {
 }
 
 class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
-  private championshipResultsProcessor: ChampionshipResultsParser | undefined =
-    undefined;
-
   constructor(props: Readonly<ComponentPropsWithoutRef<any>>) {
     super(props);
     this.state = {
@@ -69,16 +61,16 @@ class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
                 accept={'.csv'}
                 onFileSelect={async (f) => {
                   try {
-                    const eventResults = parse(await f.text(), false);
+                    const rusty = new Rusty(await f.text(), false);
                     const driversInError =
-                      eventResults.js_drivers_in_error() as string[];
+                      rusty.js_drivers_in_error() as string[];
                     if (driversInError.length) {
                       console.error(`array=${JSON.stringify(driversInError)}`);
                       this.setState({ eventResultsFile: f, driversInError });
                     } else {
                       this.setState({
                         eventResultsFile: f,
-                        eventResults,
+                        rusty,
                       });
                       await this.processChampionships();
                     }
@@ -167,7 +159,9 @@ class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
             </Col>
           </Row>
 
-          <EventResultsComponent results={this.state.eventResults} />
+          {
+           this.state.rusty && <EventResultsComponent rusty={this.state.rusty}/>
+          }
 
           <ChampionshipResultsComponent
             results={this.state.championshipResults}
@@ -188,12 +182,7 @@ class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
       mergedFiles[championshipType] = newFile;
       this.setState({ championshipResultsFiles: mergedFiles });
 
-      if (this.state.eventResults) {
-        if (!this.championshipResultsProcessor)
-          this.championshipResultsProcessor = new ChampionshipResultsParser(
-            this.state.eventResults,
-          );
-
+      if (this.state.rusty) {
         this.setState({ processing: true });
 
         const newResults: Partial<
@@ -205,7 +194,7 @@ class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
         const resultsType = ChampionshipType[championshipType];
         const fileName = newFile.name;
         newResults[championshipType] =
-          this.championshipResultsProcessor.process_results(
+          this.state.rusty.add_prior_championship_results(
             resultsType,
             new Uint8Array(await newFile.arrayBuffer()),
             fileName,

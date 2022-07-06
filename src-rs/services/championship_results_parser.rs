@@ -47,7 +47,7 @@ impl ChampionshipResultsParser {
     }
 
     pub fn process_results(
-        &mut self,
+        &self,
         new_results_type: ChampionshipType,
         new_results: &[u8],
         file_name: String,
