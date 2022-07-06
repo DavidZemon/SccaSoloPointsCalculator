@@ -79,14 +79,6 @@ export class EventResults extends Component<
   }
 
   private displayClassResults(): JSX.Element {
-    // @ts-expect-error
-    if (this.props.rusty!.ptr === 0) {
-      console.warn('displayClassResults: got 0. Returning empty');
-      return <></>;
-    }
-
-    console.info('Got me some class results!');
-
     const header = this.props.rusty.get_header_for_event_class_results();
     const classResults = this.props.rusty.get_event_class_results_csvs() as [
       MangledCarClass,
@@ -156,14 +148,6 @@ export class EventResults extends Component<
   }
 
   private displayCombinedResults(driverGroup: DriverGroup): JSX.Element {
-    // @ts-expect-error
-    if (this.props.rusty!.ptr === 0) {
-      console.warn('displayCombinedResults: got 0. Returning empty');
-      return <></>;
-    }
-
-    console.info('Got me some combined results!');
-
     const csvContent = this.props.rusty.get_event_combined_csv(driverGroup);
     return (
       <Card>
