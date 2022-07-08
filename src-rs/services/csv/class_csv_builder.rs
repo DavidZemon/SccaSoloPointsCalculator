@@ -3,13 +3,16 @@ use crate::models::championship_driver::{ChampionshipDriver, ClassedChampionship
 use crate::models::championship_results::ClassChampionshipResults;
 use crate::models::long_car_class::to_display_name;
 use crate::models::short_car_class::ShortCarClass;
+use crate::services::trophy_calculator::{ClassTrophyCalculator, TrophyCalculator};
 use crate::utilities::events_to_count;
 
 pub trait ClassCsvBuilder {
     fn create(&self, class: ClassChampionshipResults) -> Result<Option<String>, String>;
 }
 
-pub struct DefaultClassCsvBuilder {}
+pub struct DefaultClassCsvBuilder {
+    trophy_calculator: Box<dyn TrophyCalculator>,
+}
 
 impl ClassCsvBuilder for DefaultClassCsvBuilder {
     fn create(&self, results: ClassChampionshipResults) -> Result<Option<String>, String> {
@@ -55,8 +58,17 @@ impl ClassCsvBuilder for DefaultClassCsvBuilder {
                 to_display_name(get_car_class(class).unwrap().long)
             ));
 
+            let trophy_count = self.trophy_calculator.calculate(drivers.len());
             rows.extend(drivers.iter().enumerate().map(|(index, d)| {
-                let mut driver_row = vec![format!("{}", index + 1), d.name().clone()];
+                let mut driver_row = vec![
+                    if index < trophy_count {
+                        "T".to_string()
+                    } else {
+                        "".to_string()
+                    },
+                    format!("{}", index + 1),
+                    d.name().clone(),
+                ];
                 d.points()
                     .iter()
                     .for_each(|points| driver_row.push(format!("{}", points)));
@@ -72,11 +84,21 @@ impl ClassCsvBuilder for DefaultClassCsvBuilder {
 
 impl DefaultClassCsvBuilder {
     pub fn new() -> DefaultClassCsvBuilder {
-        DefaultClassCsvBuilder {}
+        DefaultClassCsvBuilder::from(None)
+    }
+
+    pub fn from(trophy_calculator: Option<Box<dyn TrophyCalculator>>) -> DefaultClassCsvBuilder {
+        DefaultClassCsvBuilder {
+            trophy_calculator: trophy_calculator.unwrap_or(Box::new(ClassTrophyCalculator {})),
+        }
     }
 
     fn build_header(events_to_count: usize, event_count: usize) -> String {
-        let mut header = vec!["Rank".to_string(), "Driver".to_string()];
+        let mut header = vec![
+            "Trophy".to_string(),
+            "Rank".to_string(),
+            "Driver".to_string(),
+        ];
         header.extend((0..event_count).map(|i| format!("Event #{}", i + 1)));
         header.push("Total Points".to_string());
         header.push(format!("Best {} of {}", events_to_count, event_count));

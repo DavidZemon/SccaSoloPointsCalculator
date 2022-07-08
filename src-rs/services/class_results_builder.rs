@@ -8,20 +8,24 @@ use crate::models::type_aliases::Time;
 use crate::services::championship_points_calculator::{
     ChampionshipPointsCalculator, DefaultChampionshipPointsCalculator,
 };
+use crate::services::trophy_calculator::{ClassTrophyCalculator, TrophyCalculator};
 
 pub struct ClassResultsBuilder {
+    trophy_calculator: Box<dyn TrophyCalculator>,
     points_calculator: Box<dyn ChampionshipPointsCalculator>,
 }
 
 impl ClassResultsBuilder {
     pub fn new() -> ClassResultsBuilder {
-        ClassResultsBuilder::from(None)
+        ClassResultsBuilder::from(None, None)
     }
 
     fn from(
+        trophy_calculator: Option<Box<dyn TrophyCalculator>>,
         points_calculator: Option<Box<dyn ChampionshipPointsCalculator>>,
     ) -> ClassResultsBuilder {
         ClassResultsBuilder {
+            trophy_calculator: trophy_calculator.unwrap_or(Box::new(ClassTrophyCalculator {})),
             points_calculator: points_calculator
                 .unwrap_or(Box::new(DefaultChampionshipPointsCalculator {})),
         }
@@ -60,6 +64,7 @@ impl ClassResultsBuilder {
 
     pub fn get_header(&self) -> String {
         vec![
+            "Trophy".to_string(),
             "Pos".to_string(),
             "Name".to_string(),
             "Car".to_string(),
@@ -76,6 +81,9 @@ impl ClassResultsBuilder {
 
     fn export_class(&self, class_results: &ClassResults) -> String {
         let short_class_name = class_results.car_class.short.name().to_string();
+        let trophy_count = self
+            .trophy_calculator
+            .calculate(class_results.drivers.len());
 
         let mut csv = Writer::from_writer(vec![]);
 
@@ -95,6 +103,11 @@ impl ClassResultsBuilder {
 
         class_results.drivers.iter().enumerate().for_each(|(i, d)| {
             csv.write_record(vec![
+                if i < trophy_count {
+                    "T".to_string()
+                } else {
+                    "".to_string()
+                },
                 d.position
                     .map(|p| format!("{}", p))
                     .unwrap_or("".to_string()),

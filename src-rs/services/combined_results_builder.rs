@@ -6,7 +6,7 @@ use crate::models::type_aliases::Time;
 use crate::services::championship_points_calculator::{
     ChampionshipPointsCalculator, DefaultChampionshipPointsCalculator,
 };
-use crate::services::trophy_calculator::{DefaultTrophyCalculator, TrophyCalculator};
+use crate::services::trophy_calculator::{IndexTrophyCalculator, TrophyCalculator};
 
 pub struct CombinedResultsBuilder {
     trophy_calculator: Box<dyn TrophyCalculator>,
@@ -109,7 +109,7 @@ impl CombinedResultsBuilder {
         points_calculator: Option<Box<dyn ChampionshipPointsCalculator>>,
     ) -> CombinedResultsBuilder {
         CombinedResultsBuilder {
-            trophy_calculator: trophy_calculator.unwrap_or(Box::new(DefaultTrophyCalculator {})),
+            trophy_calculator: trophy_calculator.unwrap_or(Box::new(IndexTrophyCalculator {})),
             points_calculator: points_calculator
                 .unwrap_or(Box::new(DefaultChampionshipPointsCalculator {})),
         }

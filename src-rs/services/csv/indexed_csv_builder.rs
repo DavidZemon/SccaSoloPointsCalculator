@@ -1,6 +1,7 @@
 use crate::models::championship_driver::ChampionshipDriver;
 use crate::models::championship_results::IndexedChampionshipResults;
 use crate::models::championship_type::ChampionshipType;
+use crate::services::trophy_calculator::{IndexTrophyCalculator, TrophyCalculator};
 use crate::utilities::events_to_count;
 
 pub trait IndexedCsvBuilder {
@@ -11,7 +12,9 @@ pub trait IndexedCsvBuilder {
     ) -> Result<Option<String>, String>;
 }
 
-pub struct DefaultIndexedCsvBuilder {}
+pub struct DefaultIndexedCsvBuilder {
+    trophy_calculator: Box<dyn TrophyCalculator>,
+}
 
 impl IndexedCsvBuilder for DefaultIndexedCsvBuilder {
     fn create(
@@ -26,6 +29,7 @@ impl IndexedCsvBuilder for DefaultIndexedCsvBuilder {
             .event_count();
         let events_to_count = events_to_count(event_count);
         let header = Self::build_header(event_count);
+        let trophy_count = self.trophy_calculator.calculate(results.drivers.len());
 
         let mut rows = vec![
             results.organization.clone(),
@@ -48,7 +52,15 @@ impl IndexedCsvBuilder for DefaultIndexedCsvBuilder {
                 .enumerate()
                 .filter(|(_, d)| d.total_points() != 0)
                 .map(|(index, d)| {
-                    let mut driver_row = vec![format!("{}", index + 1), d.name().clone()];
+                    let mut driver_row = vec![
+                        if index < trophy_count {
+                            "T".to_string()
+                        } else {
+                            "".to_string()
+                        },
+                        format!("{}", index + 1),
+                        d.name().clone(),
+                    ];
                     d.points()
                         .iter()
                         .for_each(|points| driver_row.push(format!("{}", points)));
@@ -64,11 +76,21 @@ impl IndexedCsvBuilder for DefaultIndexedCsvBuilder {
 
 impl DefaultIndexedCsvBuilder {
     pub fn new() -> DefaultIndexedCsvBuilder {
-        DefaultIndexedCsvBuilder {}
+        DefaultIndexedCsvBuilder::from(None)
+    }
+
+    pub fn from(trophy_calculator: Option<Box<dyn TrophyCalculator>>) -> DefaultIndexedCsvBuilder {
+        DefaultIndexedCsvBuilder {
+            trophy_calculator: trophy_calculator.unwrap_or(Box::new(IndexTrophyCalculator {})),
+        }
     }
 
     fn build_header(event_count: usize) -> String {
-        let mut header = vec!["Rank".to_string(), "Driver".to_string()];
+        let mut header = vec![
+            "Trophy".to_string(),
+            "Rank".to_string(),
+            "Driver".to_string(),
+        ];
         header.extend((0..event_count).map(|i| format!("Event #{}", i + 1)));
         header.push("Total Points".to_string());
         header.push(format!(
