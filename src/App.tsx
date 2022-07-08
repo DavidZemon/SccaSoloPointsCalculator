@@ -159,9 +159,9 @@ class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
             </Col>
           </Row>
 
-          {
-           this.state.rusty && <EventResultsComponent rusty={this.state.rusty}/>
-          }
+          {this.state.rusty && (
+            <EventResultsComponent rusty={this.state.rusty} />
+          )}
 
           <ChampionshipResultsComponent
             results={this.state.championshipResults}
@@ -185,23 +185,23 @@ class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
       if (this.state.rusty) {
         this.setState({ processing: true });
 
-        const newResults: Partial<
+        const resultsType = ChampionshipType[championshipType];
+        const fileName = newFile.name;
+        const newResults = this.state.rusty.add_prior_championship_results(
+          resultsType,
+          new Uint8Array(await newFile.arrayBuffer()),
+          fileName,
+        );
+
+        const championshipResults: Partial<
           Record<keyof typeof ChampionshipType, string>
         > = {
           ...this.state.championshipResults,
         };
-
-        const resultsType = ChampionshipType[championshipType];
-        const fileName = newFile.name;
-        newResults[championshipType] =
-          this.state.rusty.add_prior_championship_results(
-            resultsType,
-            new Uint8Array(await newFile.arrayBuffer()),
-            fileName,
-          );
+        championshipResults[championshipType] = newResults;
         this.setState({
           processing: false,
-          championshipResults: newResults,
+          championshipResults,
         });
       }
     } else {
