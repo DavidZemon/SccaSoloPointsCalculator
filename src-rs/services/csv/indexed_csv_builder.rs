@@ -41,17 +41,24 @@ impl IndexedCsvBuilder for DefaultIndexedCsvBuilder {
         ];
         let mut sorted = results.drivers.clone();
         sorted.sort_by_key(|d| d.best_of(events_to_count));
-        rows.extend(sorted.iter().enumerate().map(|(index, d)| {
-            let mut driver_row = vec![format!("{}", index + 1), d.name().clone()];
-            d.points()
+        sorted.reverse();
+        rows.extend(
+            sorted
                 .iter()
-                .for_each(|points| driver_row.push(format!("{}", points)));
-            driver_row.push(format!("{}", d.total_points()));
-            driver_row.push(format!("{}", d.best_of(events_to_count)));
-            driver_row.join(",")
-        }));
+                .enumerate()
+                .filter(|(_, d)| d.total_points() != 0)
+                .map(|(index, d)| {
+                    let mut driver_row = vec![format!("{}", index + 1), d.name().clone()];
+                    d.points()
+                        .iter()
+                        .for_each(|points| driver_row.push(format!("{}", points)));
+                    driver_row.push(format!("{}", d.total_points()));
+                    driver_row.push(format!("{}", d.best_of(events_to_count)));
+                    driver_row.join(",")
+                }),
+        );
 
-        Ok(Some("".to_string()))
+        Ok(Some(rows.join("\n")))
     }
 }
 
