@@ -60,50 +60,36 @@ impl ChampionshipResultsParser {
             .map(|d| (d.id.clone(), d.clone()))
             .collect::<HashMap<DriverId, &Driver>>();
 
-        let data = self.extract_sheet(file_name, new_results)?;
-        let csv = match new_results_type {
-            ChampionshipType::Class => {
-                let class_results = self.class_results_parser.parse(data, &self.event_results)?;
-                self.class_csv_builder.create(class_results)
-            }
-            ChampionshipType::PAX => {
-                let fastest = Self::compute_fastest(&event_drivers_by_id);
-                let pax_results =
-                    self.index_results_parser
-                        .parse(data, event_drivers_by_id, fastest)?;
-                self.indexed_csv_builder
-                    .create(new_results_type, pax_results)
-            }
-            ChampionshipType::Novice => {
-                let new_novices = event_drivers_by_id
-                    .iter()
-                    .filter(|(_, d)| d.rookie)
-                    .map(|(id, d)| (id.clone(), d.clone()))
-                    .collect::<HashMap<DriverId, &Driver>>();
-                let fastest = Self::compute_fastest(&new_novices);
-                let novice_results = self
-                    .index_results_parser
-                    .parse(data, new_novices, fastest)?;
-                self.indexed_csv_builder
-                    .create(new_results_type, novice_results)
-            }
-            ChampionshipType::Ladies => {
-                let new_ladies = event_drivers_by_id
-                    .iter()
-                    .filter(|(_, d)| d.ladies_championship)
-                    .map(|(id, d)| (id.clone(), d.clone()))
-                    .collect::<HashMap<DriverId, &Driver>>();
-                let fastest = Self::compute_fastest(&new_ladies);
-                let ladies_results = self.index_results_parser.parse(data, new_ladies, fastest)?;
-                self.indexed_csv_builder
-                    .create(new_results_type, ladies_results)
-            }
+        let old_data = self.extract_sheet(file_name, new_results)?;
+
+        let result = if new_results_type == ChampionshipType::Class {
+            self.class_csv_builder.create(
+                self.class_results_parser
+                    .parse(old_data, &self.event_results)?,
+            )
+        } else {
+            let new_drivers = event_drivers_by_id
+                .iter()
+                .filter(|(_, d)| match new_results_type {
+                    ChampionshipType::Novice => d.rookie,
+                    ChampionshipType::Ladies => d.ladies_championship,
+                    _ => true,
+                })
+                .map(|(id, d)| (id.clone(), d.clone()))
+                .collect::<HashMap<DriverId, &Driver>>();
+            let fastest = Self::compute_fastest(&new_drivers);
+            self.indexed_csv_builder.create(
+                new_results_type,
+                self.index_results_parser
+                    .parse(old_data, new_drivers, fastest)?,
+            )
         };
-        csv.map(|results| match results {
-            Some(results) => results,
-            None => format!("No results for {}", new_results_type.name()),
-        })
-        .map_err(|e| JsValue::from_str(e.as_str()))
+
+        result
+            .map(|csv_option| {
+                csv_option.unwrap_or(format!("No results for {}", new_results_type.name()))
+            })
+            .map_err(|e| JsValue::from_str(e.as_str()))
     }
 }
 
