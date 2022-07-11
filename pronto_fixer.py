@@ -19,7 +19,10 @@ def main() -> None:
         fixed_rows: List[Dict[str, str]] = [convert(r) for r in csv_in]
 
     with open(out_path, 'w') as f:
-        writer = csv.DictWriter(f, fixed_rows[0].keys(), quoting=csv.QUOTE_ALL)
+        writer = csv.DictWriter(f,
+                                ['Last Name', 'First Name', 'Member #', 'Class', 'No.', 'Vehicle Year/Make/Model/Color',
+                                 'Modifier/PAX', 'Region of Record Abbreviation', 'Are you a novice?'],
+                                quoting=csv.QUOTE_ALL)
         writer.writeheader()
         writer.writerows(fixed_rows)
 
