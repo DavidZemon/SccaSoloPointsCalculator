@@ -48,7 +48,7 @@ class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
           {/* Page header */}
           <Row>
             <Col>
-              <h1>SCCA Solo Points Calculator</h1>
+              <h1>SCCA Solo Points Calculator v2</h1>
             </Col>
           </Row>
 
