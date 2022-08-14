@@ -3,6 +3,7 @@ use crate::models::championship_driver::{ChampionshipDriver, ClassedChampionship
 use crate::models::championship_results::ClassChampionshipResults;
 use crate::models::long_car_class::to_display_name;
 use crate::models::short_car_class::ShortCarClass;
+use crate::services::tie_calculator::calculate_tie_offset;
 use crate::services::trophy_calculator::{ClassTrophyCalculator, TrophyCalculator};
 use crate::utilities::events_to_count;
 
@@ -60,13 +61,17 @@ impl ClassCsvBuilder for DefaultClassCsvBuilder {
 
             let trophy_count = self.trophy_calculator.calculate(drivers.len());
             rows.extend(drivers.iter().enumerate().map(|(index, d)| {
+                let tie_offset = calculate_tie_offset(&drivers, index, |d1, d2| {
+                    d1.total_points() == d2.total_points()
+                });
+
                 let mut driver_row = vec![
-                    if index < trophy_count {
+                    if (index - tie_offset) < trophy_count {
                         "T".to_string()
                     } else {
                         "".to_string()
                     },
-                    format!("{}", index + 1),
+                    format!("{}", index + 1 - tie_offset),
                     d.name().clone(),
                 ];
                 d.points()

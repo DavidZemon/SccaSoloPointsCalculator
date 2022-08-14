@@ -27,7 +27,7 @@ pub trait ClassChampionshipDriver {
     fn get_car_class(&self) -> &CarClass;
 }
 
-#[derive(Clone, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct IndexedChampionshipDriver {
     id: String,
     name: String,
@@ -35,7 +35,7 @@ pub struct IndexedChampionshipDriver {
     total_points: i64,
 }
 
-#[derive(Clone, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct ClassedChampionshipDriver {
     id: String,
     name: String,

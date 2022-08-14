@@ -6,6 +6,7 @@ use crate::models::type_aliases::Time;
 use crate::services::championship_points_calculator::{
     ChampionshipPointsCalculator, DefaultChampionshipPointsCalculator,
 };
+use crate::services::tie_calculator::calculate_tie_offset;
 use crate::services::trophy_calculator::{IndexTrophyCalculator, TrophyCalculator};
 
 pub struct CombinedResultsBuilder {
@@ -52,9 +53,17 @@ impl CombinedResultsBuilder {
                     |d| Ok(d),
                 )?;
 
+                let tie_offset = calculate_tie_offset(&drivers, i, |d1, d2| {
+                    d1.best_lap(None) == d2.best_lap(None)
+                });
+
                 let mut next_row = vec![
-                    String::from(if i < trophy_count { "T" } else { "" }),
-                    format!("{}", i + 1),
+                    if (i - tie_offset) < trophy_count {
+                        "T".to_string()
+                    } else {
+                        "".to_string()
+                    },
+                    format!("{}", i + 1 - tie_offset),
                     driver.name.clone(),
                     driver.car_description.clone(),
                     String::from(driver.car_class.short.name()),
@@ -92,7 +101,7 @@ impl CombinedResultsBuilder {
                         self.points_calculator.calculate(
                             fastest_of_day,
                             driver,
-                            Some(driver.pax_multiplier)
+                            Some(driver.pax_multiplier),
                         )
                     ))
                 }

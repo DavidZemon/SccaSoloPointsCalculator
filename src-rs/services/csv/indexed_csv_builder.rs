@@ -1,6 +1,7 @@
-use crate::models::championship_driver::ChampionshipDriver;
+use crate::models::championship_driver::{ChampionshipDriver, IndexedChampionshipDriver};
 use crate::models::championship_results::IndexedChampionshipResults;
 use crate::models::championship_type::ChampionshipType;
+use crate::services::tie_calculator::calculate_tie_offset;
 use crate::services::trophy_calculator::{IndexTrophyCalculator, TrophyCalculator};
 use crate::utilities::events_to_count;
 
@@ -46,29 +47,32 @@ impl IndexedCsvBuilder for DefaultIndexedCsvBuilder {
         let mut sorted = results.drivers.clone();
         sorted.sort_by_key(|d| d.best_of(events_to_count));
         sorted.reverse();
-        rows.extend(
-            sorted
+
+        let filtered_drivers = sorted
+            .iter()
+            .filter(|d| d.total_points() != 0)
+            .collect::<Vec<&IndexedChampionshipDriver>>();
+        rows.extend(filtered_drivers.iter().enumerate().map(|(index, d)| {
+            let tie_offset = calculate_tie_offset(&filtered_drivers, index, |d1, d2| {
+                d1.total_points() == d2.total_points()
+            });
+
+            let mut driver_row = vec![
+                if (index - tie_offset) < trophy_count {
+                    "T".to_string()
+                } else {
+                    "".to_string()
+                },
+                format!("{}", index + 1 - tie_offset),
+                d.name().clone(),
+            ];
+            d.points()
                 .iter()
-                .enumerate()
-                .filter(|(_, d)| d.total_points() != 0)
-                .map(|(index, d)| {
-                    let mut driver_row = vec![
-                        if index < trophy_count {
-                            "T".to_string()
-                        } else {
-                            "".to_string()
-                        },
-                        format!("{}", index + 1),
-                        d.name().clone(),
-                    ];
-                    d.points()
-                        .iter()
-                        .for_each(|points| driver_row.push(format!("{}", points)));
-                    driver_row.push(format!("{}", d.total_points()));
-                    driver_row.push(format!("{}", d.best_of(events_to_count)));
-                    driver_row.join(",")
-                }),
-        );
+                .for_each(|points| driver_row.push(format!("{}", points)));
+            driver_row.push(format!("{}", d.total_points()));
+            driver_row.push(format!("{}", d.best_of(events_to_count)));
+            driver_row.join(",")
+        }));
 
         Ok(Some(rows.join("\n")))
     }
@@ -99,5 +103,63 @@ impl DefaultIndexedCsvBuilder {
             event_count
         ));
         header.join(",")
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::models::championship_driver::{ChampionshipDriver, IndexedChampionshipDriver};
+    use crate::models::championship_results::IndexedChampionshipResults;
+    use crate::models::championship_type::ChampionshipType;
+    use crate::models::driver::Driver;
+    use crate::services::csv::indexed_csv_builder::{DefaultIndexedCsvBuilder, IndexedCsvBuilder};
+    use crate::services::trophy_calculator::TrophyCalculator;
+
+    struct MockTrophyCalculator {}
+
+    impl TrophyCalculator for MockTrophyCalculator {
+        fn calculate(&self, _: usize) -> usize {
+            2
+        }
+
+        fn calculate_vec(&self, _: Vec<&Driver>) -> usize {
+            2
+        }
+    }
+
+    #[test]
+    fn test_tie() {
+        let testable = DefaultIndexedCsvBuilder::from(Some(Box::from(MockTrophyCalculator {})));
+
+        let mut d1 = IndexedChampionshipDriver::new("ID1".to_string(), "Name 1".to_string());
+        let mut d2 = IndexedChampionshipDriver::new("ID2".to_string(), "Name 2".to_string());
+        let mut d3 = IndexedChampionshipDriver::new("ID3".to_string(), "Name 3".to_string());
+
+        d1.add_event(10);
+        d2.add_event(10);
+        d3.add_event(100);
+
+        let actual = testable.create(
+            ChampionshipType::PAX,
+            IndexedChampionshipResults::new(2022, "SCCA".to_string(), vec![d1, d2, d3]),
+        );
+
+        assert_eq!(actual.is_ok(), true);
+        let actual_option = actual.unwrap();
+        assert_eq!(actual_option.is_some(), true);
+
+        let unwrapped = actual_option.unwrap();
+
+        assert_eq!(
+            unwrapped,
+            "SCCA\n\
+2022 PAX Championship -- Best 1 of 1 Events\n\
+\n\
+Trophy,Rank,Driver,Event #1,Total Points,Best 1 of 1\n\
+T,1,Name 3,100,100,100\n\
+T,2,Name 2,10,10,10\n\
+T,2,Name 1,10,10,10"
+                .to_string()
+        );
     }
 }

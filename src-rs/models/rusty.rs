@@ -5,7 +5,7 @@ use crate::models::driver_group::DriverGroup;
 use crate::models::event_results::EventResults;
 use crate::services::championship_results_parser::ChampionshipResultsParser;
 use crate::services::class_results_builder::ClassResultsBuilder;
-use crate::services::combined_results_builder::CombinedResultsBuilder;
+use crate::services::csv::combined_results_builder::CombinedResultsBuilder;
 use crate::services::event_results_parser::parse;
 
 #[wasm_bindgen]
