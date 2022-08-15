@@ -77,7 +77,8 @@ impl ChampionshipResultsParser {
                 })
                 .map(|(id, d)| (id.clone(), d.clone()))
                 .collect::<HashMap<DriverId, &Driver>>();
-            let fastest = Self::compute_fastest(&new_drivers);
+            let fastest =
+                Self::compute_fastest(&new_drivers, new_results_type != ChampionshipType::Class);
             self.indexed_csv_builder.create(
                 new_results_type,
                 self.index_results_parser
@@ -136,10 +137,13 @@ impl ChampionshipResultsParser {
         }
     }
 
-    fn compute_fastest(drivers: &HashMap<DriverId, &Driver>) -> Time {
+    fn compute_fastest(drivers: &HashMap<DriverId, &Driver>, use_pax: bool) -> Time {
         let mut times = drivers
             .iter()
-            .map(|(_, d)| d.best_lap(None).time.unwrap_or(Time::INFINITY))
+            .map(|(_, d)| {
+                d.best_lap(None).time.unwrap_or(Time::INFINITY)
+                    * (if use_pax { d.pax_multiplier } else { 1. })
+            })
             .collect::<Vec<Time>>();
         times.sort_by(|lhs, rhs| lhs.partial_cmp(rhs).unwrap_or(Ordering::Equal));
         times.get(0).cloned().unwrap_or(Time::INFINITY)
