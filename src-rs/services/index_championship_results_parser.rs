@@ -19,6 +19,8 @@ struct CalculationContext<'a> {
 pub trait IndexChampionshipResultsParser {
     fn parse(
         &self,
+        past_event_count: usize,
+        header_map: HashMap<String, usize>,
         data: Range<DataType>,
         event_drivers: HashMap<DriverId, &Driver>,
         best_index_time_of_day: Time,
@@ -32,6 +34,8 @@ pub struct DefaultIndexChampionshipResultsParser {
 impl IndexChampionshipResultsParser for DefaultIndexChampionshipResultsParser {
     fn parse(
         &self,
+        past_event_count: usize,
+        header_map: HashMap<String, usize>,
         data: Range<DataType>,
         new_event_drivers_by_id: HashMap<DriverId, &Driver>,
         best_index_time_of_day: Time,
@@ -51,9 +55,8 @@ impl IndexChampionshipResultsParser for DefaultIndexChampionshipResultsParser {
             .ok_or("Invalid 'year' cell contents for indexed championship input XLS")?
             .parse::<u16>()
             .map_err(|e| e.to_string())?;
-        let past_event_count = data.width() - 4;
 
-        let rows_by_driver_id = self.parse_sheet(data);
+        let rows_by_driver_id = self.parse_sheet(header_map, data)?;
         let ctx = CalculationContext {
             past_event_count,
             rows_by_driver_id,
@@ -81,19 +84,33 @@ impl DefaultIndexChampionshipResultsParser {
         }
     }
 
-    fn parse_sheet(&self, data: Range<DataType>) -> HashMap<DriverId, IndexedChampionshipDriver> {
-        data.rows()
+    fn parse_sheet(
+        &self,
+        header_map: HashMap<String, usize>,
+        data: Range<DataType>,
+    ) -> Result<HashMap<DriverId, IndexedChampionshipDriver>, String> {
+        let name_index = header_map
+            .get("Driver")
+            .ok_or("Missing 'Driver' column".to_string())?
+            .clone();
+        let total_points_index = header_map
+            .get("Total\nPoints")
+            .ok_or("Missing 'Total Points' column".to_string())?
+            .clone();
+
+        Ok(data
+            .rows()
             .filter(|r| !r[0].is_empty() && r[0].is_int())
             .map(|r| {
-                let name = r[1].to_string();
+                let name = r[name_index].to_string();
                 let id = name.to_lowercase();
                 let mut driver = IndexedChampionshipDriver::new(id.clone(), name);
-                r[2..r.len() - 2]
+                r[name_index + 1..total_points_index]
                     .iter()
                     .for_each(|cell| driver.add_event(cell.get_int().unwrap_or_default()));
                 (id, driver)
             })
-            .collect()
+            .collect())
     }
 
     fn create_indexed_championship_driver(

@@ -24,6 +24,8 @@ struct CalculationContext {
 pub trait ClassChampionshipResultsParser {
     fn parse(
         &self,
+        past_event_count: usize,
+        header_map: HashMap<String, usize>,
         data: Range<DataType>,
         event_results: &EventResults,
     ) -> Result<ClassChampionshipResults, String>;
@@ -36,6 +38,8 @@ pub struct DefaultClassChampionshipResultsParser {
 impl ClassChampionshipResultsParser for DefaultClassChampionshipResultsParser {
     fn parse(
         &self,
+        past_event_count: usize,
+        header_map: HashMap<String, usize>,
         data: Range<DataType>,
         event_results: &EventResults,
     ) -> Result<ClassChampionshipResults, String> {
@@ -54,14 +58,13 @@ impl ClassChampionshipResultsParser for DefaultClassChampionshipResultsParser {
             .ok_or("Invalid 'year' cell contents for class championship input XLS")?
             .parse::<u16>()
             .map_err(|e| e.to_string())?;
-        let past_event_count = data.width() - 4;
 
         Ok(ClassChampionshipResults::new(
             year,
             org,
             self.calculate_results(&CalculationContext {
                 past_event_count,
-                rows_by_class_and_driver_id: self.parse_sheet(data),
+                rows_by_class_and_driver_id: self.parse_sheet(header_map, data)?,
                 new_event_drivers_by_class_and_id: self.get_new_event_drivers(event_results),
             }),
         ))
@@ -77,15 +80,24 @@ impl DefaultClassChampionshipResultsParser {
 
     fn parse_sheet(
         &self,
+        header_map: HashMap<String, usize>,
         data: Range<DataType>,
-    ) -> HashMap<ShortCarClass, HashMap<DriverId, ClassedChampionshipDriver>> {
+    ) -> Result<HashMap<ShortCarClass, HashMap<DriverId, ClassedChampionshipDriver>>, String> {
         let mut rows_by_class_and_driver_id: HashMap<
             ShortCarClass,
             HashMap<DriverId, ClassedChampionshipDriver>,
         > = HashMap::new();
 
         let mut current_class: Option<ShortCarClass> = None;
-        data.rows().for_each(|r| {
+        let name_index = header_map
+            .get("Driver")
+            .ok_or("Missing 'Driver' column".to_string())?
+            .clone();
+        let total_points_index = header_map
+            .get("Total\nPoints")
+            .ok_or("Missing 'Total Points' column".to_string())?
+            .clone();
+        for r in data.rows() {
             if r.len() != 0 {
                 let cell_str = r[0].to_string();
                 let delimeter = if cell_str.contains(" - ") {
@@ -102,15 +114,19 @@ impl DefaultClassChampionshipResultsParser {
                         None => {
                             // Skip this row, it's an early header row
                         }
-                        Some(current_class) => {
-                            Self::add_driver(&mut rows_by_class_and_driver_id, &current_class, r)
-                        }
+                        Some(current_class) => Self::add_driver(
+                            &mut rows_by_class_and_driver_id,
+                            &current_class,
+                            name_index,
+                            total_points_index,
+                            r,
+                        ),
                     };
                 }
             }
-        });
+        }
 
-        rows_by_class_and_driver_id
+        Ok(rows_by_class_and_driver_id)
     }
 
     fn add_driver(
@@ -119,6 +135,8 @@ impl DefaultClassChampionshipResultsParser {
             HashMap<DriverId, ClassedChampionshipDriver>,
         >,
         current_class: &ShortCarClass,
+        name_index: usize,
+        total_points_index: usize,
         r: &[DataType],
     ) {
         let rows_for_one_class = rows_by_class_and_driver_id.get_mut(current_class).expect(
@@ -128,8 +146,7 @@ impl DefaultClassChampionshipResultsParser {
             )
             .as_str(),
         );
-
-        let name = r[1].to_string();
+        let name = r[name_index].to_string();
         let id = name.to_lowercase();
 
         let mut driver = ClassedChampionshipDriver::new(
@@ -144,9 +161,11 @@ impl DefaultClassChampionshipResultsParser {
             ),
         );
 
-        r[2..r.len() - 2].iter().for_each(|cell| {
-            driver.add_event(cell.get_int().unwrap_or_default());
-        });
+        r[name_index + 1..total_points_index]
+            .iter()
+            .for_each(|cell| {
+                driver.add_event(cell.get_int().unwrap_or_default());
+            });
 
         rows_for_one_class.insert(id, driver);
     }

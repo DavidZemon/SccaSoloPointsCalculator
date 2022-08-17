@@ -4,6 +4,7 @@ use std::io::Cursor;
 
 use calamine::{DataType, Range, Reader, Xls};
 use getset::Setters;
+use regex::Regex;
 use wasm_bindgen::prelude::*;
 
 use crate::console_log;
@@ -61,12 +62,21 @@ impl ChampionshipResultsParser {
             .collect::<HashMap<DriverId, &Driver>>();
 
         let old_data = self.extract_sheet(file_name, new_results)?;
+        let header_map = self
+            .get_header_map(&old_data)
+            .map_err(|e| JsValue::from_str(e.as_str()))?;
+        let past_event_count = self
+            .get_past_event_count(&header_map)
+            .map_err(|e| JsValue::from_str(e.as_str()))?;
 
         let result = if new_results_type == ChampionshipType::Class {
-            self.class_csv_builder.create(
-                self.class_results_parser
-                    .parse(old_data, &self.event_results)?,
-            )
+            self.class_csv_builder
+                .create(self.class_results_parser.parse(
+                    past_event_count,
+                    header_map,
+                    old_data,
+                    &self.event_results,
+                )?)
         } else {
             let new_drivers = event_drivers_by_id
                 .iter()
@@ -81,8 +91,13 @@ impl ChampionshipResultsParser {
                 Self::compute_fastest(&new_drivers, new_results_type != ChampionshipType::Class);
             self.indexed_csv_builder.create(
                 new_results_type,
-                self.index_results_parser
-                    .parse(old_data, new_drivers, fastest)?,
+                self.index_results_parser.parse(
+                    past_event_count,
+                    header_map,
+                    old_data,
+                    new_drivers,
+                    fastest,
+                )?,
             )
         };
 
@@ -135,6 +150,31 @@ impl ChampionshipResultsParser {
         } else {
             Err(format!("File {} contains no non-empty sheets", file_name))
         }
+    }
+
+    fn get_header_map(&self, data: &Range<DataType>) -> Result<HashMap<String, usize>, String> {
+        let re = Regex::new(r"^\s*best\s+\d+\s+of\s+\d+\s*$").map_err(|e| e.to_string())?;
+        Ok(data
+            .rows()
+            .find(|row| match row.last() {
+                Some(last) => re.is_match(last.to_string().to_lowercase().as_str()),
+                None => false,
+            })
+            .ok_or("Unable to find header".to_string())?
+            .iter()
+            .enumerate()
+            .map(|(index, header)| (header.to_string(), index))
+            .collect())
+    }
+
+    fn get_past_event_count(&self, header_map: &HashMap<String, usize>) -> Result<usize, String> {
+        let re = Regex::new(r"^(Trophy|Rank|Driver|Total\s+Points|Best\s+\d+\s+of\s+\d+)$")
+            .map_err(|e| e.to_string())?;
+        Ok(header_map
+            .keys()
+            .filter(|header| !re.is_match(header))
+            .collect::<Vec<&String>>()
+            .len())
     }
 
     fn compute_fastest(drivers: &HashMap<DriverId, &Driver>, use_pax: bool) -> Time {
