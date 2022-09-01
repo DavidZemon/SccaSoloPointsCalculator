@@ -5,7 +5,8 @@ use calamine::{DataType, Range};
 use crate::models::championship_driver::{ChampionshipDriver, IndexedChampionshipDriver};
 use crate::models::championship_results::IndexedChampionshipResults;
 use crate::models::driver::Driver;
-use crate::models::type_aliases::{DriverId, Time};
+use crate::models::lap_time::LapTime;
+use crate::models::type_aliases::DriverId;
 use crate::services::championship_points_calculator::{
     ChampionshipPointsCalculator, DefaultChampionshipPointsCalculator,
 };
@@ -23,7 +24,7 @@ pub trait IndexChampionshipResultsParser {
         header_map: HashMap<String, usize>,
         data: Range<DataType>,
         event_drivers: HashMap<DriverId, &Driver>,
-        best_index_time_of_day: Time,
+        best_lap_of_day: &LapTime,
     ) -> Result<IndexedChampionshipResults, String>;
 }
 
@@ -38,7 +39,7 @@ impl IndexChampionshipResultsParser for DefaultIndexChampionshipResultsParser {
         header_map: HashMap<String, usize>,
         data: Range<DataType>,
         new_event_drivers_by_id: HashMap<DriverId, &Driver>,
-        best_index_time_of_day: Time,
+        best_lap_of_day: &LapTime,
     ) -> Result<IndexedChampionshipResults, String> {
         let org = data
             .get((0, 0))
@@ -71,7 +72,7 @@ impl IndexChampionshipResultsParser for DefaultIndexChampionshipResultsParser {
                 .chain(ctx.new_event_drivers_by_id.keys().cloned())
                 .collect::<HashSet<DriverId>>()
                 .iter()
-                .map(|id| self.create_indexed_championship_driver(&ctx, best_index_time_of_day, id))
+                .map(|id| self.create_indexed_championship_driver(&ctx, best_lap_of_day, id))
                 .collect(),
         ))
     }
@@ -116,7 +117,7 @@ impl DefaultIndexChampionshipResultsParser {
     fn create_indexed_championship_driver(
         &self,
         ctx: &CalculationContext,
-        best_time_of_day: Time,
+        best_lap_of_day: &LapTime,
         id: &DriverId,
     ) -> IndexedChampionshipDriver {
         let driver_history_opt = ctx.rows_by_driver_id.get(id);
@@ -125,11 +126,10 @@ impl DefaultIndexChampionshipResultsParser {
         match (driver_history_opt, driver_new_results_opt) {
             (Some(driver_history), Some(driver_new_results)) => {
                 let mut driver_history = driver_history.clone();
-                driver_history.add_event(self.points_calculator.calculate(
-                    best_time_of_day,
-                    driver_new_results,
-                    Some(driver_new_results.pax_multiplier),
-                ));
+                driver_history.add_event(
+                    self.points_calculator
+                        .calculate(best_lap_of_day, driver_new_results),
+                );
                 driver_history
             }
             (Some(driver_history), None) => {
@@ -143,11 +143,10 @@ impl DefaultIndexChampionshipResultsParser {
                     driver_new_results.get_name(),
                 );
                 (0..ctx.past_event_count).for_each(|_| new_driver.add_event(0));
-                new_driver.add_event(self.points_calculator.calculate(
-                    best_time_of_day,
-                    driver_new_results,
-                    Some(driver_new_results.pax_multiplier),
-                ));
+                new_driver.add_event(
+                    self.points_calculator
+                        .calculate(best_lap_of_day, driver_new_results),
+                );
                 new_driver
             }
             (None, None) => {

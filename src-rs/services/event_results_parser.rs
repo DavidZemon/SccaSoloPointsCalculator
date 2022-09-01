@@ -8,6 +8,7 @@ use crate::models::driver::Driver;
 use crate::models::event_results::EventResults;
 use crate::models::exported_driver::ExportedDriver;
 use crate::models::lap_time::{LapTime, Penalty};
+use crate::models::type_aliases::PaxMultiplier;
 use crate::utilities::swap;
 
 pub fn parse(file_contents: String, two_day_event: bool) -> Result<EventResults, String> {
@@ -58,13 +59,14 @@ fn perform_second_parsing(
     driver.day1 = swap(
         driver
             .runs_day1
-            .map(|run_count| extract_lap_times(extra_fields, run_count)),
+            .map(|run_count| extract_lap_times(extra_fields, driver.pax_multiplier, run_count)),
     )?;
 
     if extra_fields.len() > driver.runs_day1.clone().unwrap_or(0) * 3 {
         driver.day2 = swap(driver.runs_day2.map(|run_count| {
             extract_lap_times(
                 &extra_fields[(driver.runs_day1.clone().unwrap_or(0) * 3)..],
+                driver.pax_multiplier,
                 run_count,
             )
         }))?;
@@ -75,7 +77,11 @@ fn perform_second_parsing(
     Ok(driver)
 }
 
-fn extract_lap_times(lap_time_fields: &[&str], run_count: usize) -> Result<Vec<LapTime>, String> {
+fn extract_lap_times(
+    lap_time_fields: &[&str],
+    pax: PaxMultiplier,
+    run_count: usize,
+) -> Result<Vec<LapTime>, String> {
     let mut times = Vec::new();
     for lap_number in 0..run_count {
         let first_index_of_lap = 3 * lap_number as usize;
@@ -83,16 +89,17 @@ fn extract_lap_times(lap_time_fields: &[&str], run_count: usize) -> Result<Vec<L
             break;
         }
         let next_fields = &lap_time_fields[first_index_of_lap..(first_index_of_lap + 3)];
-        times.push(build_lap_time(next_fields)?)
+        times.push(build_lap_time(next_fields, pax)?)
     }
     Ok(times)
 }
 
-fn build_lap_time(next_fields: &[&str]) -> Result<LapTime, String> {
+fn build_lap_time(next_fields: &[&str], pax: PaxMultiplier) -> Result<LapTime, String> {
     Ok(LapTime::new(
         next_fields[0]
             .parse()
             .map_err(|e: ParseFloatError| e.to_string())?,
+        pax,
         next_fields[1]
             .parse()
             .map_err(|e: ParseIntError| e.to_string())?,
@@ -111,9 +118,8 @@ mod test {
     use std::fs;
 
     use crate::models::driver::TimeSelection;
-    use crate::models::lap_time::{LapTime, Penalty};
+    use crate::models::lap_time::{dns, LapTime, Penalty};
     use crate::models::short_car_class::ShortCarClass;
-    use crate::models::type_aliases::Time;
     use crate::services::event_results_parser::parse;
 
     #[test]
@@ -156,15 +162,12 @@ mod test {
         let a_street = actual.results.get(&ShortCarClass::AS).unwrap();
         assert_eq!(a_street.car_class.short, ShortCarClass::AS);
         assert_eq!(a_street.drivers.len(), 5);
-        assert_eq!(a_street.get_best_in_class(None), 52.288);
         assert_eq!(
-            a_street.get_best_in_class(Some(TimeSelection::Day2)),
-            Time::INFINITY
+            a_street.get_best_in_class(None),
+            LapTime::new(52.288, 0.821, 0, None)
         );
-        assert_eq!(
-            a_street.get_best_in_class(Some(TimeSelection::Day2)),
-            Time::INFINITY
-        );
+        assert_eq!(a_street.get_best_in_class(Some(TimeSelection::Day2)), dns());
+        assert_eq!(a_street.get_best_in_class(Some(TimeSelection::Day2)), dns());
 
         let robert = a_street.drivers[0].clone();
         assert_eq!(robert.error, false);
@@ -182,13 +185,13 @@ mod test {
         assert_eq!(
             robert.day_1_times,
             Some(vec![
-                LapTime::new(52.288, 0, None),
-                LapTime::new(53.351, 0, None),
-                LapTime::new(0., 0, Some(Penalty::DNF)),
+                LapTime::new(52.288, 0.821, 0, None),
+                LapTime::new(53.351, 0.821, 0, None),
+                LapTime::new(0., 0.821, 0, Some(Penalty::DNF)),
             ])
         );
         assert_eq!(robert.day_2_times, None);
-        assert_eq!(robert.combined, LapTime::new(52.288, 0, None));
+        assert_eq!(robert.combined, LapTime::new(52.288, 0.821, 0, None));
 
         for (index, driver) in a_street.drivers.iter().enumerate() {
             assert_eq!(driver.position, Some(index + 1));

@@ -4,7 +4,6 @@ use wasm_bindgen::JsValue;
 use crate::models::car_class::{get_car_class, CarClass};
 use crate::models::class_results::ClassResults;
 use crate::models::event_results::EventResults;
-use crate::models::type_aliases::Time;
 use crate::services::championship_points_calculator::{
     ChampionshipPointsCalculator, DefaultChampionshipPointsCalculator,
 };
@@ -88,18 +87,6 @@ impl ClassResultsBuilder {
         let mut csv = Writer::from_writer(vec![]);
 
         let best_lap_in_class = class_results.get_best_in_class(None);
-        let best_index_time = best_lap_in_class
-            * class_results
-                .drivers
-                .get(0)
-                .expect(
-                    format!(
-                        "Class results for {} contain no drivers",
-                        short_class_name.clone()
-                    )
-                    .as_str(),
-                )
-                .pax_multiplier;
 
         class_results.drivers.iter().enumerate().for_each(|(i, d)| {
             csv.write_record(vec![
@@ -115,30 +102,21 @@ impl ClassResultsBuilder {
                 d.car_description.clone(),
                 short_class_name.clone(),
                 format!("{}", d.car_number),
-                d.best_lap(None).to_string(None, Some(false)),
-                d.best_lap(None)
-                    .to_string(Some(d.pax_multiplier), Some(false)),
+                d.best_lap(None).to_string(false, false),
+                d.best_lap(None).to_string(true, false),
                 if i == 0 {
                     "".to_string()
                 } else {
                     d.difference(
-                        class_results
-                            .drivers
-                            .get(i - 1)
-                            .unwrap()
-                            .best_lap(None)
-                            .time
-                            .unwrap_or(Time::INFINITY)
-                            * d.pax_multiplier,
-                        Some(true),
+                        class_results.drivers.get(i - 1).unwrap().best_lap(None),
+                        true,
                         None,
                     )
                 },
-                d.difference(best_index_time, Some(true), None),
+                d.difference(best_lap_in_class, true, None),
                 format!(
                     "{}",
-                    self.points_calculator
-                        .calculate(best_index_time, d, Some(d.pax_multiplier))
+                    self.points_calculator.calculate(&best_lap_in_class, d)
                 ),
             ])
             .expect(format!("Failed to write record for {} to class results CSV", d.name).as_str());

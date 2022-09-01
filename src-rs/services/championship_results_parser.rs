@@ -1,4 +1,3 @@
-use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::io::Cursor;
 
@@ -11,8 +10,9 @@ use crate::console_log;
 use crate::models::championship_type::ChampionshipType;
 use crate::models::driver::Driver;
 use crate::models::event_results::EventResults;
+use crate::models::lap_time::{dns, LapTime};
 use crate::models::short_car_class::ShortCarClass;
-use crate::models::type_aliases::{DriverId, Time};
+use crate::models::type_aliases::DriverId;
 use crate::services::class_championship_results_parser::{
     ClassChampionshipResultsParser, DefaultClassChampionshipResultsParser,
 };
@@ -87,8 +87,7 @@ impl ChampionshipResultsParser {
                 })
                 .map(|(id, d)| (id.clone(), d.clone()))
                 .collect::<HashMap<DriverId, &Driver>>();
-            let fastest =
-                Self::compute_fastest(&new_drivers, new_results_type != ChampionshipType::Class);
+            let fastest = Self::compute_fastest(&new_drivers);
             self.indexed_csv_builder.create(
                 new_results_type,
                 self.index_results_parser.parse(
@@ -96,7 +95,7 @@ impl ChampionshipResultsParser {
                     header_map,
                     old_data,
                     new_drivers,
-                    fastest,
+                    &fastest,
                 )?,
             )
         };
@@ -177,15 +176,11 @@ impl ChampionshipResultsParser {
             .len())
     }
 
-    fn compute_fastest(drivers: &HashMap<DriverId, &Driver>, use_pax: bool) -> Time {
-        let mut times = drivers
+    fn compute_fastest(drivers: &HashMap<DriverId, &Driver>) -> LapTime {
+        drivers
             .iter()
-            .map(|(_, d)| {
-                d.best_lap(None).time.unwrap_or(Time::INFINITY)
-                    * (if use_pax { d.pax_multiplier } else { 1. })
-            })
-            .collect::<Vec<Time>>();
-        times.sort_by(|lhs, rhs| lhs.partial_cmp(rhs).unwrap_or(Ordering::Equal));
-        times.get(0).cloned().unwrap_or(Time::INFINITY)
+            .map(|(_, d)| d.best_lap(None))
+            .min()
+            .unwrap_or(dns())
     }
 }

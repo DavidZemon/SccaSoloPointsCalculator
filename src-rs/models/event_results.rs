@@ -59,22 +59,24 @@ impl EventResults {
 impl EventResults {
     /// Get a sorted list of drivers
     pub fn get_drivers(&self, filter: Option<DriverGroup>) -> Vec<&Driver> {
+        let filter = filter.unwrap_or(DriverGroup::PAX);
         let mut drivers = self
             .results
             .values()
             .map(|r| {
-                r.drivers
-                    .iter()
-                    .filter(|d| match filter.unwrap_or(DriverGroup::PAX) {
-                        DriverGroup::Ladies => d.ladies_championship,
-                        DriverGroup::Novice => d.rookie,
-                        _ => true,
-                    })
+                r.drivers.iter().filter(|d| match filter {
+                    DriverGroup::Ladies => d.ladies_championship,
+                    DriverGroup::Novice => d.rookie,
+                    _ => true,
+                })
             })
             .flatten()
             .collect::<Vec<&Driver>>();
 
-        drivers.sort();
+        drivers.sort_by(|lhs, rhs| {
+            lhs.best_lap(None)
+                .cmp2(&rhs.best_lap(None), filter != DriverGroup::Raw)
+        });
         drivers
     }
 }

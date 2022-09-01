@@ -1,4 +1,3 @@
-use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 
 use calamine::{DataType, Range};
@@ -8,8 +7,9 @@ use crate::models::championship_driver::{ChampionshipDriver, ClassedChampionship
 use crate::models::championship_results::ClassChampionshipResults;
 use crate::models::driver::Driver;
 use crate::models::event_results::EventResults;
+use crate::models::lap_time::{dns, LapTime};
 use crate::models::short_car_class::ShortCarClass;
-use crate::models::type_aliases::{DriverId, Time};
+use crate::models::type_aliases::DriverId;
 use crate::services::championship_points_calculator::{
     ChampionshipPointsCalculator, DefaultChampionshipPointsCalculator,
 };
@@ -225,11 +225,10 @@ impl DefaultClassChampionshipResultsParser {
 
         let best_time_of_day = new_event_drivers_by_id
             .values()
-            .map(|d| (d.best_lap(None).time, d.pax_multiplier))
-            .filter(|(t, _)| t.is_some())
-            .map(|(t, pax)| t.unwrap_or(Time::INFINITY) * pax)
-            .min_by(|lhs, rhs| lhs.partial_cmp(rhs).unwrap_or(Ordering::Equal))
-            .unwrap_or(Time::INFINITY);
+            .map(|d| d.best_lap(None))
+            .filter(|lap| lap.time.is_some())
+            .min()
+            .unwrap_or(dns());
 
         (
             class.clone(),
@@ -238,7 +237,7 @@ impl DefaultClassChampionshipResultsParser {
                 .map(|id| {
                     self.create_classed_championship_driver(
                         ctx,
-                        best_time_of_day,
+                        &best_time_of_day,
                         class,
                         id,
                         class_history,
@@ -252,7 +251,7 @@ impl DefaultClassChampionshipResultsParser {
     fn create_classed_championship_driver(
         &self,
         ctx: &CalculationContext,
-        best_time_of_day: Time,
+        best_time_of_day: &LapTime,
         class: &ShortCarClass,
         id: &DriverId,
         class_history: &HashMap<DriverId, ClassedChampionshipDriver>,
@@ -264,11 +263,10 @@ impl DefaultClassChampionshipResultsParser {
         match (driver_history_opt, driver_new_results_opt) {
             (Some(driver_history), Some(driver_new_results)) => {
                 let mut driver_history = driver_history.clone();
-                driver_history.add_event(self.points_calculator.calculate(
-                    best_time_of_day,
-                    driver_new_results,
-                    Some(driver_new_results.pax_multiplier),
-                ));
+                driver_history.add_event(
+                    self.points_calculator
+                        .calculate(best_time_of_day, driver_new_results),
+                );
 
                 driver_history
             }
@@ -286,11 +284,10 @@ impl DefaultClassChampionshipResultsParser {
                 (0..ctx.past_event_count).for_each(|_| {
                     new_driver.add_event(0);
                 });
-                new_driver.add_event(self.points_calculator.calculate(
-                    best_time_of_day,
-                    driver_new_results,
-                    Some(driver_new_results.pax_multiplier),
-                ) as i64);
+                new_driver.add_event(
+                    self.points_calculator
+                        .calculate(best_time_of_day, driver_new_results) as i64,
+                );
                 new_driver
             }
             (None, None) => ClassedChampionshipDriver::new(

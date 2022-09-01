@@ -3,9 +3,8 @@ use wasm_bindgen::prelude::*;
 
 use crate::models::car_class::{get_car_class, CarClass};
 use crate::models::driver::{Driver, TimeSelection};
-use crate::models::lap_time::LapTime;
+use crate::models::lap_time::{dns, LapTime};
 use crate::models::short_car_class::ShortCarClass;
-use crate::models::type_aliases::Time;
 
 #[wasm_bindgen]
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -30,18 +29,14 @@ impl ClassResults {
             .collect()
     }
 
-    pub fn get_best_in_class(&self, time_selection: Option<TimeSelection>) -> Time {
+    pub fn get_best_in_class(&self, time_selection: Option<TimeSelection>) -> LapTime {
         let mut best_laps: Vec<LapTime> = self
             .drivers
             .iter()
             .map(|d| d.best_lap(time_selection))
             .collect();
         best_laps.sort();
-        best_laps
-            .get(0)
-            .map(|t| t.time.clone())
-            .flatten()
-            .unwrap_or(Time::INFINITY)
+        best_laps.get(0).unwrap_or(&dns()).clone()
     }
 }
 
@@ -159,60 +154,69 @@ mod test {
     fn get_best_in_class_day1() {
         let mut testable = ClassResults::new(ShortCarClass::AS);
         testable.add_driver(build_driver(
-            Some(vec![LapTime::new(4., 0, None)]),
-            Some(vec![LapTime::new(40., 0, None)]),
+            Some(vec![LapTime::new(4., 0.8, 0, None)]),
+            Some(vec![LapTime::new(40., 0.8, 0, None)]),
         ));
         testable.add_driver(build_driver(
-            Some(vec![LapTime::new(3., 0, None)]),
-            Some(vec![LapTime::new(30., 0, None)]),
+            Some(vec![LapTime::new(3., 0.9, 0, None)]),
+            Some(vec![LapTime::new(30., 0.9, 0, None)]),
         ));
         testable.add_driver(build_driver(
-            Some(vec![LapTime::new(5., 0, None)]),
-            Some(vec![LapTime::new(500., 0, None)]),
+            Some(vec![LapTime::new(5., 0.7, 0, None)]),
+            Some(vec![LapTime::new(500., 0.7, 0, None)]),
         ));
 
-        assert_eq!(testable.get_best_in_class(None), 3.);
-        assert_eq!(testable.get_best_in_class(Some(TimeSelection::Day1)), 3.);
+        assert_eq!(
+            testable.get_best_in_class(None),
+            LapTime::new(3., 0.9, 0, None)
+        );
+        assert_eq!(
+            testable.get_best_in_class(Some(TimeSelection::Day1)),
+            LapTime::new(3., 0.9, 0, None)
+        );
     }
 
     #[test]
     fn get_best_in_class_day2() {
         let mut testable = ClassResults::new(ShortCarClass::AS);
         testable.add_driver(build_driver(
-            Some(vec![LapTime::new(4., 0, None)]),
-            Some(vec![LapTime::new(40., 0, None)]),
+            Some(vec![LapTime::new(4., 0.8, 0, None)]),
+            Some(vec![LapTime::new(40., 0.8, 0, None)]),
         ));
         testable.add_driver(build_driver(
-            Some(vec![LapTime::new(3., 0, None)]),
-            Some(vec![LapTime::new(30., 0, None)]),
+            Some(vec![LapTime::new(3., 0.9, 0, None)]),
+            Some(vec![LapTime::new(30., 0.9, 0, None)]),
         ));
         testable.add_driver(build_driver(
-            Some(vec![LapTime::new(5., 0, None)]),
-            Some(vec![LapTime::new(500., 0, None)]),
+            Some(vec![LapTime::new(5., 0.7, 0, None)]),
+            Some(vec![LapTime::new(500., 0.7, 0, None)]),
         ));
 
-        assert_eq!(testable.get_best_in_class(Some(TimeSelection::Day2)), 30.);
+        assert_eq!(
+            testable.get_best_in_class(Some(TimeSelection::Day2)),
+            LapTime::new(30., 0.9, 0, None)
+        );
     }
 
     #[test]
     fn get_best_in_class_combined() {
         let mut testable = ClassResults::new(ShortCarClass::AS);
         testable.add_driver(build_driver(
-            Some(vec![LapTime::new(4., 0, None)]),
-            Some(vec![LapTime::new(40., 0, None)]),
+            Some(vec![LapTime::new(4., 0.8, 0, None)]),
+            Some(vec![LapTime::new(40., 0.8, 0, None)]),
         ));
         testable.add_driver(build_driver(
-            Some(vec![LapTime::new(3., 0, None)]),
-            Some(vec![LapTime::new(30., 0, None)]),
+            Some(vec![LapTime::new(3., 0.9, 0, None)]),
+            Some(vec![LapTime::new(30., 0.9, 0, None)]),
         ));
         testable.add_driver(build_driver(
-            Some(vec![LapTime::new(5., 0, None)]),
-            Some(vec![LapTime::new(500., 0, None)]),
+            Some(vec![LapTime::new(5., 0.7, 0, None)]),
+            Some(vec![LapTime::new(500., 0.7, 0, None)]),
         ));
 
         assert_eq!(
             testable.get_best_in_class(Some(TimeSelection::Combined)),
-            33.
+            LapTime::new(33., 0.9, 0, None)
         );
     }
 }
