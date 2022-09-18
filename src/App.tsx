@@ -4,7 +4,7 @@ import 'react-bootstrap-typeahead/css/Typeahead.css';
 import { Component, ComponentPropsWithoutRef } from 'react';
 import { Col, Container, Row } from 'react-bootstrap';
 import { toast, ToastContainer } from 'react-toastify';
-import { ChampionshipType, Rusty } from 'rusty/rusty';
+import { ChampionshipType, SccaSoloPointsEngine } from 'rusty/rusty';
 import { EventResults as EventResultsComponent } from './components/EventResults';
 import { ChampionshipResults as ChampionshipResultsComponent } from './components/ChampionshipResults';
 import { FileUploadBox } from './components/FileUploadBox';
@@ -17,7 +17,7 @@ interface AppState {
 
   processing: boolean;
 
-  rusty?: Rusty;
+  pointsEngine?: SccaSoloPointsEngine;
   driversInError?: string[];
   championshipResults?: Partial<Record<ChampionshipType, string>>;
 
@@ -61,7 +61,10 @@ class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
                 accept={'.csv'}
                 onFileSelect={async (f) => {
                   try {
-                    const rusty = new Rusty(await f.text(), false);
+                    const rusty = new SccaSoloPointsEngine(
+                      await f.text(),
+                      false,
+                    );
                     const driversInError =
                       rusty.js_drivers_in_error() as string[];
                     if (driversInError.length) {
@@ -70,7 +73,7 @@ class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
                     } else {
                       this.setState({
                         eventResultsFile: f,
-                        rusty,
+                        pointsEngine: rusty,
                       });
                       await this.processChampionships();
                     }
@@ -159,8 +162,8 @@ class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
             </Col>
           </Row>
 
-          {this.state.rusty && (
-            <EventResultsComponent rusty={this.state.rusty} />
+          {this.state.pointsEngine && (
+            <EventResultsComponent pointsEngine={this.state.pointsEngine} />
           )}
 
           <ChampionshipResultsComponent
@@ -182,16 +185,17 @@ class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
       mergedFiles[championshipType] = newFile;
       this.setState({ championshipResultsFiles: mergedFiles });
 
-      if (this.state.rusty) {
+      if (this.state.pointsEngine) {
         this.setState({ processing: true });
 
         const resultsType = ChampionshipType[championshipType];
         const fileName = newFile.name;
-        const newResults = this.state.rusty.add_prior_championship_results(
-          resultsType,
-          new Uint8Array(await newFile.arrayBuffer()),
-          fileName,
-        );
+        const newResults =
+          this.state.pointsEngine.add_prior_championship_results(
+            resultsType,
+            new Uint8Array(await newFile.arrayBuffer()),
+            fileName,
+          );
 
         const championshipResults: Partial<
           Record<keyof typeof ChampionshipType, string>

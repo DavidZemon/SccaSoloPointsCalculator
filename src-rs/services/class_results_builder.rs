@@ -4,10 +4,10 @@ use wasm_bindgen::JsValue;
 use crate::models::car_class::{get_car_class, CarClass};
 use crate::models::class_results::ClassResults;
 use crate::models::event_results::EventResults;
-use crate::services::championship_points_calculator::{
+use crate::services::calculators::championship_points_calculator::{
     ChampionshipPointsCalculator, DefaultChampionshipPointsCalculator,
 };
-use crate::services::trophy_calculator::{ClassTrophyCalculator, TrophyCalculator};
+use crate::services::calculators::trophy_calculator::{ClassTrophyCalculator, TrophyCalculator};
 
 pub struct ClassResultsBuilder {
     trophy_calculator: Box<dyn TrophyCalculator>,
@@ -54,7 +54,7 @@ impl ClassResultsBuilder {
         results
             .iter()
             .map(|(class, results)| {
-                JsValue::from_serde(&(class, self.export_class(results))).expect(
+                serde_wasm_bindgen::to_value(&(class, self.export_class(results))).expect(
                     format!("Failed to serialize class CSV for {}", class.long.name()).as_str(),
                 )
             })

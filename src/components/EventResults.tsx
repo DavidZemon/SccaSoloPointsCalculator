@@ -6,8 +6,8 @@ import {
   CarClass,
   ClassCategory,
   DriverGroup,
-  Rusty,
   LongCarClass,
+  SccaSoloPointsEngine,
   ShortCarClass,
   to_display_name,
 } from 'rusty/rusty';
@@ -21,7 +21,7 @@ type MangledCarClass = Omit<CarClass, 'short' | 'long' | 'category'> & {
 };
 
 interface EventResultsProps extends ComponentPropsWithoutRef<any> {
-  rusty: Rusty;
+  pointsEngine: SccaSoloPointsEngine;
 }
 
 interface EventResultsState {
@@ -39,7 +39,7 @@ export class EventResults extends Component<
   }
 
   public render() {
-    if (this.props.rusty) {
+    if (this.props.pointsEngine) {
       return (
         <>
           <Row className={'top-buffer'}>
@@ -79,11 +79,12 @@ export class EventResults extends Component<
   }
 
   private displayClassResults(): JSX.Element {
-    const header = this.props.rusty.get_header_for_event_class_results();
-    const classResults = this.props.rusty.get_event_class_results_csvs() as [
-      MangledCarClass,
-      string,
-    ][];
+    const header = this.props.pointsEngine.get_header_for_event_class_results();
+    const classResults =
+      this.props.pointsEngine.get_event_class_results_csvs() as [
+        MangledCarClass,
+        string,
+      ][];
     return (
       <Card>
         <Card.Header key={'class'}>
@@ -148,7 +149,8 @@ export class EventResults extends Component<
   }
 
   private displayCombinedResults(driverGroup: DriverGroup): JSX.Element {
-    const csvContent = this.props.rusty.get_event_combined_csv(driverGroup);
+    const csvContent =
+      this.props.pointsEngine.get_event_combined_csv(driverGroup);
     return (
       <Card>
         <Card.Header key={driverGroup}>

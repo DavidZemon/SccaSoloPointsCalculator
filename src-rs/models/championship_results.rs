@@ -2,8 +2,8 @@ use std::collections::HashMap;
 
 use serde::Serialize;
 
+use crate::enums::short_car_class::ShortCarClass;
 use crate::models::championship_driver::{ClassedChampionshipDriver, IndexedChampionshipDriver};
-use crate::models::short_car_class::ShortCarClass;
 
 #[derive(Serialize)]
 pub struct IndexedChampionshipResults {

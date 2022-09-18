@@ -45,10 +45,10 @@ pub struct ClassedChampionshipDriver {
 }
 
 impl IndexedChampionshipDriver {
-    pub fn new(id: String, name: String) -> IndexedChampionshipDriver {
+    pub fn new(id: &String, name: &String) -> IndexedChampionshipDriver {
         IndexedChampionshipDriver {
-            id,
-            name,
+            id: id.clone(),
+            name: name.clone(),
             points: Vec::new(),
             total_points: 0,
         }
@@ -91,10 +91,6 @@ impl ClassedChampionshipDriver {
             total_points: 0,
             car_class,
         }
-    }
-
-    pub fn car_class(&self) -> &CarClass {
-        &self.car_class
     }
 }
 

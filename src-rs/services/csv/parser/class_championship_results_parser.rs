@@ -2,15 +2,15 @@ use std::collections::{HashMap, HashSet};
 
 use calamine::{DataType, Range};
 
+use crate::enums::short_car_class::ShortCarClass;
 use crate::models::car_class::get_car_class;
 use crate::models::championship_driver::{ChampionshipDriver, ClassedChampionshipDriver};
 use crate::models::championship_results::ClassChampionshipResults;
 use crate::models::driver::Driver;
 use crate::models::event_results::EventResults;
 use crate::models::lap_time::{dns, LapTime};
-use crate::models::short_car_class::ShortCarClass;
 use crate::models::type_aliases::DriverId;
-use crate::services::championship_points_calculator::{
+use crate::services::calculators::championship_points_calculator::{
     ChampionshipPointsCalculator, DefaultChampionshipPointsCalculator,
 };
 

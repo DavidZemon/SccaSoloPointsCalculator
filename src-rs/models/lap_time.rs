@@ -4,13 +4,10 @@ use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 
 use bigdecimal::{BigDecimal, ToPrimitive};
-use getset::Getters;
 use serde::{Deserialize, Serialize};
-use wasm_bindgen::prelude::*;
 
 use crate::models::type_aliases::{PaxMultiplier, Time};
 
-#[wasm_bindgen]
 #[derive(Copy, Clone, Debug)]
 pub enum Penalty {
     DNF,
@@ -19,8 +16,7 @@ pub enum Penalty {
     DNS,
 }
 
-#[wasm_bindgen]
-#[derive(Copy, Clone, Debug, Deserialize, Serialize, Getters)]
+#[derive(Copy, Clone, Debug, Deserialize, Serialize)]
 pub struct LapTime {
     pub raw: Option<Time>,
     pub time: Option<Time>,
@@ -32,15 +28,7 @@ pub struct LapTime {
     pub dns: bool,
 }
 
-#[wasm_bindgen]
 impl LapTime {
-    /// Rebuild a LapTime object from a serialized & deserialized instance passed over the WASM
-    /// boundary
-    #[wasm_bindgen(constructor)]
-    pub fn from_js(v: JsValue) -> LapTime {
-        v.into_serde().unwrap()
-    }
-
     pub fn to_string(&self, index: bool, display_cone_count: bool) -> String {
         if self.dnf {
             String::from("DNF")
@@ -67,11 +55,6 @@ impl LapTime {
                 time_string
             }
         }
-    }
-
-    #[allow(non_snake_case)]
-    pub fn toString(&self) -> String {
-        self.to_string(false, true)
     }
 
     pub fn add(&self, rhs: LapTime) -> LapTime {
@@ -225,12 +208,10 @@ impl PartialEq for LapTime {
 
 impl Eq for LapTime {}
 
-#[wasm_bindgen]
 pub fn dsq() -> LapTime {
     LapTime::new(0., 1., 0, Some(Penalty::DSQ))
 }
 
-#[wasm_bindgen]
 pub fn dns() -> LapTime {
     LapTime::new(0., 1., 0, Some(Penalty::DNS))
 }

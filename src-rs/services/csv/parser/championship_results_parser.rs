@@ -2,29 +2,28 @@ use std::collections::HashMap;
 use std::io::Cursor;
 
 use calamine::{DataType, Range, Reader, Xls};
-use getset::Setters;
 use regex::Regex;
-use wasm_bindgen::prelude::*;
+use wasm_bindgen::JsValue;
 
 use crate::console_log;
-use crate::models::championship_type::ChampionshipType;
+use crate::enums::championship_type::ChampionshipType;
+use crate::enums::short_car_class::ShortCarClass;
 use crate::models::driver::Driver;
 use crate::models::event_results::EventResults;
 use crate::models::lap_time::{dns, LapTime};
-use crate::models::short_car_class::ShortCarClass;
 use crate::models::type_aliases::DriverId;
-use crate::services::class_championship_results_parser::{
+use crate::services::csv::builder::class_csv_builder::{ClassCsvBuilder, DefaultClassCsvBuilder};
+use crate::services::csv::builder::indexed_csv_builder::{
+    DefaultIndexedCsvBuilder, IndexedCsvBuilder,
+};
+use crate::services::csv::parser::class_championship_results_parser::{
     ClassChampionshipResultsParser, DefaultClassChampionshipResultsParser,
 };
-use crate::services::csv::class_csv_builder::{ClassCsvBuilder, DefaultClassCsvBuilder};
-use crate::services::csv::indexed_csv_builder::{DefaultIndexedCsvBuilder, IndexedCsvBuilder};
-use crate::services::index_championship_results_parser::{
+use crate::services::csv::parser::index_championship_results_parser::{
     DefaultIndexChampionshipResultsParser, IndexChampionshipResultsParser,
 };
 use crate::utilities::log;
 
-#[wasm_bindgen]
-#[derive(Setters)]
 pub struct ChampionshipResultsParser {
     class_results_parser: Box<dyn ClassChampionshipResultsParser>,
     index_results_parser: Box<dyn IndexChampionshipResultsParser>,
@@ -34,9 +33,7 @@ pub struct ChampionshipResultsParser {
     event_results: EventResults,
 }
 
-#[wasm_bindgen]
 impl ChampionshipResultsParser {
-    #[wasm_bindgen(constructor)]
     pub fn new(event_results: EventResults) -> ChampionshipResultsParser {
         ChampionshipResultsParser {
             class_results_parser: Box::new(DefaultClassChampionshipResultsParser::new()),

@@ -1,32 +1,24 @@
 use serde::{Deserialize, Serialize};
-use wasm_bindgen::prelude::*;
 
+use crate::enums::short_car_class::ShortCarClass;
 use crate::models::car_class::{get_car_class, CarClass};
 use crate::models::driver::{Driver, TimeSelection};
 use crate::models::lap_time::{dns, LapTime};
-use crate::models::short_car_class::ShortCarClass;
 
-#[wasm_bindgen]
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ClassResults {
     pub trophy_count: u8,
     pub car_class: CarClass,
-    #[wasm_bindgen(skip)]
     pub drivers: Vec<Driver>,
 }
 
-#[wasm_bindgen]
 impl ClassResults {
-    #[wasm_bindgen(constructor)]
-    pub fn from_js(value: JsValue) -> ClassResults {
-        value.into_serde().unwrap()
-    }
-
-    pub fn get_drivers(&self) -> Vec<JsValue> {
-        self.drivers
-            .iter()
-            .map(|d| serde_wasm_bindgen::to_value(d).unwrap())
-            .collect()
+    pub fn new(car_class: ShortCarClass) -> ClassResults {
+        ClassResults {
+            trophy_count: 0,
+            car_class: get_car_class(&car_class).unwrap(),
+            drivers: Vec::new(),
+        }
     }
 
     pub fn get_best_in_class(&self, time_selection: Option<TimeSelection>) -> LapTime {
@@ -37,16 +29,6 @@ impl ClassResults {
             .collect();
         best_laps.sort();
         best_laps.get(0).unwrap_or(&dns()).clone()
-    }
-}
-
-impl ClassResults {
-    pub fn new(car_class: ShortCarClass) -> ClassResults {
-        ClassResults {
-            trophy_count: 0,
-            car_class: get_car_class(&car_class).unwrap(),
-            drivers: Vec::new(),
-        }
     }
 
     pub fn add_driver(&mut self, driver: Driver) {
@@ -72,15 +54,15 @@ impl ClassResults {
 
 #[cfg(test)]
 mod test {
+    use crate::enums::short_car_class::ShortCarClass;
     use crate::models::class_results::ClassResults;
     use crate::models::driver::{Driver, TimeSelection};
-    use crate::models::exported_driver::ExportedDriver;
+    use crate::models::driver_from_pronto::DriverFromPronto;
     use crate::models::lap_time::LapTime;
-    use crate::models::short_car_class::ShortCarClass;
 
     fn build_driver(day1: Option<Vec<LapTime>>, day2: Option<Vec<LapTime>>) -> Driver {
         Driver::from(
-            ExportedDriver {
+            DriverFromPronto {
                 position: None,
                 car_class: ShortCarClass::SS,
                 car_number: 0,

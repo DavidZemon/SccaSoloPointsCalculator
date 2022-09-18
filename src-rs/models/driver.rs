@@ -1,15 +1,12 @@
 use std::cmp::Ordering;
 
-use getset::{Getters, Setters};
 use serde::{Deserialize, Serialize};
-use wasm_bindgen::prelude::*;
 
 use crate::models::car_class::{get_car_class, CarClass};
-use crate::models::exported_driver::ExportedDriver;
+use crate::models::driver_from_pronto::DriverFromPronto;
 use crate::models::lap_time::{dns, dsq, LapTime};
 use crate::models::type_aliases::DriverId;
 
-#[wasm_bindgen]
 #[derive(Copy, Clone, Debug)]
 pub enum TimeSelection {
     Day1,
@@ -17,28 +14,21 @@ pub enum TimeSelection {
     Combined,
 }
 
-#[wasm_bindgen]
-#[derive(Clone, Debug, Getters, Setters, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Driver {
     pub error: bool,
-    #[wasm_bindgen(skip)]
     pub id: DriverId,
-    #[wasm_bindgen(skip)]
     pub name: String,
     pub car_number: u16,
     pub car_class: CarClass,
-    #[wasm_bindgen(skip)]
     pub car_description: String,
-    #[wasm_bindgen(skip)]
     pub region: String,
     pub rookie: bool,
     pub ladies_championship: bool,
     pub position: Option<usize>,
     pub dsq: bool,
     pub pax_multiplier: f64,
-    #[wasm_bindgen(skip)]
     pub day_1_times: Option<Vec<LapTime>>,
-    #[wasm_bindgen(skip)]
     pub day_2_times: Option<Vec<LapTime>>,
     pub combined: LapTime,
 
@@ -46,53 +36,7 @@ pub struct Driver {
     two_day_event: bool,
 }
 
-#[wasm_bindgen]
 impl Driver {
-    #[wasm_bindgen(constructor)]
-    pub fn from_js(v: JsValue) -> Result<Driver, String> {
-        v.into_serde().map_err(|e| e.to_string())
-    }
-
-    pub fn get_id(&self) -> DriverId {
-        self.id.clone()
-    }
-
-    pub fn get_name(&self) -> String {
-        self.name.clone()
-    }
-
-    pub fn get_car_description(&self) -> String {
-        self.car_description.clone()
-    }
-
-    pub fn get_region(&self) -> String {
-        self.region.clone()
-    }
-
-    pub fn get_day_1_times(&self) -> Result<Option<Vec<JsValue>>, String> {
-        Ok(match self.day_1_times.clone() {
-            Some(times) => Some(
-                times
-                    .iter()
-                    .map(|t| serde_wasm_bindgen::to_value(t).unwrap())
-                    .collect(),
-            ),
-            None => None,
-        })
-    }
-
-    pub fn get_day_2_times(&self) -> Result<Option<Vec<JsValue>>, String> {
-        Ok(match self.day_2_times.clone() {
-            Some(times) => Some(
-                times
-                    .iter()
-                    .map(|t| serde_wasm_bindgen::to_value(t).unwrap())
-                    .collect(),
-            ),
-            None => None,
-        })
-    }
-
     pub fn best_lap(&self, time_selection: Option<TimeSelection>) -> LapTime {
         if self.dsq {
             dsq()
@@ -143,15 +87,6 @@ impl Driver {
         }
     }
 
-    pub fn get_js_times(&self, time_selection: Option<TimeSelection>) -> Option<Vec<JsValue>> {
-        self.get_times(time_selection).clone().map(|times| {
-            times
-                .into_iter()
-                .map(|t| JsValue::from_serde(&t).unwrap())
-                .collect()
-        })
-    }
-
     pub fn difference(
         &self,
         comparison: LapTime,
@@ -186,7 +121,7 @@ impl Driver {
 }
 
 impl Driver {
-    pub fn from(driver: ExportedDriver, two_day_event: bool) -> Driver {
+    pub fn from(driver: DriverFromPronto, two_day_event: bool) -> Driver {
         let best_run_is_falsy = driver
             .best_run
             .parse::<f64>()
@@ -241,20 +176,6 @@ impl Driver {
         driver.combined = driver.best_lap(Some(TimeSelection::Combined));
         driver
     }
-
-    pub fn get_times(&self, time_selection: Option<TimeSelection>) -> &Option<Vec<LapTime>> {
-        let selection = match time_selection {
-            Some(t) => t,
-            None => TimeSelection::Day1,
-        };
-        match selection {
-            TimeSelection::Day1 => &self.day_1_times,
-            TimeSelection::Day2 => &self.day_2_times,
-            TimeSelection::Combined => {
-                panic!("Silly person! I can't give you an array of times for the 'combined' time!")
-            }
-        }
-    }
 }
 
 impl Ord for Driver {
@@ -295,15 +216,12 @@ impl Eq for Driver {}
 
 #[cfg(test)]
 mod test {
-    use panic::catch_unwind;
-    use std::panic;
-
     use rstest::rstest;
 
+    use crate::enums::short_car_class::ShortCarClass;
     use crate::models::driver::{Driver, TimeSelection};
-    use crate::models::exported_driver::ExportedDriver;
+    use crate::models::driver_from_pronto::DriverFromPronto;
     use crate::models::lap_time::{dns, dsq, LapTime, Penalty};
-    use crate::models::short_car_class::ShortCarClass;
     use crate::models::type_aliases::{PaxMultiplier, Time};
 
     fn build_driver(
@@ -313,7 +231,7 @@ mod test {
         two_day: bool,
     ) -> Driver {
         Driver::from(
-            ExportedDriver {
+            DriverFromPronto {
                 position: None,
                 car_class: ShortCarClass::SS,
                 car_number: 0,
@@ -572,26 +490,6 @@ mod test {
             .best_lap(Some(TimeSelection::Combined)),
             LapTime::new(66., 0.5, 3, None)
         );
-    }
-
-    #[test]
-    fn get_times_happy_path() {
-        let d1 = Some(vec![LapTime::new(1., 0.9, 0, None)]);
-        let d2 = Some(vec![LapTime::new(2., 0.9, 0, None)]);
-        let testable = build_driver(d1.clone(), d2.clone(), false, true);
-        assert_eq!(testable.get_times(None), &d1);
-        assert_eq!(testable.get_times(Some(TimeSelection::Day1)), &d1);
-        assert_eq!(testable.get_times(Some(TimeSelection::Day2)), &d2);
-    }
-
-    #[test]
-    fn get_times_should_fail_for_combined() {
-        let d1 = Some(vec![LapTime::new(1., 0.9, 0, None)]);
-        let d2 = Some(vec![LapTime::new(2., 0.9, 0, None)]);
-        let testable = build_driver(d1.clone(), d2.clone(), false, true);
-
-        let actual = catch_unwind(|| testable.get_times(Some(TimeSelection::Combined)));
-        assert!(actual.is_err());
     }
 
     #[rstest]

@@ -5,8 +5,8 @@ use csv::{StringRecord, Trim};
 
 use crate::models::class_results::ClassResults;
 use crate::models::driver::Driver;
+use crate::models::driver_from_pronto::DriverFromPronto;
 use crate::models::event_results::EventResults;
-use crate::models::exported_driver::ExportedDriver;
 use crate::models::lap_time::{LapTime, Penalty};
 use crate::models::type_aliases::PaxMultiplier;
 use crate::utilities::swap;
@@ -46,14 +46,14 @@ pub fn parse(file_contents: String, two_day_event: bool) -> Result<EventResults,
 }
 
 fn perform_second_parsing(
-    deserialized: csv::Result<ExportedDriver>,
+    deserialized: csv::Result<DriverFromPronto>,
     string_rec: csv::Result<StringRecord>,
     first_time_column: usize,
-) -> Result<ExportedDriver, String> {
+) -> Result<DriverFromPronto, String> {
     let string_record = string_rec.map_err(|e| e.to_string())?;
     let strings_vec: Vec<&str> = string_record.iter().collect();
 
-    let mut driver: ExportedDriver = deserialized.map_err(|e| e.to_string())?;
+    let mut driver: DriverFromPronto = deserialized.map_err(|e| e.to_string())?;
 
     let extra_fields = &strings_vec[first_time_column..];
     driver.day1 = swap(
@@ -117,9 +117,9 @@ fn build_lap_time(next_fields: &[&str], pax: PaxMultiplier) -> Result<LapTime, S
 mod test {
     use std::fs;
 
+    use crate::enums::short_car_class::ShortCarClass;
     use crate::models::driver::TimeSelection;
     use crate::models::lap_time::{dns, LapTime, Penalty};
-    use crate::models::short_car_class::ShortCarClass;
     use crate::services::event_results_parser::parse;
 
     #[test]
@@ -128,7 +128,7 @@ mod test {
             fs::read_to_string("./SampleData/2022_Event1-DavidExport.csv").unwrap();
         let actual = parse(sample_contents, false).unwrap();
 
-        assert_eq!(actual.len(), 29);
+        assert_eq!(actual.results.len(), 29);
         assert!(actual.results.contains_key(&ShortCarClass::AS));
         assert!(actual.results.contains_key(&ShortCarClass::BS));
         assert!(actual.results.contains_key(&ShortCarClass::CAMC));

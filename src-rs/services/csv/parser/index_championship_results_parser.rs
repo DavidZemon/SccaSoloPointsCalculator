@@ -7,7 +7,7 @@ use crate::models::championship_results::IndexedChampionshipResults;
 use crate::models::driver::Driver;
 use crate::models::lap_time::LapTime;
 use crate::models::type_aliases::DriverId;
-use crate::services::championship_points_calculator::{
+use crate::services::calculators::championship_points_calculator::{
     ChampionshipPointsCalculator, DefaultChampionshipPointsCalculator,
 };
 
@@ -105,7 +105,7 @@ impl DefaultIndexChampionshipResultsParser {
             .map(|r| {
                 let name = r[name_index].to_string();
                 let id = name.to_lowercase();
-                let mut driver = IndexedChampionshipDriver::new(id.clone(), name);
+                let mut driver = IndexedChampionshipDriver::new(&id, &name);
                 r[name_index + 1..total_points_index]
                     .iter()
                     .for_each(|cell| driver.add_event(cell.get_int().unwrap_or_default()));
@@ -139,8 +139,8 @@ impl DefaultIndexChampionshipResultsParser {
             }
             (None, Some(driver_new_results)) => {
                 let mut new_driver = IndexedChampionshipDriver::new(
-                    driver_new_results.get_name(),
-                    driver_new_results.get_name(),
+                    &driver_new_results.name,
+                    &driver_new_results.name,
                 );
                 (0..ctx.past_event_count).for_each(|_| new_driver.add_event(0));
                 new_driver.add_event(
@@ -150,7 +150,7 @@ impl DefaultIndexChampionshipResultsParser {
                 new_driver
             }
             (None, None) => {
-                IndexedChampionshipDriver::new("impossible".to_string(), "impossible".to_string())
+                IndexedChampionshipDriver::new(&"impossible".to_string(), &"impossible".to_string())
             }
         }
     }

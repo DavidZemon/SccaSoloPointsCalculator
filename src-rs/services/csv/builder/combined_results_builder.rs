@@ -1,14 +1,14 @@
 use csv::Writer;
 
+use crate::enums::driver_group::DriverGroup;
 use crate::models::driver::Driver;
-use crate::models::driver_group::DriverGroup;
 use crate::models::event_results::EventResults;
 use crate::models::lap_time::LapTime;
-use crate::services::championship_points_calculator::{
+use crate::services::calculators::championship_points_calculator::{
     ChampionshipPointsCalculator, DefaultChampionshipPointsCalculator,
 };
-use crate::services::tie_calculator::calculate_tie_offset;
-use crate::services::trophy_calculator::{IndexTrophyCalculator, TrophyCalculator};
+use crate::services::calculators::tie_calculator::calculate_tie_offset;
+use crate::services::calculators::trophy_calculator::{IndexTrophyCalculator, TrophyCalculator};
 
 pub struct CombinedResultsBuilder {
     trophy_calculator: Box<dyn TrophyCalculator>,

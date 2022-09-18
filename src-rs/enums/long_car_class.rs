@@ -93,7 +93,6 @@ enum_str! {
     }
 }
 
-#[wasm_bindgen]
 pub fn to_display_name(long_car_class: LongCarClass) -> String {
     long_car_class
         .name()
@@ -103,8 +102,8 @@ pub fn to_display_name(long_car_class: LongCarClass) -> String {
 
 #[cfg(test)]
 mod test {
-    use crate::models::long_car_class::to_display_name;
-    use crate::models::long_car_class::LongCarClass;
+    use crate::enums::long_car_class::to_display_name;
+    use crate::enums::long_car_class::LongCarClass;
 
     #[test]
     fn to_display_name_should_convert_correctly() {

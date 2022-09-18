@@ -1,8 +1,8 @@
+use crate::enums::championship_type::ChampionshipType;
 use crate::models::championship_driver::{ChampionshipDriver, IndexedChampionshipDriver};
 use crate::models::championship_results::IndexedChampionshipResults;
-use crate::models::championship_type::ChampionshipType;
-use crate::services::tie_calculator::calculate_tie_offset;
-use crate::services::trophy_calculator::{IndexTrophyCalculator, TrophyCalculator};
+use crate::services::calculators::tie_calculator::calculate_tie_offset;
+use crate::services::calculators::trophy_calculator::{IndexTrophyCalculator, TrophyCalculator};
 use crate::utilities::events_to_count;
 
 pub trait IndexedCsvBuilder {
@@ -108,12 +108,14 @@ impl DefaultIndexedCsvBuilder {
 
 #[cfg(test)]
 mod test {
+    use crate::enums::championship_type::ChampionshipType;
     use crate::models::championship_driver::{ChampionshipDriver, IndexedChampionshipDriver};
     use crate::models::championship_results::IndexedChampionshipResults;
-    use crate::models::championship_type::ChampionshipType;
     use crate::models::driver::Driver;
-    use crate::services::csv::indexed_csv_builder::{DefaultIndexedCsvBuilder, IndexedCsvBuilder};
-    use crate::services::trophy_calculator::TrophyCalculator;
+    use crate::services::calculators::trophy_calculator::TrophyCalculator;
+    use crate::services::csv::builder::indexed_csv_builder::{
+        DefaultIndexedCsvBuilder, IndexedCsvBuilder,
+    };
 
     struct MockTrophyCalculator {}
 
@@ -131,9 +133,9 @@ mod test {
     fn test_tie() {
         let testable = DefaultIndexedCsvBuilder::from(Some(Box::from(MockTrophyCalculator {})));
 
-        let mut d1 = IndexedChampionshipDriver::new("ID1".to_string(), "Name 1".to_string());
-        let mut d2 = IndexedChampionshipDriver::new("ID2".to_string(), "Name 2".to_string());
-        let mut d3 = IndexedChampionshipDriver::new("ID3".to_string(), "Name 3".to_string());
+        let mut d1 = IndexedChampionshipDriver::new(&"ID1".to_string(), &"Name 1".to_string());
+        let mut d2 = IndexedChampionshipDriver::new(&"ID2".to_string(), &"Name 2".to_string());
+        let mut d3 = IndexedChampionshipDriver::new(&"ID3".to_string(), &"Name 3".to_string());
 
         d1.add_event(10);
         d2.add_event(10);

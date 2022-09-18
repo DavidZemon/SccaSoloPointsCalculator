@@ -33,7 +33,7 @@ impl TrophyCalculator for IndexTrophyCalculator {
 
 #[cfg(test)]
 mod test {
-    use crate::services::trophy_calculator::{
+    use crate::services::calculators::trophy_calculator::{
         ClassTrophyCalculator, IndexTrophyCalculator, TrophyCalculator,
     };
 

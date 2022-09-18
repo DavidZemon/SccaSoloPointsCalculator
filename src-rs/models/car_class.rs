@@ -3,13 +3,11 @@ use std::fmt::{Display, Formatter};
 
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
-use wasm_bindgen::prelude::*;
 
-use crate::models::class_category::ClassCategory;
-use crate::models::long_car_class::LongCarClass;
-use crate::models::short_car_class::ShortCarClass;
+use crate::enums::class_category::ClassCategory;
+use crate::enums::long_car_class::LongCarClass;
+use crate::enums::short_car_class::ShortCarClass;
 
-#[wasm_bindgen]
 #[derive(Copy, Clone, Debug, Deserialize, Serialize)]
 pub struct CarClass {
     pub short: ShortCarClass,
@@ -17,9 +15,7 @@ pub struct CarClass {
     pub category: ClassCategory,
 }
 
-#[wasm_bindgen]
 impl CarClass {
-    #[wasm_bindgen(constructor)]
     pub fn new(short: ShortCarClass, long: LongCarClass, category: ClassCategory) -> CarClass {
         CarClass {
             short,
@@ -746,10 +742,6 @@ lazy_static! {
     };
 }
 
-#[wasm_bindgen(js_name = get_car_class)]
-pub fn _get_car_class(car_class: ShortCarClass) -> Option<CarClass> {
-    get_car_class(&car_class)
-}
 pub fn get_car_class(car_class: &ShortCarClass) -> Option<CarClass> {
     if CLASS_MAP.contains_key(car_class) {
         Some(CLASS_MAP[car_class])

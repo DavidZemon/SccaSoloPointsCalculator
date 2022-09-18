@@ -1,5 +1,4 @@
-use crate::models::short_car_class::ShortCarClass;
-
+use crate::enums::short_car_class::ShortCarClass;
 use crate::models::lap_time::LapTime;
 use crate::models::type_aliases::{PaxMultiplier, Time};
 use serde::Deserialize;
@@ -11,7 +10,7 @@ pub enum BestRun {
 }
 
 #[derive(Debug, Deserialize)]
-pub struct ExportedDriver {
+pub struct DriverFromPronto {
     #[serde(rename = "Position")]
     pub position: Option<u16>,
     #[serde(rename = "Class")]
