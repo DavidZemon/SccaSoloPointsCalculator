@@ -33,4 +33,4 @@ yarn-error.log*
 /target
 /Cargo.lock
 /rusty
-/public/rusty_bg.wasm
+/public/*_bg.wasm

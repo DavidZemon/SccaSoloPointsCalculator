@@ -3,7 +3,7 @@ import { Accordion, Button, Card, Col, Row } from 'react-bootstrap';
 import { RamDownload } from './DownloadButton';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faDownload } from '@fortawesome/free-solid-svg-icons';
-import { ChampionshipType } from 'rusty/rusty';
+import { ChampionshipType } from 'scca_solo_points_engine/scca_solo_points_engine';
 import { CsvTable } from './CsvTable';
 
 interface ChampionshipResultsProps extends PropsWithoutRef<any> {

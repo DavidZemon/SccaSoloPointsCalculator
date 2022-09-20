@@ -2,9 +2,9 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import './index.css';
 import App from './App';
-import { default as init } from 'rusty/rusty';
+import { default as init } from 'scca_solo_points_engine/scca_solo_points_engine';
 
-init('rusty_bg.wasm').then(() => {
+init('scca_solo_points_engine_bg.wasm').then(() => {
   ReactDOM.render(
     <React.StrictMode>
       <App />

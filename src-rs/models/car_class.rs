@@ -3,11 +3,13 @@ use std::fmt::{Display, Formatter};
 
 use lazy_static::lazy_static;
 use serde::Serialize;
+use wasm_bindgen::prelude::wasm_bindgen;
 
 use crate::enums::class_category::ClassCategory;
 use crate::enums::long_car_class::LongCarClass;
 use crate::enums::short_car_class::ShortCarClass;
 
+#[wasm_bindgen]
 #[derive(Copy, Clone, Debug, Serialize)]
 pub struct CarClass {
     pub short: ShortCarClass,

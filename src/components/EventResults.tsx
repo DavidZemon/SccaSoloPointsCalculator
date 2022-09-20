@@ -10,7 +10,7 @@ import {
   SccaSoloPointsEngine,
   ShortCarClass,
   to_display_name,
-} from 'rusty/rusty';
+} from 'scca_solo_points_engine/scca_solo_points_engine';
 import { RamDownload } from './DownloadButton';
 import { CsvTable } from './CsvTable';
 

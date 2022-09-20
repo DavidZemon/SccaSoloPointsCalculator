@@ -4,7 +4,10 @@ import 'react-bootstrap-typeahead/css/Typeahead.css';
 import { Component, ComponentPropsWithoutRef } from 'react';
 import { Col, Container, Row } from 'react-bootstrap';
 import { toast, ToastContainer } from 'react-toastify';
-import { ChampionshipType, SccaSoloPointsEngine } from 'rusty/rusty';
+import {
+  ChampionshipType,
+  SccaSoloPointsEngine,
+} from 'scca_solo_points_engine/scca_solo_points_engine';
 import { EventResults as EventResultsComponent } from './components/EventResults';
 import { ChampionshipResults as ChampionshipResultsComponent } from './components/ChampionshipResults';
 import { FileUploadBox } from './components/FileUploadBox';

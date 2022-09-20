@@ -93,6 +93,7 @@ enum_str! {
     }
 }
 
+#[wasm_bindgen]
 pub fn to_display_name(long_car_class: LongCarClass) -> String {
     long_car_class
         .name()

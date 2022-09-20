@@ -1,6 +1,6 @@
 extern crate core;
 
-mod enums;
+pub mod enums;
 mod models;
 mod services;
 mod utilities;
