@@ -2,13 +2,13 @@ use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 
 use lazy_static::lazy_static;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 
 use crate::enums::class_category::ClassCategory;
 use crate::enums::long_car_class::LongCarClass;
 use crate::enums::short_car_class::ShortCarClass;
 
-#[derive(Copy, Clone, Debug, Deserialize, Serialize)]
+#[derive(Copy, Clone, Debug, Serialize)]
 pub struct CarClass {
     pub short: ShortCarClass,
     pub long: LongCarClass,

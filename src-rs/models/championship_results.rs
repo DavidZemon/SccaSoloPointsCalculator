@@ -1,22 +1,19 @@
 use std::collections::HashMap;
 
-use serde::Serialize;
-
 use crate::enums::short_car_class::ShortCarClass;
-use crate::models::championship_driver::{ClassedChampionshipDriver, IndexedChampionshipDriver};
+use crate::models::championship_driver::ChampionshipDriver;
 
-#[derive(Serialize)]
 pub struct IndexedChampionshipResults {
     pub year: u16,
     pub organization: String,
-    pub drivers: Vec<IndexedChampionshipDriver>,
+    pub drivers: Vec<ChampionshipDriver>,
 }
 
 impl IndexedChampionshipResults {
     pub fn new(
         year: u16,
         organization: String,
-        drivers: Vec<IndexedChampionshipDriver>,
+        drivers: Vec<ChampionshipDriver>,
     ) -> IndexedChampionshipResults {
         IndexedChampionshipResults {
             year,
@@ -26,18 +23,17 @@ impl IndexedChampionshipResults {
     }
 }
 
-#[derive(Serialize)]
 pub struct ClassChampionshipResults {
     pub year: u16,
     pub organization: String,
-    pub drivers_by_class: HashMap<ShortCarClass, Vec<ClassedChampionshipDriver>>,
+    pub drivers_by_class: HashMap<ShortCarClass, Vec<ChampionshipDriver>>,
 }
 
 impl ClassChampionshipResults {
     pub fn new(
         year: u16,
         organization: String,
-        drivers_by_class: HashMap<ShortCarClass, Vec<ClassedChampionshipDriver>>,
+        drivers_by_class: HashMap<ShortCarClass, Vec<ChampionshipDriver>>,
     ) -> ClassChampionshipResults {
         ClassChampionshipResults {
             year,

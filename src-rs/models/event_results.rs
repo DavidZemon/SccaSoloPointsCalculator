@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 
-use serde::{Deserialize, Serialize};
 use wasm_bindgen::JsValue;
 
 use crate::enums::driver_group::DriverGroup;
@@ -8,7 +7,7 @@ use crate::enums::short_car_class::ShortCarClass;
 use crate::models::class_results::ClassResults;
 use crate::models::driver::Driver;
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug)]
 pub struct EventResults {
     pub results: HashMap<ShortCarClass, ClassResults>,
 }

@@ -1,7 +1,7 @@
 use crate::enums::long_car_class::to_display_name;
 use crate::enums::short_car_class::ShortCarClass;
 use crate::models::car_class::get_car_class;
-use crate::models::championship_driver::{ChampionshipDriver, ClassedChampionshipDriver};
+use crate::models::championship_driver::ChampionshipDriver;
 use crate::models::championship_results::ClassChampionshipResults;
 use crate::services::calculators::tie_calculator::calculate_tie_offset;
 use crate::services::calculators::trophy_calculator::{ClassTrophyCalculator, TrophyCalculator};
@@ -49,7 +49,7 @@ impl ClassCsvBuilder for DefaultClassCsvBuilder {
                 });
                 (k.clone(), v)
             })
-            .collect::<Vec<(ShortCarClass, Vec<ClassedChampionshipDriver>)>>();
+            .collect::<Vec<(ShortCarClass, Vec<ChampionshipDriver>)>>();
         sorted.sort_by(|(lhs, _), (rhs, _)| lhs.cmp(rhs));
 
         sorted.iter().for_each(|(class, drivers)| {

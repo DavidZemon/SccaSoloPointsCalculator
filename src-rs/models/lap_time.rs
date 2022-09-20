@@ -4,7 +4,6 @@ use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 
 use bigdecimal::{BigDecimal, ToPrimitive};
-use serde::{Deserialize, Serialize};
 
 use crate::models::type_aliases::{PaxMultiplier, Time};
 
@@ -16,7 +15,7 @@ pub enum Penalty {
     DNS,
 }
 
-#[derive(Copy, Clone, Debug, Deserialize, Serialize)]
+#[derive(Copy, Clone, Debug)]
 pub struct LapTime {
     pub raw: Option<Time>,
     pub time: Option<Time>,

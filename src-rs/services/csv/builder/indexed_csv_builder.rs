@@ -1,5 +1,5 @@
 use crate::enums::championship_type::ChampionshipType;
-use crate::models::championship_driver::{ChampionshipDriver, IndexedChampionshipDriver};
+use crate::models::championship_driver::ChampionshipDriver;
 use crate::models::championship_results::IndexedChampionshipResults;
 use crate::services::calculators::tie_calculator::calculate_tie_offset;
 use crate::services::calculators::trophy_calculator::{IndexTrophyCalculator, TrophyCalculator};
@@ -51,7 +51,7 @@ impl IndexedCsvBuilder for DefaultIndexedCsvBuilder {
         let filtered_drivers = sorted
             .iter()
             .filter(|d| d.total_points() != 0)
-            .collect::<Vec<&IndexedChampionshipDriver>>();
+            .collect::<Vec<&ChampionshipDriver>>();
         rows.extend(filtered_drivers.iter().enumerate().map(|(index, d)| {
             let tie_offset = calculate_tie_offset(&filtered_drivers, index, |d1, d2| {
                 d1.total_points() == d2.total_points()
@@ -109,7 +109,7 @@ impl DefaultIndexedCsvBuilder {
 #[cfg(test)]
 mod test {
     use crate::enums::championship_type::ChampionshipType;
-    use crate::models::championship_driver::{ChampionshipDriver, IndexedChampionshipDriver};
+    use crate::models::championship_driver::ChampionshipDriver;
     use crate::models::championship_results::IndexedChampionshipResults;
     use crate::models::driver::Driver;
     use crate::services::calculators::trophy_calculator::TrophyCalculator;
@@ -133,9 +133,9 @@ mod test {
     fn test_tie() {
         let testable = DefaultIndexedCsvBuilder::from(Some(Box::from(MockTrophyCalculator {})));
 
-        let mut d1 = IndexedChampionshipDriver::new(&"ID1".to_string(), &"Name 1".to_string());
-        let mut d2 = IndexedChampionshipDriver::new(&"ID2".to_string(), &"Name 2".to_string());
-        let mut d3 = IndexedChampionshipDriver::new(&"ID3".to_string(), &"Name 3".to_string());
+        let mut d1 = ChampionshipDriver::new(&"Name 1".to_string());
+        let mut d2 = ChampionshipDriver::new(&"Name 2".to_string());
+        let mut d3 = ChampionshipDriver::new(&"Name 3".to_string());
 
         d1.add_event(10);
         d2.add_event(10);

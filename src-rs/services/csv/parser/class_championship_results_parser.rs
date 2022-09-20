@@ -3,8 +3,7 @@ use std::collections::{HashMap, HashSet};
 use calamine::{DataType, Range};
 
 use crate::enums::short_car_class::ShortCarClass;
-use crate::models::car_class::get_car_class;
-use crate::models::championship_driver::{ChampionshipDriver, ClassedChampionshipDriver};
+use crate::models::championship_driver::ChampionshipDriver;
 use crate::models::championship_results::ClassChampionshipResults;
 use crate::models::driver::Driver;
 use crate::models::event_results::EventResults;
@@ -15,8 +14,7 @@ use crate::services::calculators::championship_points_calculator::{
 };
 
 struct CalculationContext {
-    rows_by_class_and_driver_id:
-        HashMap<ShortCarClass, HashMap<DriverId, ClassedChampionshipDriver>>,
+    rows_by_class_and_driver_id: HashMap<ShortCarClass, HashMap<DriverId, ChampionshipDriver>>,
     new_event_drivers_by_class_and_id: HashMap<ShortCarClass, HashMap<DriverId, Driver>>,
     past_event_count: usize,
 }
@@ -82,10 +80,10 @@ impl DefaultClassChampionshipResultsParser {
         &self,
         header_map: HashMap<String, usize>,
         data: Range<DataType>,
-    ) -> Result<HashMap<ShortCarClass, HashMap<DriverId, ClassedChampionshipDriver>>, String> {
+    ) -> Result<HashMap<ShortCarClass, HashMap<DriverId, ChampionshipDriver>>, String> {
         let mut rows_by_class_and_driver_id: HashMap<
             ShortCarClass,
-            HashMap<DriverId, ClassedChampionshipDriver>,
+            HashMap<DriverId, ChampionshipDriver>,
         > = HashMap::new();
 
         let mut current_class: Option<ShortCarClass> = None;
@@ -132,7 +130,7 @@ impl DefaultClassChampionshipResultsParser {
     fn add_driver(
         rows_by_class_and_driver_id: &mut HashMap<
             ShortCarClass,
-            HashMap<DriverId, ClassedChampionshipDriver>,
+            HashMap<DriverId, ChampionshipDriver>,
         >,
         current_class: &ShortCarClass,
         name_index: usize,
@@ -147,19 +145,8 @@ impl DefaultClassChampionshipResultsParser {
             .as_str(),
         );
         let name = r[name_index].to_string();
-        let id = name.to_lowercase();
 
-        let mut driver = ClassedChampionshipDriver::new(
-            id.clone(),
-            name,
-            get_car_class(&current_class).expect(
-                format!(
-                    "Expected to find full CarClass struct for short class {:?} but did not",
-                    current_class
-                )
-                .as_str(),
-            ),
-        );
+        let mut driver = ChampionshipDriver::new(&name);
 
         r[name_index + 1..total_points_index]
             .iter()
@@ -167,7 +154,7 @@ impl DefaultClassChampionshipResultsParser {
                 driver.add_event(cell.get_int().unwrap_or_default());
             });
 
-        rows_for_one_class.insert(id, driver);
+        rows_for_one_class.insert(name.to_lowercase(), driver);
     }
 
     fn get_new_event_drivers(
@@ -195,7 +182,7 @@ impl DefaultClassChampionshipResultsParser {
     fn calculate_results(
         &self,
         ctx: &CalculationContext,
-    ) -> HashMap<ShortCarClass, Vec<ClassedChampionshipDriver>> {
+    ) -> HashMap<ShortCarClass, Vec<ChampionshipDriver>> {
         self.get_all_driver_ids_by_class(
             &ctx.rows_by_class_and_driver_id,
             &ctx.new_event_drivers_by_class_and_id,
@@ -210,8 +197,8 @@ impl DefaultClassChampionshipResultsParser {
         ctx: &CalculationContext,
         class: &ShortCarClass,
         driver_ids: &HashSet<DriverId>,
-    ) -> (ShortCarClass, Vec<ClassedChampionshipDriver>) {
-        let empty_class_history: HashMap<DriverId, ClassedChampionshipDriver> = HashMap::new();
+    ) -> (ShortCarClass, Vec<ChampionshipDriver>) {
+        let empty_class_history: HashMap<DriverId, ChampionshipDriver> = HashMap::new();
         let empty_driver_list: HashMap<DriverId, Driver> = HashMap::new();
 
         let class_history = ctx
@@ -238,7 +225,6 @@ impl DefaultClassChampionshipResultsParser {
                     self.create_classed_championship_driver(
                         ctx,
                         &best_time_of_day,
-                        class,
                         id,
                         class_history,
                         new_event_drivers_by_id,
@@ -252,11 +238,10 @@ impl DefaultClassChampionshipResultsParser {
         &self,
         ctx: &CalculationContext,
         best_time_of_day: &LapTime,
-        class: &ShortCarClass,
         id: &DriverId,
-        class_history: &HashMap<DriverId, ClassedChampionshipDriver>,
+        class_history: &HashMap<DriverId, ChampionshipDriver>,
         new_event_drivers_by_id: &HashMap<DriverId, Driver>,
-    ) -> ClassedChampionshipDriver {
+    ) -> ChampionshipDriver {
         let driver_history_opt = class_history.get(id);
         let driver_new_results_opt = new_event_drivers_by_id.get(id);
 
@@ -276,11 +261,7 @@ impl DefaultClassChampionshipResultsParser {
                 driver_history
             }
             (None, Some(driver_new_results)) => {
-                let mut new_driver = ClassedChampionshipDriver::new(
-                    id.clone(),
-                    driver_new_results.name.clone(),
-                    get_car_class(class).unwrap(),
-                );
+                let mut new_driver = ChampionshipDriver::new(&driver_new_results.name);
                 (0..ctx.past_event_count).for_each(|_| {
                     new_driver.add_event(0);
                 });
@@ -290,20 +271,13 @@ impl DefaultClassChampionshipResultsParser {
                 );
                 new_driver
             }
-            (None, None) => ClassedChampionshipDriver::new(
-                "impossible".to_string(),
-                "impossible".to_string(),
-                get_car_class(&ShortCarClass::AM).unwrap(),
-            ),
+            (None, None) => ChampionshipDriver::new(&"impossible".to_string()),
         }
     }
 
     fn get_all_driver_ids_by_class(
         &self,
-        rows_by_class_and_driver_id: &HashMap<
-            ShortCarClass,
-            HashMap<DriverId, ClassedChampionshipDriver>,
-        >,
+        rows_by_class_and_driver_id: &HashMap<ShortCarClass, HashMap<DriverId, ChampionshipDriver>>,
         new_event_drivers_by_class_and_id: &HashMap<ShortCarClass, HashMap<DriverId, Driver>>,
     ) -> HashMap<ShortCarClass, HashSet<DriverId>> {
         let mut all_classes = rows_by_class_and_driver_id

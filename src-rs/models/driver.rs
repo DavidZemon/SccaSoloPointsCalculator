@@ -1,7 +1,5 @@
 use std::cmp::Ordering;
 
-use serde::{Deserialize, Serialize};
-
 use crate::models::car_class::{get_car_class, CarClass};
 use crate::models::driver_from_pronto::DriverFromPronto;
 use crate::models::lap_time::{dns, dsq, LapTime};
@@ -14,7 +12,7 @@ pub enum TimeSelection {
     Combined,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug)]
 pub struct Driver {
     pub error: bool,
     pub id: DriverId,
@@ -118,9 +116,7 @@ impl Driver {
             (_, _) => "N/A".to_string(),
         }
     }
-}
 
-impl Driver {
     pub fn from(driver: DriverFromPronto, two_day_event: bool) -> Driver {
         let best_run_is_falsy = driver
             .best_run

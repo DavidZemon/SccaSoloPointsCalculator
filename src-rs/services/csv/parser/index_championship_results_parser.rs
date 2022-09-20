@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 
 use calamine::{DataType, Range};
 
-use crate::models::championship_driver::{ChampionshipDriver, IndexedChampionshipDriver};
+use crate::models::championship_driver::ChampionshipDriver;
 use crate::models::championship_results::IndexedChampionshipResults;
 use crate::models::driver::Driver;
 use crate::models::lap_time::LapTime;
@@ -12,7 +12,7 @@ use crate::services::calculators::championship_points_calculator::{
 };
 
 struct CalculationContext<'a> {
-    rows_by_driver_id: HashMap<DriverId, IndexedChampionshipDriver>,
+    rows_by_driver_id: HashMap<DriverId, ChampionshipDriver>,
     new_event_drivers_by_id: HashMap<DriverId, &'a Driver>,
     past_event_count: usize,
 }
@@ -89,7 +89,7 @@ impl DefaultIndexChampionshipResultsParser {
         &self,
         header_map: HashMap<String, usize>,
         data: Range<DataType>,
-    ) -> Result<HashMap<DriverId, IndexedChampionshipDriver>, String> {
+    ) -> Result<HashMap<DriverId, ChampionshipDriver>, String> {
         let name_index = header_map
             .get("Driver")
             .ok_or("Missing 'Driver' column".to_string())?
@@ -104,12 +104,11 @@ impl DefaultIndexChampionshipResultsParser {
             .filter(|r| !r[0].is_empty() && r[0].is_int())
             .map(|r| {
                 let name = r[name_index].to_string();
-                let id = name.to_lowercase();
-                let mut driver = IndexedChampionshipDriver::new(&id, &name);
+                let mut driver = ChampionshipDriver::new(&name);
                 r[name_index + 1..total_points_index]
                     .iter()
                     .for_each(|cell| driver.add_event(cell.get_int().unwrap_or_default()));
-                (id, driver)
+                (name.to_lowercase(), driver)
             })
             .collect())
     }
@@ -119,7 +118,7 @@ impl DefaultIndexChampionshipResultsParser {
         ctx: &CalculationContext,
         best_lap_of_day: &LapTime,
         id: &DriverId,
-    ) -> IndexedChampionshipDriver {
+    ) -> ChampionshipDriver {
         let driver_history_opt = ctx.rows_by_driver_id.get(id);
         let driver_new_results_opt = ctx.new_event_drivers_by_id.get(id);
 
@@ -138,10 +137,7 @@ impl DefaultIndexChampionshipResultsParser {
                 driver_history
             }
             (None, Some(driver_new_results)) => {
-                let mut new_driver = IndexedChampionshipDriver::new(
-                    &driver_new_results.name,
-                    &driver_new_results.name,
-                );
+                let mut new_driver = ChampionshipDriver::new(&driver_new_results.name);
                 (0..ctx.past_event_count).for_each(|_| new_driver.add_event(0));
                 new_driver.add_event(
                     self.points_calculator
@@ -149,9 +145,7 @@ impl DefaultIndexChampionshipResultsParser {
                 );
                 new_driver
             }
-            (None, None) => {
-                IndexedChampionshipDriver::new(&"impossible".to_string(), &"impossible".to_string())
-            }
+            (None, None) => ChampionshipDriver::new(&"impossible".to_string()),
         }
     }
 }

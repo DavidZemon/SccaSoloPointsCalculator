@@ -1,11 +1,9 @@
-use serde::{Deserialize, Serialize};
-
 use crate::enums::short_car_class::ShortCarClass;
 use crate::models::car_class::{get_car_class, CarClass};
 use crate::models::driver::{Driver, TimeSelection};
 use crate::models::lap_time::{dns, LapTime};
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug)]
 pub struct ClassResults {
     pub trophy_count: u8,
     pub car_class: CarClass,
@@ -22,25 +20,24 @@ impl ClassResults {
     }
 
     pub fn get_best_in_class(&self, time_selection: Option<TimeSelection>) -> LapTime {
-        let mut best_laps: Vec<LapTime> = self
-            .drivers
-            .iter()
+        // Drivers are sorted as they are added via add_driver(), so just take the first
+        // on the list
+        self.drivers
+            .get(0)
             .map(|d| d.best_lap(time_selection))
-            .collect();
-        best_laps.sort();
-        best_laps.get(0).unwrap_or(&dns()).clone()
+            .unwrap_or(dns())
     }
 
     pub fn add_driver(&mut self, driver: Driver) {
         self.drivers.push(driver);
-        self.trophy_count = self.calculate_trophies();
+        self.trophy_count = self.calculate_trophy_count();
         self.drivers.sort();
         for (index, driver) in self.drivers.iter_mut().enumerate() {
             driver.position = Some(index + 1);
         }
     }
 
-    fn calculate_trophies(&self) -> u8 {
+    fn calculate_trophy_count(&self) -> u8 {
         let driver_count = self.drivers.len();
         if driver_count <= 1 {
             0
