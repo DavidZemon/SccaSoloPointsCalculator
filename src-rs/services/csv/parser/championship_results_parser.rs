@@ -103,9 +103,7 @@ impl ChampionshipResultsParser {
             })
             .map_err(|e| JsValue::from_str(e.as_str()))
     }
-}
 
-impl ChampionshipResultsParser {
     fn extract_sheet(
         &self,
         file_name: String,
