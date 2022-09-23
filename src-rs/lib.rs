@@ -67,5 +67,6 @@ impl SccaSoloPointsEngine {
     ) -> Result<String, JsValue> {
         self.champ_parser
             .process_results(new_results_type, new_results, file_name)
+            .map_err(|e| JsValue::from_str(e.as_str()))
     }
 }

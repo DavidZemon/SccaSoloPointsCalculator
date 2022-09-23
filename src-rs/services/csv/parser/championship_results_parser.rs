@@ -59,12 +59,8 @@ impl ChampionshipResultsParser {
             .collect::<HashMap<DriverId, &Driver>>();
 
         let old_data = self.extract_sheet(file_name, new_results)?;
-        let header_map = self
-            .get_header_map(&old_data)
-            .map_err(|e| JsValue::from_str(e.as_str()))?;
-        let past_event_count = self
-            .get_past_event_count(&header_map)
-            .map_err(|e| JsValue::from_str(e.as_str()))?;
+        let header_map = self.get_header_map(&old_data)?;
+        let past_event_count = self.get_past_event_count(&header_map)?;
 
         let result = if new_results_type == ChampionshipType::Class {
             self.class_csv_builder
@@ -97,11 +93,9 @@ impl ChampionshipResultsParser {
             )
         };
 
-        result
-            .map(|csv_option| {
-                csv_option.unwrap_or(format!("No results for {}", new_results_type.name()))
-            })
-            .map_err(|e| JsValue::from_str(e.as_str()))
+        result.map(|csv_option| {
+            csv_option.unwrap_or(format!("No results for {}", new_results_type.name()))
+        })
     }
 
     fn extract_sheet(
