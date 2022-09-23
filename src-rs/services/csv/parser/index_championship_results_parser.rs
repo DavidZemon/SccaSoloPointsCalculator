@@ -1,6 +1,8 @@
 use std::collections::{HashMap, HashSet};
 
-use calamine::{DataType, Range};
+use calamine::DataType;
+#[cfg(test)]
+use mockall::automock;
 
 use crate::models::championship_driver::ChampionshipDriver;
 use crate::models::championship_results::IndexedChampionshipResults;
@@ -17,13 +19,14 @@ struct CalculationContext<'a> {
     past_event_count: usize,
 }
 
+#[cfg_attr(test, automock)]
 pub trait IndexChampionshipResultsParser {
-    fn parse(
+    fn parse<'a>(
         &self,
         past_event_count: usize,
         header_map: HashMap<String, usize>,
-        data: Range<DataType>,
-        event_drivers: HashMap<DriverId, &Driver>,
+        data: calamine::Range<DataType>,
+        event_drivers: HashMap<DriverId, &'a Driver>,
         best_lap_of_day: &LapTime,
     ) -> Result<IndexedChampionshipResults, String>;
 }
@@ -37,7 +40,7 @@ impl IndexChampionshipResultsParser for DefaultIndexChampionshipResultsParser {
         &self,
         past_event_count: usize,
         header_map: HashMap<String, usize>,
-        data: Range<DataType>,
+        data: calamine::Range<DataType>,
         new_event_drivers_by_id: HashMap<DriverId, &Driver>,
         best_lap_of_day: &LapTime,
     ) -> Result<IndexedChampionshipResults, String> {
@@ -88,7 +91,7 @@ impl DefaultIndexChampionshipResultsParser {
     fn parse_sheet(
         &self,
         header_map: HashMap<String, usize>,
-        data: Range<DataType>,
+        data: calamine::Range<DataType>,
     ) -> Result<HashMap<DriverId, ChampionshipDriver>, String> {
         let name_index = header_map
             .get("Driver")

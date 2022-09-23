@@ -1,6 +1,8 @@
 use std::collections::{HashMap, HashSet};
 
-use calamine::{DataType, Range};
+use calamine::DataType;
+#[cfg(test)]
+use mockall::automock;
 
 use crate::enums::short_car_class::ShortCarClass;
 use crate::models::championship_driver::ChampionshipDriver;
@@ -19,12 +21,13 @@ struct CalculationContext {
     past_event_count: usize,
 }
 
+#[cfg_attr(test, automock)]
 pub trait ClassChampionshipResultsParser {
     fn parse(
         &self,
         past_event_count: usize,
         header_map: HashMap<String, usize>,
-        data: Range<DataType>,
+        data: calamine::Range<DataType>,
         event_results: &EventResults,
     ) -> Result<ClassChampionshipResults, String>;
 }
@@ -38,7 +41,7 @@ impl ClassChampionshipResultsParser for DefaultClassChampionshipResultsParser {
         &self,
         past_event_count: usize,
         header_map: HashMap<String, usize>,
-        data: Range<DataType>,
+        data: calamine::Range<DataType>,
         event_results: &EventResults,
     ) -> Result<ClassChampionshipResults, String> {
         let org = data
@@ -79,7 +82,7 @@ impl DefaultClassChampionshipResultsParser {
     fn parse_sheet(
         &self,
         header_map: HashMap<String, usize>,
-        data: Range<DataType>,
+        data: calamine::Range<DataType>,
     ) -> Result<HashMap<ShortCarClass, HashMap<DriverId, ChampionshipDriver>>, String> {
         let mut rows_by_class_and_driver_id: HashMap<
             ShortCarClass,

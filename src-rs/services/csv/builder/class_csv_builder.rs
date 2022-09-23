@@ -1,3 +1,6 @@
+#[cfg(test)]
+use mockall::automock;
+
 use crate::enums::long_car_class::to_display_name;
 use crate::enums::short_car_class::ShortCarClass;
 use crate::models::car_class::get_car_class;
@@ -7,6 +10,7 @@ use crate::services::calculators::tie_calculator::calculate_tie_offset;
 use crate::services::calculators::trophy_calculator::{ClassTrophyCalculator, TrophyCalculator};
 use crate::utilities::events_to_count;
 
+#[cfg_attr(test, automock)]
 pub trait ClassCsvBuilder {
     fn create(&self, class: ClassChampionshipResults) -> Result<Option<String>, String>;
 }

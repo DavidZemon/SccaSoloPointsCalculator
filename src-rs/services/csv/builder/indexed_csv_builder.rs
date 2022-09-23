@@ -1,3 +1,6 @@
+#[cfg(test)]
+use mockall::automock;
+
 use crate::enums::championship_type::ChampionshipType;
 use crate::models::championship_driver::ChampionshipDriver;
 use crate::models::championship_results::IndexedChampionshipResults;
@@ -5,6 +8,7 @@ use crate::services::calculators::tie_calculator::calculate_tie_offset;
 use crate::services::calculators::trophy_calculator::{IndexTrophyCalculator, TrophyCalculator};
 use crate::utilities::events_to_count;
 
+#[cfg_attr(test, automock)]
 pub trait IndexedCsvBuilder {
     fn create(
         &self,

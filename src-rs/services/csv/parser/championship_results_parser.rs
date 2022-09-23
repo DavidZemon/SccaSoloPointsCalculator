@@ -1,9 +1,10 @@
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::io::Cursor;
+use std::rc::Rc;
 
 use calamine::{DataType, Range, Reader, Xls};
 use regex::Regex;
-use wasm_bindgen::JsValue;
 
 use crate::console_log;
 use crate::enums::championship_type::ChampionshipType;
@@ -25,10 +26,10 @@ use crate::services::csv::parser::index_championship_results_parser::{
 use crate::utilities::log;
 
 pub struct ChampionshipResultsParser {
-    class_results_parser: Box<dyn ClassChampionshipResultsParser>,
-    index_results_parser: Box<dyn IndexChampionshipResultsParser>,
-    class_csv_builder: Box<dyn ClassCsvBuilder>,
-    indexed_csv_builder: Box<dyn IndexedCsvBuilder>,
+    class_results_parser: Rc<RefCell<dyn ClassChampionshipResultsParser>>,
+    index_results_parser: Rc<RefCell<dyn IndexChampionshipResultsParser>>,
+    class_csv_builder: Rc<RefCell<dyn ClassCsvBuilder>>,
+    indexed_csv_builder: Rc<RefCell<dyn IndexedCsvBuilder>>,
 
     event_results: EventResults,
 }
@@ -36,10 +37,14 @@ pub struct ChampionshipResultsParser {
 impl ChampionshipResultsParser {
     pub fn new(event_results: EventResults) -> ChampionshipResultsParser {
         ChampionshipResultsParser {
-            class_results_parser: Box::new(DefaultClassChampionshipResultsParser::new()),
-            index_results_parser: Box::new(DefaultIndexChampionshipResultsParser::new()),
-            class_csv_builder: Box::new(DefaultClassCsvBuilder::new()),
-            indexed_csv_builder: Box::new(DefaultIndexedCsvBuilder::new()),
+            class_results_parser: Rc::new(RefCell::new(
+                DefaultClassChampionshipResultsParser::new(),
+            )),
+            index_results_parser: Rc::new(RefCell::new(
+                DefaultIndexChampionshipResultsParser::new(),
+            )),
+            class_csv_builder: Rc::new(RefCell::new(DefaultClassCsvBuilder::new())),
+            indexed_csv_builder: Rc::new(RefCell::new(DefaultIndexedCsvBuilder::new())),
             event_results,
         }
     }
@@ -49,7 +54,7 @@ impl ChampionshipResultsParser {
         new_results_type: ChampionshipType,
         new_results: &[u8],
         file_name: String,
-    ) -> Result<String, JsValue> {
+    ) -> Result<String, String> {
         let event_drivers_by_id = self
             .event_results
             .get_drivers(None)
@@ -64,7 +69,8 @@ impl ChampionshipResultsParser {
 
         let result = if new_results_type == ChampionshipType::Class {
             self.class_csv_builder
-                .create(self.class_results_parser.parse(
+                .borrow()
+                .create(self.class_results_parser.borrow().parse(
                     past_event_count,
                     header_map,
                     old_data,
@@ -81,9 +87,9 @@ impl ChampionshipResultsParser {
                 .map(|(id, d)| (id.clone(), d.clone()))
                 .collect::<HashMap<DriverId, &Driver>>();
             let fastest = Self::compute_fastest(&new_drivers);
-            self.indexed_csv_builder.create(
+            self.indexed_csv_builder.borrow().create(
                 new_results_type,
-                self.index_results_parser.parse(
+                self.index_results_parser.borrow().parse(
                     past_event_count,
                     header_map,
                     old_data,
@@ -171,5 +177,92 @@ impl ChampionshipResultsParser {
             .map(|(_, d)| d.best_lap(None))
             .min()
             .unwrap_or(dns())
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use std::cell::RefCell;
+    use std::collections::HashMap;
+    use std::rc::Rc;
+
+    use crate::services::csv::builder::class_csv_builder::MockClassCsvBuilder;
+    use crate::services::csv::builder::indexed_csv_builder::MockIndexedCsvBuilder;
+    use crate::services::csv::parser::class_championship_results_parser::MockClassChampionshipResultsParser;
+    use crate::services::csv::parser::index_championship_results_parser::MockIndexChampionshipResultsParser;
+    use crate::{ChampionshipResultsParser, ChampionshipType, EventResults};
+
+    struct Context {
+        mock_class_results_parser: Rc<RefCell<MockClassChampionshipResultsParser>>,
+        mock_index_results_parser: Rc<RefCell<MockIndexChampionshipResultsParser>>,
+        mock_class_csv_builder: Rc<RefCell<MockClassCsvBuilder>>,
+        mock_indexed_csv_builder: Rc<RefCell<MockIndexedCsvBuilder>>,
+        testable: ChampionshipResultsParser,
+    }
+
+    impl Context {
+        pub fn new(event_results: EventResults) -> Context {
+            let mock_class_results_parser =
+                Rc::new(RefCell::new(MockClassChampionshipResultsParser::new()));
+            let mock_index_results_parser =
+                Rc::new(RefCell::new(MockIndexChampionshipResultsParser::new()));
+            let mock_class_csv_builder = Rc::new(RefCell::new(MockClassCsvBuilder::new()));
+            let mock_indexed_csv_builder = Rc::new(RefCell::new(MockIndexedCsvBuilder::new()));
+
+            Context {
+                mock_class_results_parser: Rc::clone(&mock_class_results_parser),
+                mock_index_results_parser: Rc::clone(&mock_index_results_parser),
+                mock_class_csv_builder: Rc::clone(&mock_class_csv_builder),
+                mock_indexed_csv_builder: Rc::clone(&mock_indexed_csv_builder),
+                testable: ChampionshipResultsParser {
+                    class_results_parser: mock_class_results_parser,
+                    index_results_parser: mock_index_results_parser,
+                    class_csv_builder: mock_class_csv_builder,
+                    indexed_csv_builder: mock_indexed_csv_builder,
+                    event_results,
+                },
+            }
+        }
+    }
+
+    #[test]
+    fn test_process_results_bad_excel_fails_gracefully() {
+        let results = EventResults {
+            results: HashMap::new(),
+        };
+        let context = Context::new(results);
+        {
+            context
+                .mock_class_results_parser
+                .borrow_mut()
+                .expect_parse()
+                .never();
+            context
+                .mock_index_results_parser
+                .borrow_mut()
+                .expect_parse()
+                .never();
+            context
+                .mock_class_csv_builder
+                .borrow_mut()
+                .expect_create()
+                .never();
+            context
+                .mock_indexed_csv_builder
+                .borrow_mut()
+                .expect_create()
+                .never();
+        }
+
+        let data = [];
+        let actual = context.testable.process_results(
+            ChampionshipType::Class,
+            &data,
+            "a file.xls".to_string(),
+        );
+        assert_eq!(
+            actual,
+            Err("Cfb error: I/O error: failed to fill whole buffer".to_string())
+        );
     }
 }
