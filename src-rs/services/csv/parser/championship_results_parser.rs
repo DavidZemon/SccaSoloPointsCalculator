@@ -38,13 +38,13 @@ impl ChampionshipResultsParser {
     pub fn new(event_results: EventResults) -> ChampionshipResultsParser {
         ChampionshipResultsParser {
             class_results_parser: Rc::new(RefCell::new(
-                DefaultClassChampionshipResultsParser::new(),
+                DefaultClassChampionshipResultsParser::default(),
             )),
             index_results_parser: Rc::new(RefCell::new(
-                DefaultIndexChampionshipResultsParser::new(),
+                DefaultIndexChampionshipResultsParser::default(),
             )),
-            class_csv_builder: Rc::new(RefCell::new(DefaultClassCsvBuilder::new())),
-            indexed_csv_builder: Rc::new(RefCell::new(DefaultIndexedCsvBuilder::new())),
+            class_csv_builder: Rc::new(RefCell::new(DefaultClassCsvBuilder::default())),
+            indexed_csv_builder: Rc::new(RefCell::new(DefaultIndexedCsvBuilder::default())),
             event_results,
         }
     }
@@ -60,7 +60,7 @@ impl ChampionshipResultsParser {
             .get_drivers(None)
             .iter()
             .filter(|d| d.car_class.short != ShortCarClass::FUN && !d.dsq)
-            .map(|d| (d.id.clone(), d.clone()))
+            .map(|d| (d.id.clone(), *d))
             .collect::<HashMap<DriverId, &Driver>>();
 
         let old_data = self.extract_sheet(file_name, new_results)?;
@@ -84,7 +84,7 @@ impl ChampionshipResultsParser {
                     ChampionshipType::Ladies => d.ladies_championship,
                     _ => true,
                 })
-                .map(|(id, d)| (id.clone(), d.clone()))
+                .map(|(id, d)| (id.clone(), *d))
                 .collect::<HashMap<DriverId, &Driver>>();
             let fastest = Self::compute_fastest(&new_drivers);
             self.indexed_csv_builder.borrow().create(
@@ -110,7 +110,7 @@ impl ChampionshipResultsParser {
         new_results: &[u8],
     ) -> Result<Range<DataType>, String> {
         let new_results = Cursor::new(new_results);
-        let mut workbook = Xls::new(new_results).map_err(|e| format!("{}", e).to_string())?;
+        let mut workbook = Xls::new(new_results).map_err(|e| format!("{}", e))?;
         let worksheets = workbook.worksheets();
         let mut sheets = worksheets
             .iter()
@@ -154,7 +154,7 @@ impl ChampionshipResultsParser {
                 Some(last) => re.is_match(last.to_string().to_lowercase().as_str()),
                 None => false,
             })
-            .ok_or("Unable to find header".to_string())?
+            .ok_or_else(|| "Unable to find header".to_string())?
             .iter()
             .enumerate()
             .map(|(index, header)| (header.to_string(), index))
@@ -167,8 +167,7 @@ impl ChampionshipResultsParser {
         Ok(header_map
             .keys()
             .filter(|header| !re.is_match(header))
-            .collect::<Vec<&String>>()
-            .len())
+            .count())
     }
 
     fn compute_fastest(drivers: &HashMap<DriverId, &Driver>) -> LapTime {
@@ -176,7 +175,7 @@ impl ChampionshipResultsParser {
             .iter()
             .map(|(_, d)| d.best_lap(None))
             .min()
-            .unwrap_or(dns())
+            .unwrap_or_else(dns)
     }
 }
 

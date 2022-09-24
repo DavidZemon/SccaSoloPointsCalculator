@@ -1,7 +1,7 @@
 use std::fmt::Debug;
 
 pub fn calculate_tie_offset<T: Debug, F: Fn(&T, &T) -> bool>(
-    drivers: &Vec<T>,
+    drivers: &[T],
     baseline_index: usize,
     cmp: F,
 ) -> usize {

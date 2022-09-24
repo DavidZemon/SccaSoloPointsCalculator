@@ -43,15 +43,13 @@ impl Driver {
                 TimeSelection::Day1 => self
                     .day_1_times
                     .clone()
-                    .map(|times| times.get(0).map(|t| t.clone()))
-                    .flatten()
-                    .unwrap_or(dns()),
+                    .and_then(|times| times.get(0).copied())
+                    .unwrap_or_else(dns),
                 TimeSelection::Day2 => self
                     .day_2_times
                     .clone()
-                    .map(|times| times.get(0).map(|t| t.clone()))
-                    .flatten()
-                    .unwrap_or(dns()),
+                    .and_then(|times| times.get(0).copied())
+                    .unwrap_or_else(dns),
                 TimeSelection::Combined => {
                     let day_1_empty = self
                         .day_1_times
@@ -71,14 +69,12 @@ impl Driver {
                             self.best_lap(Some(TimeSelection::Day1))
                                 .add(self.best_lap(Some(TimeSelection::Day2)))
                         }
+                    } else if day_2_empty {
+                        self.best_lap(Some(TimeSelection::Day1))
+                    } else if day_1_empty {
+                        self.best_lap(Some(TimeSelection::Day2))
                     } else {
-                        if day_2_empty {
-                            self.best_lap(Some(TimeSelection::Day1))
-                        } else if day_1_empty {
-                            self.best_lap(Some(TimeSelection::Day2))
-                        } else {
-                            panic!("Asking for combined time for a one-day event but driver {} has times for both days!", self.name)
-                        }
+                        panic!("Asking for combined time for a one-day event but driver {} has times for both days!", self.name)
                     }
                 }
             }
@@ -126,11 +122,11 @@ impl Driver {
         let first_name = driver
             .first_name
             .clone()
-            .unwrap_or(String::from("<Missing First Name>"));
+            .unwrap_or_else(|| "<Missing First Name>".to_string());
         let last_name = driver
             .last_name
             .clone()
-            .unwrap_or(String::from("<Missing Last Name>"));
+            .unwrap_or_else(|| "<Missing Last Name>".to_string());
         let name = format!("{} {}", first_name, last_name);
         let car_class = match get_car_class(&driver.car_class) {
             Some(c) => c,
@@ -154,18 +150,21 @@ impl Driver {
             car_number: driver.car_number,
             car_class,
             name: name.clone(),
-            id: String::from(name.to_lowercase().trim()),
+            id: name.to_lowercase().trim().to_string(),
             car_description: format!(
                 "{} {} {}",
                 driver.year.unwrap_or(0),
-                driver.make.clone().unwrap_or(String::from("Unknown")),
-                driver.model.clone().unwrap_or(String::from("Unknown"))
+                driver.make.clone().unwrap_or_else(|| "Unknown".to_string()),
+                driver
+                    .model
+                    .clone()
+                    .unwrap_or_else(|| "Unknown".to_string())
             ),
-            region: driver.region.clone().unwrap_or(String::from("")),
+            region: driver.region.clone().unwrap_or_else(|| "".to_string()),
             dsq: driver.dsq.map(|dsq| dsq == 1).unwrap_or(false),
             pax_multiplier: driver.pax_multiplier,
-            day_1_times: day_1_times.clone(),
-            day_2_times: day_2_times.clone(),
+            day_1_times,
+            day_2_times,
             combined: dns(),
             two_day_event,
         };
@@ -263,18 +262,18 @@ mod test {
         #[case] d1: Option<Vec<LapTime>>,
         #[case] d2: Option<Vec<LapTime>>,
     ) {
-        for ts in vec![
+        for ts in &[
             None,
             Some(TimeSelection::Day1),
             Some(TimeSelection::Day2),
             Some(TimeSelection::Combined),
         ] {
             assert_eq!(
-                build_driver(d1.clone(), d2.clone(), true, false).best_lap(ts),
+                build_driver(d1.clone(), d2.clone(), true, false).best_lap(*ts),
                 dsq()
             );
             assert_eq!(
-                build_driver(d1.clone(), d2.clone(), true, true).best_lap(ts),
+                build_driver(d1.clone(), d2.clone(), true, true).best_lap(*ts),
                 dsq()
             );
         }
@@ -304,10 +303,7 @@ mod test {
             build_driver(d1.clone(), d2.clone(), false, false).best_lap(ts),
             dns()
         );
-        assert_eq!(
-            build_driver(d1.clone(), d2.clone(), false, true).best_lap(ts),
-            dns()
-        );
+        assert_eq!(build_driver(d1, d2, false, true).best_lap(ts), dns());
     }
 
     #[rstest]
@@ -320,10 +316,7 @@ mod test {
         #[case] d2: Option<Vec<LapTime>>,
         #[case] ts: Option<TimeSelection>,
     ) {
-        assert_eq!(
-            build_driver(d1.clone(), d2.clone(), false, true).best_lap(ts),
-            dns()
-        );
+        assert_eq!(build_driver(d1, d2, false, true).best_lap(ts), dns());
     }
 
     #[rstest]
@@ -581,7 +574,7 @@ mod test {
         let actual = testable.difference(fastest, use_pax, ts);
         assert_eq!(
             actual,
-            String::from(expected),
+            expected.to_string(),
             "Expected {} - {} == {}, got {}",
             fastest.to_string(use_pax, false),
             testable.best_lap(ts).to_string(use_pax, false),
@@ -627,19 +620,19 @@ mod test {
         let baseline = LapTime::new(1., 0.8, 0, None);
         assert_eq!(
             build_driver(d1.clone(), d2.clone(), true, false).difference(baseline, true, None),
-            String::from("N/A")
+            "N/A".to_string()
         );
         assert_eq!(
             build_driver(d1.clone(), d2.clone(), true, false).difference(baseline, false, None),
-            String::from("N/A")
+            "N/A".to_string()
         );
         assert_eq!(
             build_driver(None, d2.clone(), false, false).difference(baseline, true, None),
-            String::from("N/A")
+            "N/A".to_string()
         );
         assert_eq!(
             build_driver(None, d2.clone(), false, false).difference(baseline, false, None),
-            String::from("N/A")
+            "N/A".to_string()
         );
         assert_eq!(
             build_driver(None, d2.clone(), false, false).difference(
@@ -647,7 +640,7 @@ mod test {
                 true,
                 Some(TimeSelection::Day1)
             ),
-            String::from("N/A")
+            "N/A".to_string()
         );
         assert_eq!(
             build_driver(None, d2.clone(), false, false).difference(
@@ -655,7 +648,7 @@ mod test {
                 false,
                 Some(TimeSelection::Day1)
             ),
-            String::from("N/A")
+            "N/A".to_string()
         );
         assert_eq!(
             build_driver(d1.clone(), None, false, false).difference(
@@ -663,7 +656,7 @@ mod test {
                 true,
                 Some(TimeSelection::Day2)
             ),
-            String::from("N/A")
+            "N/A".to_string()
         );
         assert_eq!(
             build_driver(d1.clone(), None, false, false).difference(
@@ -671,7 +664,7 @@ mod test {
                 false,
                 Some(TimeSelection::Day2)
             ),
-            String::from("N/A")
+            "N/A".to_string()
         );
         assert_eq!(
             build_driver(d1.clone(), None, false, true).difference(
@@ -679,15 +672,15 @@ mod test {
                 true,
                 Some(TimeSelection::Combined)
             ),
-            String::from("N/A")
+            "N/A".to_string()
         );
         assert_eq!(
-            build_driver(d1.clone(), None, false, true).difference(
+            build_driver(d1, None, false, true).difference(
                 baseline,
                 false,
                 Some(TimeSelection::Combined)
             ),
-            String::from("N/A")
+            "N/A".to_string()
         );
         assert_eq!(
             build_driver(None, d2.clone(), false, true).difference(
@@ -695,15 +688,15 @@ mod test {
                 true,
                 Some(TimeSelection::Combined)
             ),
-            String::from("N/A")
+            "N/A".to_string()
         );
         assert_eq!(
-            build_driver(None, d2.clone(), false, true).difference(
+            build_driver(None, d2, false, true).difference(
                 baseline,
                 false,
                 Some(TimeSelection::Combined)
             ),
-            String::from("N/A")
+            "N/A".to_string()
         );
     }
 

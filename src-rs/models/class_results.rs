@@ -25,7 +25,7 @@ impl ClassResults {
         self.drivers
             .get(0)
             .map(|d| d.best_lap(time_selection))
-            .unwrap_or(dns())
+            .unwrap_or_else(dns)
     }
 
     pub fn add_driver(&mut self, driver: Driver) {

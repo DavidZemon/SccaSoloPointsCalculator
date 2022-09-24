@@ -98,7 +98,7 @@ pub fn to_display_name(long_car_class: LongCarClass) -> String {
     long_car_class
         .name()
         .replace("Front_Wheel_Drive", "Front-Wheel-Drive")
-        .replace("_", " ")
+        .replace('_', " ")
 }
 
 #[cfg(test)]
@@ -110,15 +110,15 @@ mod test {
     fn to_display_name_should_convert_correctly() {
         assert_eq!(
             to_display_name(LongCarClass::Super_Street),
-            String::from("Super Street")
+            "Super Street".to_string()
         );
         assert_eq!(
             to_display_name(LongCarClass::Formula_SAE),
-            String::from("Formula SAE")
+            "Formula SAE".to_string()
         );
         assert_eq!(
             to_display_name(LongCarClass::Street_Modified_Front_Wheel_Drive),
-            String::from("Street Modified Front-Wheel-Drive")
+            "Street Modified Front-Wheel-Drive".to_string()
         );
     }
 }

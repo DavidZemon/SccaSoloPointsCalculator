@@ -35,8 +35,8 @@ impl SccaSoloPointsEngine {
         Ok(SccaSoloPointsEngine {
             event_results,
             champ_parser,
-            class_results_builder: ClassResultsBuilder::new(),
-            combined_results_builder: CombinedResultsBuilder::new(),
+            class_results_builder: Default::default(),
+            combined_results_builder: Default::default(),
         })
     }
 

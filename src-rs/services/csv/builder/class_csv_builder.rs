@@ -51,7 +51,7 @@ impl ClassCsvBuilder for DefaultClassCsvBuilder {
                     rhs.best_of(events_to_count)
                         .cmp(&lhs.best_of(events_to_count))
                 });
-                (k.clone(), v)
+                (*k, v)
             })
             .collect::<Vec<(ShortCarClass, Vec<ChampionshipDriver>)>>();
         sorted.sort_by(|(lhs, _), (rhs, _)| lhs.cmp(rhs));
@@ -65,7 +65,7 @@ impl ClassCsvBuilder for DefaultClassCsvBuilder {
 
             let trophy_count = self.trophy_calculator.calculate(drivers.len());
             rows.extend(drivers.iter().enumerate().map(|(index, d)| {
-                let tie_offset = calculate_tie_offset(&drivers, index, |d1, d2| {
+                let tie_offset = calculate_tie_offset(drivers, index, |d1, d2| {
                     d1.total_points() == d2.total_points()
                 });
 
@@ -91,14 +91,17 @@ impl ClassCsvBuilder for DefaultClassCsvBuilder {
     }
 }
 
-impl DefaultClassCsvBuilder {
-    pub fn new() -> DefaultClassCsvBuilder {
-        DefaultClassCsvBuilder::from(None)
+impl Default for DefaultClassCsvBuilder {
+    fn default() -> Self {
+        Self::from(None)
     }
+}
 
+impl DefaultClassCsvBuilder {
     pub fn from(trophy_calculator: Option<Box<dyn TrophyCalculator>>) -> DefaultClassCsvBuilder {
-        DefaultClassCsvBuilder {
-            trophy_calculator: trophy_calculator.unwrap_or(Box::new(ClassTrophyCalculator {})),
+        Self {
+            trophy_calculator: trophy_calculator
+                .unwrap_or_else(|| Box::new(ClassTrophyCalculator {})),
         }
     }
 

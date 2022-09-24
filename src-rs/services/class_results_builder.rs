@@ -14,19 +14,22 @@ pub struct ClassResultsBuilder {
     points_calculator: Box<dyn ChampionshipPointsCalculator>,
 }
 
-impl ClassResultsBuilder {
-    pub fn new() -> ClassResultsBuilder {
-        ClassResultsBuilder::from(None, None)
+impl Default for ClassResultsBuilder {
+    fn default() -> Self {
+        Self::from(None, None)
     }
+}
 
+impl ClassResultsBuilder {
     fn from(
         trophy_calculator: Option<Box<dyn TrophyCalculator>>,
         points_calculator: Option<Box<dyn ChampionshipPointsCalculator>>,
-    ) -> ClassResultsBuilder {
-        ClassResultsBuilder {
-            trophy_calculator: trophy_calculator.unwrap_or(Box::new(ClassTrophyCalculator {})),
+    ) -> Self {
+        Self {
+            trophy_calculator: trophy_calculator
+                .unwrap_or_else(|| Box::new(ClassTrophyCalculator {})),
             points_calculator: points_calculator
-                .unwrap_or(Box::new(DefaultChampionshipPointsCalculator {})),
+                .unwrap_or_else(|| Box::new(DefaultChampionshipPointsCalculator {})),
         }
     }
 
@@ -37,7 +40,7 @@ impl ClassResultsBuilder {
             .map(|(class, results)| {
                 (
                     get_car_class(class)
-                        .expect(format!("Missing class {} in class map", class.name()).as_str()),
+                        .unwrap_or_else(|| panic!("Missing class {} in class map", class.name())),
                     results,
                 )
             })
@@ -54,8 +57,8 @@ impl ClassResultsBuilder {
         results
             .iter()
             .map(|(class, results)| {
-                serde_wasm_bindgen::to_value(&(class, self.export_class(results))).expect(
-                    format!("Failed to serialize class CSV for {}", class.long.name()).as_str(),
+                serde_wasm_bindgen::to_value(&(class, self.export_class(results))).unwrap_or_else(
+                    |_| panic!("Failed to serialize class CSV for {}", class.long.name()),
                 )
             })
             .collect()
@@ -97,7 +100,7 @@ impl ClassResultsBuilder {
                 },
                 d.position
                     .map(|p| format!("{}", p))
-                    .unwrap_or("".to_string()),
+                    .unwrap_or_else(|| "".to_string()),
                 d.name.clone(),
                 d.car_description.clone(),
                 short_class_name.clone(),
@@ -119,7 +122,9 @@ impl ClassResultsBuilder {
                     self.points_calculator.calculate(&best_lap_in_class, d)
                 ),
             ])
-            .expect(format!("Failed to write record for {} to class results CSV", d.name).as_str());
+            .unwrap_or_else(|_| {
+                panic!("Failed to write record for {} to class results CSV", d.name)
+            });
         });
 
         String::from_utf8(csv.into_inner().unwrap()).unwrap()

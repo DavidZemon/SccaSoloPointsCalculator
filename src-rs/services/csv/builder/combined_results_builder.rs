@@ -15,11 +15,13 @@ pub struct CombinedResultsBuilder {
     points_calculator: Box<dyn ChampionshipPointsCalculator>,
 }
 
-impl CombinedResultsBuilder {
-    pub fn new() -> CombinedResultsBuilder {
+impl Default for CombinedResultsBuilder {
+    fn default() -> Self {
         CombinedResultsBuilder::from(None, None)
     }
+}
 
+impl CombinedResultsBuilder {
     pub fn to_combined_csv(
         &self,
         results: &EventResults,
@@ -28,7 +30,7 @@ impl CombinedResultsBuilder {
         let is_raw_time = driver_group == DriverGroup::Raw;
 
         let drivers = results.get_drivers(Some(driver_group));
-        if 0 == drivers.len() {
+        if drivers.is_empty() {
             Ok(format!("No drivers for {} group", driver_group.name()))
         } else {
             let csv = self.build_csv(drivers, driver_group, is_raw_time)?;
@@ -40,30 +42,31 @@ impl CombinedResultsBuilder {
     fn from(
         trophy_calculator: Option<Box<dyn TrophyCalculator>>,
         points_calculator: Option<Box<dyn ChampionshipPointsCalculator>>,
-    ) -> CombinedResultsBuilder {
+    ) -> Self {
         CombinedResultsBuilder {
-            trophy_calculator: trophy_calculator.unwrap_or(Box::new(IndexTrophyCalculator {})),
+            trophy_calculator: trophy_calculator
+                .unwrap_or_else(|| Box::new(IndexTrophyCalculator {})),
             points_calculator: points_calculator
-                .unwrap_or(Box::new(DefaultChampionshipPointsCalculator {})),
+                .unwrap_or_else(|| Box::new(DefaultChampionshipPointsCalculator {})),
         }
     }
 
     fn get_combined_header(&self, is_raw_time: bool) -> Vec<String> {
-        let mut time_column = String::from(if is_raw_time { "Best" } else { "Index" });
+        let mut time_column = (if is_raw_time { "Best" } else { "Index" }).to_string();
         time_column.push_str(" Time");
         let mut header = vec![
-            String::from("Trophy"),
-            String::from("Position"),
-            String::from("Name"),
-            String::from("Car"),
-            String::from("Class"),
-            String::from("Car #"),
+            "Trophy".to_string(),
+            "Position".to_string(),
+            "Name".to_string(),
+            "Car".to_string(),
+            "Class".to_string(),
+            "Car #".to_string(),
             time_column,
-            String::from("From Previous"),
-            String::from("From Top"),
+            "From Previous".to_string(),
+            "From Top".to_string(),
         ];
         if !is_raw_time {
-            header.push(String::from("Points"));
+            header.push("Points".to_string());
         }
         header
     }
@@ -102,7 +105,7 @@ impl CombinedResultsBuilder {
     fn build_record(
         &self,
         i: usize,
-        drivers: &Vec<&Driver>,
+        drivers: &[&Driver],
         driver_group: DriverGroup,
         trophy_count: usize,
         is_raw_time: bool,
@@ -114,11 +117,11 @@ impl CombinedResultsBuilder {
                 "expected at least one driver for {}",
                 driver_group.name()
             )),
-            |d| Ok(d),
+            Ok,
         )?;
 
         let tie_offset =
-            calculate_tie_offset(&drivers, i, |d1, d2| d1.best_lap(None) == d2.best_lap(None));
+            calculate_tie_offset(drivers, i, |d1, d2| d1.best_lap(None) == d2.best_lap(None));
 
         let mut next_row = vec![
             if (i - tie_offset) < trophy_count {
@@ -129,12 +132,12 @@ impl CombinedResultsBuilder {
             format!("{}", i + 1 - tie_offset),
             driver.name.clone(),
             driver.car_description.clone(),
-            String::from(driver.car_class.short.name()),
+            driver.car_class.short.name().to_string(),
             format!("{}", driver.car_number),
             driver.best_lap(None).to_string(!is_raw_time, false),
             previous_driver
                 .map(|prev| driver.difference(prev.best_lap(None), !is_raw_time, None))
-                .unwrap_or("".to_string()),
+                .unwrap_or_else(|| "".to_string()),
             driver.difference(fastest_of_day, !is_raw_time, None),
         ];
         if !is_raw_time {

@@ -54,7 +54,7 @@ impl IndexChampionshipResultsParser for DefaultIndexChampionshipResultsParser {
             .get((1, 0))
             .ok_or("Invalid sheet - no value at 1,0 for indexed championship input XLS")?
             .to_string()
-            .split(" ")
+            .split(' ')
             .next()
             .ok_or("Invalid 'year' cell contents for indexed championship input XLS")?
             .parse::<u16>()
@@ -81,33 +81,33 @@ impl IndexChampionshipResultsParser for DefaultIndexChampionshipResultsParser {
     }
 }
 
-impl DefaultIndexChampionshipResultsParser {
-    pub fn new() -> Self {
+impl Default for DefaultIndexChampionshipResultsParser {
+    fn default() -> Self {
         Self {
             points_calculator: Box::new(DefaultChampionshipPointsCalculator {}),
         }
     }
+}
 
+impl DefaultIndexChampionshipResultsParser {
     fn parse_sheet(
         &self,
         header_map: HashMap<String, usize>,
         data: calamine::Range<DataType>,
     ) -> Result<HashMap<DriverId, ChampionshipDriver>, String> {
-        let name_index = header_map
+        let name_index = *header_map
             .get("Driver")
-            .ok_or("Missing 'Driver' column".to_string())?
-            .clone();
-        let total_points_index = header_map
+            .ok_or_else(|| "Missing 'Driver' column".to_string())?;
+        let total_points_index = *header_map
             .get("Total\nPoints")
-            .ok_or("Missing 'Total Points' column".to_string())?
-            .clone();
+            .ok_or_else(|| "Missing 'Total Points' column".to_string())?;
 
         Ok(data
             .rows()
             .filter(|r| !r[0].is_empty() && r[0].is_int())
             .map(|r| {
                 let name = r[name_index].to_string();
-                let mut driver = ChampionshipDriver::new(&name);
+                let mut driver = ChampionshipDriver::new(name.as_str());
                 r[name_index + 1..total_points_index]
                     .iter()
                     .for_each(|cell| driver.add_event(cell.get_int().unwrap_or_default()));
@@ -140,7 +140,7 @@ impl DefaultIndexChampionshipResultsParser {
                 driver_history
             }
             (None, Some(driver_new_results)) => {
-                let mut new_driver = ChampionshipDriver::new(&driver_new_results.name);
+                let mut new_driver = ChampionshipDriver::new(driver_new_results.name.as_str());
                 (0..ctx.past_event_count).for_each(|_| new_driver.add_event(0));
                 new_driver.add_event(
                     self.points_calculator
@@ -148,7 +148,7 @@ impl DefaultIndexChampionshipResultsParser {
                 );
                 new_driver
             }
-            (None, None) => ChampionshipDriver::new(&"impossible".to_string()),
+            (None, None) => ChampionshipDriver::new("impossible"),
         }
     }
 }

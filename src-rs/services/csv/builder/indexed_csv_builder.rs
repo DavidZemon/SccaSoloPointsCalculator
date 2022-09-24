@@ -48,7 +48,7 @@ impl IndexedCsvBuilder for DefaultIndexedCsvBuilder {
             "".to_string(),
             header,
         ];
-        let mut sorted = results.drivers.clone();
+        let mut sorted = results.drivers;
         sorted.sort_by_key(|d| d.best_of(events_to_count));
         sorted.reverse();
 
@@ -82,14 +82,17 @@ impl IndexedCsvBuilder for DefaultIndexedCsvBuilder {
     }
 }
 
-impl DefaultIndexedCsvBuilder {
-    pub fn new() -> DefaultIndexedCsvBuilder {
-        DefaultIndexedCsvBuilder::from(None)
+impl Default for DefaultIndexedCsvBuilder {
+    fn default() -> Self {
+        Self::from(None)
     }
+}
 
+impl DefaultIndexedCsvBuilder {
     pub fn from(trophy_calculator: Option<Box<dyn TrophyCalculator>>) -> DefaultIndexedCsvBuilder {
-        DefaultIndexedCsvBuilder {
-            trophy_calculator: trophy_calculator.unwrap_or(Box::new(IndexTrophyCalculator {})),
+        Self {
+            trophy_calculator: trophy_calculator
+                .unwrap_or_else(|| Box::new(IndexTrophyCalculator {})),
         }
     }
 
@@ -137,9 +140,9 @@ mod test {
     fn test_tie() {
         let testable = DefaultIndexedCsvBuilder::from(Some(Box::from(MockTrophyCalculator {})));
 
-        let mut d1 = ChampionshipDriver::new(&"Name 1".to_string());
-        let mut d2 = ChampionshipDriver::new(&"Name 2".to_string());
-        let mut d3 = ChampionshipDriver::new(&"Name 3".to_string());
+        let mut d1 = ChampionshipDriver::new("Name 1");
+        let mut d2 = ChampionshipDriver::new("Name 2");
+        let mut d3 = ChampionshipDriver::new("Name 3");
 
         d1.add_event(10);
         d2.add_event(10);
@@ -150,9 +153,9 @@ mod test {
             IndexedChampionshipResults::new(2022, "SCCA".to_string(), vec![d1, d2, d3]),
         );
 
-        assert_eq!(actual.is_ok(), true);
+        assert!(actual.is_ok());
         let actual_option = actual.unwrap();
-        assert_eq!(actual_option.is_some(), true);
+        assert!(actual_option.is_some());
 
         let unwrapped = actual_option.unwrap();
 

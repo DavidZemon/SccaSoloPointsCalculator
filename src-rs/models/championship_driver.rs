@@ -6,9 +6,9 @@ pub struct ChampionshipDriver {
 }
 
 impl ChampionshipDriver {
-    pub fn new(name: &String) -> ChampionshipDriver {
+    pub fn new(name: &str) -> ChampionshipDriver {
         ChampionshipDriver {
-            name: name.clone(),
+            name: name.to_string(),
             points: Vec::new(),
             total_points: 0,
         }

@@ -54,7 +54,7 @@ impl ClassChampionshipResultsParser for DefaultClassChampionshipResultsParser {
             .get((1, 0))
             .ok_or("Invalid sheet - no value at 1,0 for class championship input XLS")?
             .to_string()
-            .split(" ")
+            .split(' ')
             .next()
             .ok_or("Invalid 'year' cell contents for class championship input XLS")?
             .parse::<u16>()
@@ -72,13 +72,15 @@ impl ClassChampionshipResultsParser for DefaultClassChampionshipResultsParser {
     }
 }
 
-impl DefaultClassChampionshipResultsParser {
-    pub fn new() -> Self {
+impl Default for DefaultClassChampionshipResultsParser {
+    fn default() -> Self {
         Self {
             points_calculator: Box::new(DefaultChampionshipPointsCalculator {}),
         }
     }
+}
 
+impl DefaultClassChampionshipResultsParser {
     fn parse_sheet(
         &self,
         header_map: HashMap<String, usize>,
@@ -90,16 +92,14 @@ impl DefaultClassChampionshipResultsParser {
         > = HashMap::new();
 
         let mut current_class: Option<ShortCarClass> = None;
-        let name_index = header_map
+        let name_index = *header_map
             .get("Driver")
-            .ok_or("Missing 'Driver' column".to_string())?
-            .clone();
-        let total_points_index = header_map
+            .ok_or_else(|| "Missing 'Driver' column".to_string())?;
+        let total_points_index = *header_map
             .get("Total\nPoints")
-            .ok_or("Missing 'Total Points' column".to_string())?
-            .clone();
+            .ok_or_else(|| "Missing 'Total Points' column".to_string())?;
         for r in data.rows() {
-            if r.len() != 0 {
+            if !r.is_empty() {
                 let cell_str = r[0].to_string();
                 let delimeter = if cell_str.contains(" - ") {
                     " - "
@@ -107,7 +107,7 @@ impl DefaultClassChampionshipResultsParser {
                     " – "
                 };
                 let pieces = cell_str.split(delimeter).collect::<Vec<&str>>();
-                if let Some(short_class) = ShortCarClass::parse(pieces.get(0).unwrap_or(&"")) {
+                if let Some(short_class) = ShortCarClass::parse(pieces.first().unwrap_or(&"")) {
                     current_class = Some(short_class);
                     rows_by_class_and_driver_id.insert(short_class, HashMap::new());
                 } else {
@@ -140,16 +140,17 @@ impl DefaultClassChampionshipResultsParser {
         total_points_index: usize,
         r: &[DataType],
     ) {
-        let rows_for_one_class = rows_by_class_and_driver_id.get_mut(current_class).expect(
-            format!(
-                "Attempted to retrieve driver map for class {:?} but map was not found",
-                current_class
-            )
-            .as_str(),
-        );
+        let rows_for_one_class = rows_by_class_and_driver_id
+            .get_mut(current_class)
+            .unwrap_or_else(|| {
+                panic!(
+                    "Attempted to retrieve driver map for class {:?} but map was not found",
+                    current_class
+                )
+            });
         let name = r[name_index].to_string();
 
-        let mut driver = ChampionshipDriver::new(&name);
+        let mut driver = ChampionshipDriver::new(name.as_str());
 
         r[name_index + 1..total_points_index]
             .iter()
@@ -170,7 +171,7 @@ impl DefaultClassChampionshipResultsParser {
             .filter(|(class, _)| class != &&ShortCarClass::FUN)
             .map(|(class, results)| {
                 (
-                    class.clone(),
+                    *class,
                     results
                         .drivers
                         .iter()
@@ -191,7 +192,7 @@ impl DefaultClassChampionshipResultsParser {
             &ctx.new_event_drivers_by_class_and_id,
         )
         .iter()
-        .map(|(class, driver_ids)| self.calculate_results_for_class(&ctx, class, driver_ids))
+        .map(|(class, driver_ids)| self.calculate_results_for_class(ctx, class, driver_ids))
         .collect()
     }
 
@@ -218,10 +219,10 @@ impl DefaultClassChampionshipResultsParser {
             .map(|d| d.best_lap(None))
             .filter(|lap| lap.time.is_some())
             .min()
-            .unwrap_or(dns());
+            .unwrap_or_else(dns);
 
         (
-            class.clone(),
+            *class,
             driver_ids
                 .iter()
                 .map(|id| {
@@ -264,7 +265,7 @@ impl DefaultClassChampionshipResultsParser {
                 driver_history
             }
             (None, Some(driver_new_results)) => {
-                let mut new_driver = ChampionshipDriver::new(&driver_new_results.name);
+                let mut new_driver = ChampionshipDriver::new(driver_new_results.name.as_str());
                 (0..ctx.past_event_count).for_each(|_| {
                     new_driver.add_event(0);
                 });
@@ -274,7 +275,7 @@ impl DefaultClassChampionshipResultsParser {
                 );
                 new_driver
             }
-            (None, None) => ChampionshipDriver::new(&"impossible".to_string()),
+            (None, None) => ChampionshipDriver::new("impossible"),
         }
     }
 
@@ -295,17 +296,16 @@ impl DefaultClassChampionshipResultsParser {
                 let mut driver_ids_for_class = rows_by_class_and_driver_id
                     .get(class)
                     .map(|drivers| drivers.keys().cloned().collect::<HashSet<DriverId>>())
-                    .unwrap_or(HashSet::new());
+                    .unwrap_or_default();
 
                 let new_driver_ids_for_class = new_event_drivers_by_class_and_id
                     .get(class)
                     .map(|drivers| drivers.keys().cloned());
-                match new_driver_ids_for_class {
-                    Some(driver_ids) => driver_ids_for_class.extend(driver_ids),
-                    _ => {}
+                if let Some(driver_ids) = new_driver_ids_for_class {
+                    driver_ids_for_class.extend(driver_ids)
                 }
 
-                (class.clone(), driver_ids_for_class)
+                (*class, driver_ids_for_class)
             })
             .collect()
     }

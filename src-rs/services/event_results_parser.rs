@@ -25,7 +25,7 @@ pub fn parse(file_contents: String, two_day_event: bool) -> Result<EventResults,
     let header_vec: Vec<&str> = headers.iter().collect();
     let final_column_index = header_vec
         .binary_search(&"Runs Day2")
-        .map_err(|_| String::from("Unable to find header column `Runs Day2`"))?;
+        .map_err(|_| "Unable to find header column `Runs Day2`".to_string())?;
 
     let mut results = HashMap::new();
 
@@ -35,11 +35,13 @@ pub fn parse(file_contents: String, two_day_event: bool) -> Result<EventResults,
         let driver = Driver::from(driver, two_day_event);
         let class = driver.car_class.short;
 
-        if !results.contains_key(&class) {
-            results.insert(class, ClassResults::new(class));
-        }
+        results
+            .entry(class)
+            .or_insert_with(|| ClassResults::new(class));
 
-        results.get_mut(&class).map(|r| r.add_driver(driver));
+        if let Some(r) = results.get_mut(&class) {
+            r.add_driver(driver)
+        }
     }
 
     Ok(EventResults { results })
@@ -62,10 +64,10 @@ fn perform_second_parsing(
             .map(|run_count| extract_lap_times(extra_fields, driver.pax_multiplier, run_count)),
     )?;
 
-    if extra_fields.len() > driver.runs_day1.clone().unwrap_or(0) * 3 {
+    if extra_fields.len() > driver.runs_day1.unwrap_or(0) * 3 {
         driver.day2 = swap(driver.runs_day2.map(|run_count| {
             extract_lap_times(
-                &extra_fields[(driver.runs_day1.clone().unwrap_or(0) * 3)..],
+                &extra_fields[(driver.runs_day1.unwrap_or(0) * 3)..],
                 driver.pax_multiplier,
                 run_count,
             )
@@ -170,17 +172,17 @@ mod test {
         assert_eq!(a_street.get_best_in_class(Some(TimeSelection::Day2)), dns());
 
         let robert = a_street.drivers[0].clone();
-        assert_eq!(robert.error, false);
+        assert!(!robert.error);
         assert_eq!(robert.id, "robert fullriede");
         assert_eq!(robert.name, "Robert Fullriede");
         assert_eq!(robert.car_number, 52);
         assert_eq!(robert.car_class.short, ShortCarClass::AS);
         assert_eq!(robert.car_description, "2010 Porsche Cayman");
         assert_eq!(robert.region, "");
-        assert_eq!(robert.rookie, false);
-        assert_eq!(robert.ladies_championship, false);
+        assert!(!robert.rookie);
+        assert!(!robert.ladies_championship);
         assert_eq!(robert.position, Some(1));
-        assert_eq!(robert.dsq, false);
+        assert!(!robert.dsq);
         assert_eq!(robert.pax_multiplier, 0.821);
         assert_eq!(
             robert.day_1_times,

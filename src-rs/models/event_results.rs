@@ -18,8 +18,7 @@ impl EventResults {
     pub fn js_drivers_in_error(&self) -> Vec<JsValue> {
         self.results
             .values()
-            .map(|class_results| class_results.drivers.iter().filter(|d| d.error))
-            .flatten()
+            .flat_map(|class_results| class_results.drivers.iter().filter(|d| d.error))
             .map(|driver| {
                 JsValue::from_str(
                     format!(
@@ -40,14 +39,13 @@ impl EventResults {
         let mut drivers = self
             .results
             .values()
-            .map(|r| {
+            .flat_map(|r| {
                 r.drivers.iter().filter(|d| match filter {
                     DriverGroup::Ladies => d.ladies_championship,
                     DriverGroup::Novice => d.rookie,
                     _ => true,
                 })
             })
-            .flatten()
             .collect::<Vec<&Driver>>();
 
         drivers.sort_by(|lhs, rhs| {

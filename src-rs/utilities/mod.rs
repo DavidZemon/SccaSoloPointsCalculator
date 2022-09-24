@@ -75,9 +75,9 @@ mod test {
 
     #[test]
     fn should_create_name_method() {
-        assert_eq!(ActualEnum::First.name(), String::from("First"));
-        assert_eq!(ActualEnum::Second.name(), String::from("Second"));
-        assert_eq!(ActualEnum::Multi_Word.name(), String::from("Multi_Word"));
+        assert_eq!(ActualEnum::First.name(), "First".to_string());
+        assert_eq!(ActualEnum::Second.name(), "Second".to_string());
+        assert_eq!(ActualEnum::Multi_Word.name(), "Multi_Word".to_string());
         assert_eq!(ActualEnum::parse("Bogus"), None);
         assert_eq!(ActualEnum::parse("First"), Some(ActualEnum::First));
         assert_eq!(ActualEnum::parse("Second"), Some(ActualEnum::Second));
