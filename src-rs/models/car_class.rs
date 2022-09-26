@@ -349,17 +349,17 @@ lazy_static! {
             ),
         );
         m.insert(
-            ShortCarClass::XSA,
+            ShortCarClass::XA,
             CarClass::new(
-                ShortCarClass::XSA,
+                ShortCarClass::XA,
                 LongCarClass::Xtreme_Street_A,
                 ClassCategory::Xtreme_Street,
             ),
         );
         m.insert(
-            ShortCarClass::XSB,
+            ShortCarClass::XB,
             CarClass::new(
-                ShortCarClass::XSB,
+                ShortCarClass::XB,
                 LongCarClass::Xtreme_Street_B,
                 ClassCategory::Xtreme_Street,
             ),
@@ -693,17 +693,17 @@ lazy_static! {
             ),
         );
         m.insert(
-            ShortCarClass::XSAL,
+            ShortCarClass::XAL,
             CarClass::new(
-                ShortCarClass::XSAL,
+                ShortCarClass::XAL,
                 LongCarClass::Xtreme_Street_A_Ladies,
                 ClassCategory::Xtreme_Street,
             ),
         );
         m.insert(
-            ShortCarClass::XSBL,
+            ShortCarClass::XBL,
             CarClass::new(
-                ShortCarClass::XSBL,
+                ShortCarClass::XBL,
                 LongCarClass::Xtreme_Street_B_Ladies,
                 ClassCategory::Xtreme_Street,
             ),
@@ -737,6 +737,14 @@ lazy_static! {
             CarClass::new(
                 ShortCarClass::FSAE,
                 LongCarClass::Formula_SAE,
+                ClassCategory::Miscellaneous_Category,
+            ),
+        );
+        m.insert(
+            ShortCarClass::FSAEL,
+            CarClass::new(
+                ShortCarClass::FSAEL,
+                LongCarClass::Formula_SAE_Ladies,
                 ClassCategory::Miscellaneous_Category,
             ),
         );

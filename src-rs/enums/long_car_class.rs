@@ -90,6 +90,7 @@ enum_str! {
         Solo_Spec_Coupe_Ladies,
         Fun,
         Formula_SAE,
+        Formula_SAE_Ladies,
     }
 }
 

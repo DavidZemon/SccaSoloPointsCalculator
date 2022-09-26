@@ -158,8 +158,8 @@ mod test {
         assert!(actual.results.contains_key(&ShortCarClass::STU));
         assert!(actual.results.contains_key(&ShortCarClass::STX));
         assert!(actual.results.contains_key(&ShortCarClass::XP));
-        assert!(actual.results.contains_key(&ShortCarClass::XSA));
-        assert!(actual.results.contains_key(&ShortCarClass::XSB));
+        assert!(actual.results.contains_key(&ShortCarClass::XA));
+        assert!(actual.results.contains_key(&ShortCarClass::XB));
 
         let a_street = actual.results.get(&ShortCarClass::AS).unwrap();
         assert_eq!(a_street.car_class.short, ShortCarClass::AS);
