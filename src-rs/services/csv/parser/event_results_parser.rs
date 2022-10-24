@@ -31,7 +31,9 @@ pub fn parse(file_contents: String, two_day_event: bool) -> Result<EventResults,
 
     let records = reader1.deserialize().zip(string_reader.records());
     for (deserialized, string_rec) in records {
-        let driver = perform_second_parsing(deserialized, string_rec, final_column_index + 1)?;
+        let (driver, string_rec) = validate_row(deserialized, string_rec)?;
+
+        let driver = perform_second_parsing(driver, string_rec, final_column_index + 1)?;
         let driver = Driver::from(driver, two_day_event);
         let class = driver.car_class.short;
 
@@ -47,15 +49,37 @@ pub fn parse(file_contents: String, two_day_event: bool) -> Result<EventResults,
     Ok(EventResults { results })
 }
 
-fn perform_second_parsing(
+fn validate_row(
     deserialized: csv::Result<DriverFromPronto>,
-    string_rec: csv::Result<StringRecord>,
+    string_record: csv::Result<StringRecord>,
+) -> Result<(DriverFromPronto, StringRecord), String> {
+    let string_record = string_record.map_err(|e| e.to_string())?;
+
+    match deserialized {
+        Ok(driver) => Ok((driver, string_record)),
+        Err(e) => match e.kind() {
+            csv::ErrorKind::Deserialize { err: root, .. } => {
+                match root.kind() {
+                    csv::DeserializeErrorKind::UnexpectedEndOfRow => Err(
+                        format!(
+                            "Encountered an unexpected end of row for a record. One common reason for this is a driver that did not attend the event but remains in Pronto.\n'{:?}'",
+                            string_record,
+                        )
+                    ),
+                    _ => Err(e.to_string()),
+                }
+            },
+            _ => Err(e.to_string()),
+        },
+    }
+}
+
+fn perform_second_parsing(
+    mut driver: DriverFromPronto,
+    string_record: StringRecord,
     first_time_column: usize,
 ) -> Result<DriverFromPronto, String> {
-    let string_record = string_rec.map_err(|e| e.to_string())?;
     let strings_vec: Vec<&str> = string_record.iter().collect();
-
-    let mut driver: DriverFromPronto = deserialized.map_err(|e| e.to_string())?;
 
     let extra_fields = &strings_vec[first_time_column..];
     driver.day1 = swap(
@@ -122,7 +146,7 @@ mod test {
     use crate::enums::short_car_class::ShortCarClass;
     use crate::models::driver::TimeSelection;
     use crate::models::lap_time::{dns, LapTime, Penalty};
-    use crate::services::event_results_parser::parse;
+    use crate::services::csv::parser::event_results_parser::parse;
 
     #[test]
     fn parse_event_results() {
@@ -198,5 +222,17 @@ mod test {
         for (index, driver) in a_street.drivers.iter().enumerate() {
             assert_eq!(driver.position, Some(index + 1));
         }
+    }
+
+    #[test]
+    fn parse_results_with_no_show_driver() {
+        let sample_contents = r#"Position, Class, Class Category, Class Name, Number, First Name,Last Name, Car Year, Car Make, Car Model, Car Color, Member #, Rookie, Ladies, DSQ, Region, Best Run, Pax Index, Pax Time, Runs Day1, Runs Day2, Runs (Time/Cones/Penalty)
+"1","SS","Street","Super Street","78","Sean","Greer","2022","Chevrolet","Challenger Cobra 392","urine","432501","0","","0","STL","41.442","0.83","34.397","6","0","42.429","0","","41.862","0","","41.595","0","","41.537","0","","41.445","0","","41.442","0",""
+"17","CAMT","Other","Classic American Muscle Traditional","88","Charles","Hammelman","1999","Ford","Mustang SVT Cobra","Black","691686","1","","0","","DNF","0.816","999","0","0""#;
+
+        let actual = parse(sample_contents.to_string(), false);
+
+        assert!(actual.is_err(), "Should fail on empty driver");
+        assert_eq!(actual.err().unwrap(), "Encountered an unexpected end of row for a record. One common reason for this is a driver that did not attend the event but remains in Pronto.\n'StringRecord([\"17\", \"CAMT\", \"Other\", \"Classic American Muscle Traditional\", \"88\", \"Charles\", \"Hammelman\", \"1999\", \"Ford\", \"Mustang SVT Cobra\", \"Black\", \"691686\", \"1\", \"\", \"0\", \"\", \"DNF\", \"0.816\", \"999\", \"0\", \"0\"])'");
     }
 }

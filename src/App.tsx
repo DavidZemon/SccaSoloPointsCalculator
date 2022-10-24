@@ -83,10 +83,14 @@ class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
 
                     return true;
                   } catch (e) {
-                    console.error(e);
-                    toast.error(
-                      'File format does not match expected. Please export event results with raw times, grouped by class.',
-                    );
+                    if (typeof e === 'string' && e.startsWith('Encountered an unexpected end of row')) {
+                      toast.error(e)
+                    }else {
+                      console.error(e);
+                      toast.error(
+                          'File format does not match expected. Please export event results with raw times, grouped by class.',
+                      );
+                    }
                     return false;
                   }
                 }}

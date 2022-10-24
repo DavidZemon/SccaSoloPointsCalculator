@@ -1,20 +1,21 @@
 extern crate core;
 
-pub mod enums;
-mod models;
-mod services;
-mod utilities;
-
 use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen::JsValue;
+
+use enums::championship_type::ChampionshipType;
+use enums::driver_group::DriverGroup;
 
 use crate::models::event_results::EventResults;
 use crate::services::class_results_builder::ClassResultsBuilder;
 use crate::services::csv::builder::combined_results_builder::CombinedResultsBuilder;
 use crate::services::csv::parser::championship_results_parser::ChampionshipResultsParser;
-use crate::services::event_results_parser::parse;
-use enums::championship_type::ChampionshipType;
-use enums::driver_group::DriverGroup;
+use crate::services::csv::parser::event_results_parser::parse;
+
+pub mod enums;
+mod models;
+mod services;
+mod utilities;
 
 #[wasm_bindgen]
 pub struct SccaSoloPointsEngine {
