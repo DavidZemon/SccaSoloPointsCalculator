@@ -1,3 +1,4 @@
+use crate::console_log;
 #[cfg(test)]
 use mockall::automock;
 
@@ -9,6 +10,7 @@ use crate::models::championship_results::ClassChampionshipResults;
 use crate::services::calculators::tie_calculator::calculate_tie_offset;
 use crate::services::calculators::trophy_calculator::{ClassTrophyCalculator, TrophyCalculator};
 use crate::utilities::events_to_count;
+use crate::utilities::log;
 
 #[cfg_attr(test, automock)]
 pub trait ClassCsvBuilder {
@@ -28,7 +30,7 @@ impl ClassCsvBuilder for DefaultClassCsvBuilder {
             .ok_or("Expected at least one class")?
             .get(0)
             .ok_or("Expected at least one driver in at least one class")?
-            .event_count();
+            .event_count(true);
         let events_to_count = events_to_count(event_count);
         let header = Self::build_header(events_to_count, event_count);
 
@@ -63,7 +65,9 @@ impl ClassCsvBuilder for DefaultClassCsvBuilder {
                 to_display_name(get_car_class(class).unwrap().long)
             ));
 
-            let trophy_count = self.trophy_calculator.calculate(drivers.len());
+            let trophy_count = self
+                .trophy_calculator
+                .calculate(self.get_qualified_driver_count(class, drivers, events_to_count));
             rows.extend(drivers.iter().enumerate().map(|(index, d)| {
                 let tie_offset = calculate_tie_offset(drivers, index, |d1, d2| {
                     d1.total_points() == d2.total_points()
@@ -116,5 +120,25 @@ impl DefaultClassCsvBuilder {
         header.push(format!("Best {} of {}", events_to_count, event_count));
 
         header.join(",")
+    }
+
+    /// Qualified drivers are those that participated in enough events
+    fn get_qualified_driver_count(
+        &self,
+        class_name: &ShortCarClass,
+        drivers: &[ChampionshipDriver],
+        events_to_qualify: usize,
+    ) -> usize {
+        let quali_driver_count = drivers
+            .iter()
+            .map(|d| d.event_count(false))
+            .filter(|count| *count >= events_to_qualify)
+            .count();
+        console_log!(
+            "Counted {} drivers for class {:?}",
+            quali_driver_count,
+            class_name
+        );
+        quali_driver_count
     }
 }

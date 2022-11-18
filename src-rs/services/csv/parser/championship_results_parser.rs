@@ -13,8 +13,10 @@ use crate::models::driver::Driver;
 use crate::models::event_results::EventResults;
 use crate::models::lap_time::{dns, LapTime};
 use crate::models::type_aliases::DriverId;
-use crate::services::csv::builder::class_csv_builder::{ClassCsvBuilder, DefaultClassCsvBuilder};
-use crate::services::csv::builder::indexed_csv_builder::{
+use crate::services::csv::builder::championship::class_csv_builder::{
+    ClassCsvBuilder, DefaultClassCsvBuilder,
+};
+use crate::services::csv::builder::championship::indexed_csv_builder::{
     DefaultIndexedCsvBuilder, IndexedCsvBuilder,
 };
 use crate::services::csv::parser::class_championship_results_parser::{
@@ -185,8 +187,8 @@ mod test {
     use std::collections::HashMap;
     use std::rc::Rc;
 
-    use crate::services::csv::builder::class_csv_builder::MockClassCsvBuilder;
-    use crate::services::csv::builder::indexed_csv_builder::MockIndexedCsvBuilder;
+    use crate::services::csv::builder::championship::class_csv_builder::MockClassCsvBuilder;
+    use crate::services::csv::builder::championship::indexed_csv_builder::MockIndexedCsvBuilder;
     use crate::services::csv::parser::class_championship_results_parser::MockClassChampionshipResultsParser;
     use crate::services::csv::parser::index_championship_results_parser::MockIndexChampionshipResultsParser;
     use crate::{ChampionshipResultsParser, ChampionshipType, EventResults};

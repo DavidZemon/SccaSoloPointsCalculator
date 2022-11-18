@@ -26,8 +26,12 @@ impl ChampionshipDriver {
         self.total_points
     }
 
-    pub fn event_count(&self) -> usize {
-        self.points.len()
+    pub fn event_count(&self, include_zeroes: bool) -> usize {
+        if include_zeroes {
+            self.points.len()
+        } else {
+            self.points.iter().filter(|p| **p != 0).count()
+        }
     }
 
     pub fn add_event(&mut self, event_points: i64) {

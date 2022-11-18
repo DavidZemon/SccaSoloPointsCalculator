@@ -31,7 +31,7 @@ impl IndexedCsvBuilder for DefaultIndexedCsvBuilder {
             .drivers
             .get(0)
             .ok_or("Expected at least one driver")?
-            .event_count();
+            .event_count(true);
         let events_to_count = events_to_count(event_count);
         let header = Self::build_header(event_count);
         let trophy_count = self.trophy_calculator.calculate(results.drivers.len());
@@ -118,9 +118,8 @@ mod test {
     use crate::enums::championship_type::ChampionshipType;
     use crate::models::championship_driver::ChampionshipDriver;
     use crate::models::championship_results::IndexedChampionshipResults;
-    use crate::models::driver::Driver;
     use crate::services::calculators::trophy_calculator::TrophyCalculator;
-    use crate::services::csv::builder::indexed_csv_builder::{
+    use crate::services::csv::builder::championship::indexed_csv_builder::{
         DefaultIndexedCsvBuilder, IndexedCsvBuilder,
     };
 
@@ -128,10 +127,6 @@ mod test {
 
     impl TrophyCalculator for MockTrophyCalculator {
         fn calculate(&self, _: usize) -> usize {
-            2
-        }
-
-        fn calculate_vec(&self, _: Vec<&Driver>) -> usize {
             2
         }
     }

@@ -9,6 +9,7 @@ use crate::services::calculators::championship_points_calculator::{
 };
 use crate::services::calculators::trophy_calculator::{ClassTrophyCalculator, TrophyCalculator};
 
+/// Build class CSV results for a single event
 pub struct ClassResultsBuilder {
     trophy_calculator: Box<dyn TrophyCalculator>,
     points_calculator: Box<dyn ChampionshipPointsCalculator>,

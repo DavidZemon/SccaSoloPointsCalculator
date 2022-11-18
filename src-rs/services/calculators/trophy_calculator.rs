@@ -1,10 +1,7 @@
-use crate::models::driver::Driver;
 use std::cmp::{max, min};
 
 pub trait TrophyCalculator {
     fn calculate(&self, driver_count: usize) -> usize;
-
-    fn calculate_vec(&self, drivers: Vec<&Driver>) -> usize;
 }
 
 pub struct ClassTrophyCalculator {}
@@ -13,10 +10,6 @@ impl TrophyCalculator for ClassTrophyCalculator {
     fn calculate(&self, driver_count: usize) -> usize {
         min(3, max(driver_count, 1) - 1)
     }
-
-    fn calculate_vec(&self, drivers: Vec<&Driver>) -> usize {
-        self.calculate(drivers.len())
-    }
 }
 
 pub struct IndexTrophyCalculator {}
@@ -24,10 +17,6 @@ pub struct IndexTrophyCalculator {}
 impl TrophyCalculator for IndexTrophyCalculator {
     fn calculate(&self, driver_count: usize) -> usize {
         min(10, driver_count)
-    }
-
-    fn calculate_vec(&self, drivers: Vec<&Driver>) -> usize {
-        self.calculate(drivers.len())
     }
 }
 

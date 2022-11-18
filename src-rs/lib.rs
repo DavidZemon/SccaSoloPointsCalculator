@@ -7,8 +7,8 @@ use enums::championship_type::ChampionshipType;
 use enums::driver_group::DriverGroup;
 
 use crate::models::event_results::EventResults;
-use crate::services::class_results_builder::ClassResultsBuilder;
-use crate::services::csv::builder::combined_results_builder::CombinedResultsBuilder;
+use crate::services::csv::builder::event::class_results_builder::ClassResultsBuilder;
+use crate::services::csv::builder::event::combined_results_builder::CombinedResultsBuilder;
 use crate::services::csv::parser::championship_results_parser::ChampionshipResultsParser;
 use crate::services::csv::parser::event_results_parser::parse;
 

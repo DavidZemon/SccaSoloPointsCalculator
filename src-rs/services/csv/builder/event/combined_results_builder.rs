@@ -10,6 +10,7 @@ use crate::services::calculators::championship_points_calculator::{
 use crate::services::calculators::tie_calculator::calculate_tie_offset;
 use crate::services::calculators::trophy_calculator::{IndexTrophyCalculator, TrophyCalculator};
 
+/// Build indexed and raw time CSV results for a single event
 pub struct CombinedResultsBuilder {
     trophy_calculator: Box<dyn TrophyCalculator>,
     points_calculator: Box<dyn ChampionshipPointsCalculator>,
