@@ -22,7 +22,7 @@ interface AppState {
 
   pointsEngine?: SccaSoloPointsEngine;
   driversInError?: string[];
-  championshipResults?: Partial<Record<ChampionshipType, string>>;
+  championshipResults?: Partial<Record<keyof typeof ChampionshipType, string>>;
 
   newLadies: string[];
 }
@@ -83,12 +83,15 @@ class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
 
                     return true;
                   } catch (e) {
-                    if (typeof e === 'string' && e.startsWith('Encountered an unexpected end of row')) {
-                      toast.error(e)
-                    }else {
+                    if (
+                      typeof e === 'string' &&
+                      e.startsWith('Encountered an unexpected end of row')
+                    ) {
+                      toast.error(e);
+                    } else {
                       console.error(e);
                       toast.error(
-                          'File format does not match expected. Please export event results with raw times, grouped by class.',
+                        'File format does not match expected. Please export event results with raw times, grouped by class.',
                       );
                     }
                     return false;

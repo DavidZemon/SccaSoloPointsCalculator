@@ -12,19 +12,19 @@ path = "src-rs/lib.rs"
 
 [dependencies]
 bigdecimal = "0.3.0"
-calamine = "0.18.0"
-csv = "1.1.6"
+calamine = "0.19.1"
+csv = "1.2.1"
 float-cmp = "0.9.0"
 lazy_static = "1.4.0"
-js-sys = "0.3.59"
-regex = "1.6.0"
-serde = { version = "1.0.144", features = ["derive"] }
-serde_json = "1.0.85"
-serde-wasm-bindgen = "0.4.3"
+js-sys = "0.3.61"
+regex = "1.7.3"
+serde = { version = "1.0.160", features = ["derive"] }
+serde_json = "1.0.96"
+serde-wasm-bindgen = "0.5.0"
 strum = "0.24.1"
 strum_macros = "0.24.3"
-wasm-bindgen = { version = "0.2.83", features = ["serde-serialize"] }
+wasm-bindgen = { version = "0.2.84", features = ["serde-serialize"] }
 
 [dev-dependencies]
-rstest = "0.15.0"
-mockall = "0.11.2"
+rstest = "0.17.0"
+mockall = "0.11.4"
