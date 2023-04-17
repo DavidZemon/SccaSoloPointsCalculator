@@ -149,6 +149,14 @@ lazy_static! {
             ),
         );
         m.insert(
+            ShortCarClass::SST,
+            CarClass::new(
+                ShortCarClass::SST,
+                LongCarClass::Super_Street_Touring,
+                ClassCategory::Street_Touring_Category,
+            ),
+        );
+        m.insert(
             ShortCarClass::SSP,
             CarClass::new(
                 ShortCarClass::SSP,
@@ -365,6 +373,14 @@ lazy_static! {
             ),
         );
         m.insert(
+            ShortCarClass::XS,
+            CarClass::new(
+                ShortCarClass::XS,
+                LongCarClass::Xtreme_Street_Sport,
+                ClassCategory::Xtreme_Street,
+            ),
+        );
+        m.insert(
             ShortCarClass::EVX,
             CarClass::new(
                 ShortCarClass::EVX,
@@ -489,6 +505,14 @@ lazy_static! {
             CarClass::new(
                 ShortCarClass::STSL,
                 LongCarClass::Street_Touring_Sport_Ladies,
+                ClassCategory::Street_Touring_Category,
+            ),
+        );
+        m.insert(
+            ShortCarClass::SSTL,
+            CarClass::new(
+                ShortCarClass::SSTL,
+                LongCarClass::Super_Street_Touring_Ladies,
                 ClassCategory::Street_Touring_Category,
             ),
         );
@@ -705,6 +729,14 @@ lazy_static! {
             CarClass::new(
                 ShortCarClass::XBL,
                 LongCarClass::Xtreme_Street_B_Ladies,
+                ClassCategory::Xtreme_Street,
+            ),
+        );
+        m.insert(
+            ShortCarClass::XSL,
+            CarClass::new(
+                ShortCarClass::XSL,
+                LongCarClass::Xtreme_Street_Sport_Ladies,
                 ClassCategory::Xtreme_Street,
             ),
         );
