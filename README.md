@@ -1,3 +1,3 @@
 # SCCA Solo Points Calculator
 
-Coming soon...
+This will calculate SCCA solo points
