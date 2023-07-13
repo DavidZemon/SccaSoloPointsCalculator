@@ -66,10 +66,10 @@ fn validate_row(
                             string_record,
                         )
                     ),
-                    _ => Err(e.to_string()),
+                    _ => Err(format!("Failed to deserialize row {:?} due to {:?}", string_record, e.to_string())),
                 }
             },
-            _ => Err(e.to_string()),
+            _ => Err(format!("Failed to deserialize row {:?} due to {:?}", string_record, e.to_string())),
         },
     }
 }
@@ -149,10 +149,90 @@ mod test {
     use crate::services::csv::parser::event_results_parser::parse;
 
     #[test]
-    fn parse_event_results() {
+    fn parse_2022_e1_event_results() {
         let sample_contents =
             fs::read_to_string("./SampleData/2022_Event1-DavidExport.csv").unwrap();
         let actual = parse(sample_contents, false).unwrap();
+
+        assert_eq!(actual.results.len(), 29);
+        assert!(actual.results.contains_key(&ShortCarClass::AS));
+        assert!(actual.results.contains_key(&ShortCarClass::BS));
+        assert!(actual.results.contains_key(&ShortCarClass::CAMC));
+        assert!(actual.results.contains_key(&ShortCarClass::CAMS));
+        assert!(actual.results.contains_key(&ShortCarClass::CAMT));
+        assert!(actual.results.contains_key(&ShortCarClass::CS));
+        assert!(actual.results.contains_key(&ShortCarClass::CSP));
+        assert!(actual.results.contains_key(&ShortCarClass::DP));
+        assert!(actual.results.contains_key(&ShortCarClass::DS));
+        assert!(actual.results.contains_key(&ShortCarClass::ES));
+        assert!(actual.results.contains_key(&ShortCarClass::EVX));
+        assert!(actual.results.contains_key(&ShortCarClass::FS));
+        assert!(actual.results.contains_key(&ShortCarClass::FSAE));
+        assert!(actual.results.contains_key(&ShortCarClass::FSP));
+        assert!(actual.results.contains_key(&ShortCarClass::FUN));
+        assert!(actual.results.contains_key(&ShortCarClass::GS));
+        assert!(actual.results.contains_key(&ShortCarClass::GSL));
+        assert!(actual.results.contains_key(&ShortCarClass::HS));
+        assert!(actual.results.contains_key(&ShortCarClass::HSL));
+        assert!(actual.results.contains_key(&ShortCarClass::SMF));
+        assert!(actual.results.contains_key(&ShortCarClass::SSC));
+        assert!(actual.results.contains_key(&ShortCarClass::STH));
+        assert!(actual.results.contains_key(&ShortCarClass::STR));
+        assert!(actual.results.contains_key(&ShortCarClass::STS));
+        assert!(actual.results.contains_key(&ShortCarClass::STU));
+        assert!(actual.results.contains_key(&ShortCarClass::STX));
+        assert!(actual.results.contains_key(&ShortCarClass::XP));
+        assert!(actual.results.contains_key(&ShortCarClass::XA));
+        assert!(actual.results.contains_key(&ShortCarClass::XB));
+
+        let a_street = actual.results.get(&ShortCarClass::AS).unwrap();
+        assert_eq!(a_street.car_class.short, ShortCarClass::AS);
+        assert_eq!(a_street.drivers.len(), 5);
+        assert_eq!(
+            a_street.get_best_in_class(None),
+            LapTime::new(52.288, 0.821, 0, None)
+        );
+        assert_eq!(a_street.get_best_in_class(Some(TimeSelection::Day2)), dns());
+        assert_eq!(a_street.get_best_in_class(Some(TimeSelection::Day2)), dns());
+
+        let robert = a_street.drivers[0].clone();
+        assert!(!robert.error);
+        assert_eq!(robert.id, "robert fullriede");
+        assert_eq!(robert.name, "Robert Fullriede");
+        assert_eq!(robert.car_number, 52);
+        assert_eq!(robert.car_class.short, ShortCarClass::AS);
+        assert_eq!(robert.car_description, "2010 Porsche Cayman");
+        assert_eq!(robert.region, "");
+        assert!(!robert.rookie);
+        assert!(!robert.ladies_championship);
+        assert_eq!(robert.position, Some(1));
+        assert!(!robert.dsq);
+        assert_eq!(robert.pax_multiplier, 0.821);
+        assert_eq!(
+            robert.day_1_times,
+            Some(vec![
+                LapTime::new(52.288, 0.821, 0, None),
+                LapTime::new(53.351, 0.821, 0, None),
+                LapTime::new(0., 0.821, 0, Some(Penalty::DNF)),
+            ])
+        );
+        assert_eq!(robert.day_2_times, None);
+        assert_eq!(robert.combined, LapTime::new(52.288, 0.821, 0, None));
+
+        for (index, driver) in a_street.drivers.iter().enumerate() {
+            assert_eq!(driver.position, Some(index + 1));
+        }
+    }
+
+    #[test]
+    fn parse_2023_e3_event_results() {
+        let sample_contents =
+            fs::read_to_string("./SampleData/2023_Event3-DavidExport.csv").unwrap();
+
+        let actual = match parse(sample_contents, false) {
+            Ok(actual) => actual,
+            Err(e) => panic!("Parsed failed due to: {}", e),
+        };
 
         assert_eq!(actual.results.len(), 29);
         assert!(actual.results.contains_key(&ShortCarClass::AS));

@@ -145,7 +145,9 @@ impl Driver {
         let mut driver = Driver {
             error: driver.runs_day1.is_none() && driver.runs_day2.is_none() && !best_run_is_falsy,
             rookie: driver.rookie.map_or(false, |value| value != 0),
-            ladies_championship: driver.ladies.map_or(false, |value| value != 0),
+            ladies_championship: driver
+                .ladies
+                .map_or(false, |value| value != "0" && !value.is_empty()),
             position: None,
             car_number: driver.car_number,
             car_class,
@@ -160,7 +162,7 @@ impl Driver {
                     .clone()
                     .unwrap_or_else(|| "Unknown".to_string())
             ),
-            region: driver.region.clone().unwrap_or_else(|| "".to_string()),
+            region: driver.region.clone().unwrap_or_default(),
             dsq: driver.dsq.map(|dsq| dsq == 1).unwrap_or(false),
             pax_multiplier: driver.pax_multiplier,
             day_1_times,
