@@ -79,25 +79,37 @@ fn perform_second_parsing(
     string_record: StringRecord,
     first_time_column: usize,
 ) -> Result<DriverFromPronto, String> {
-    let strings_vec: Vec<&str> = string_record.iter().collect();
+    // Start by just dealing with the Pronto's poor handling of our "Ladies" field in that it
+    // sometimes (always?) puts the ladies indicator in the region column
+    {
+        if let Some(region) = driver.region.clone() {
+            if region.trim() == "L" {
+                driver.ladies = Some(region);
+            }
+        }
+    }
 
-    let extra_fields = &strings_vec[first_time_column..];
-    driver.day1 = swap(
-        driver
-            .runs_day1
-            .map(|run_count| extract_lap_times(extra_fields, driver.pax_multiplier, run_count)),
-    )?;
+    // Then deal with the day 1/2 lap times
+    {
+        let strings_vec: Vec<&str> = string_record.iter().collect();
 
-    if extra_fields.len() > driver.runs_day1.unwrap_or(0) * 3 {
-        driver.day2 = swap(driver.runs_day2.map(|run_count| {
-            extract_lap_times(
-                &extra_fields[(driver.runs_day1.unwrap_or(0) * 3)..],
-                driver.pax_multiplier,
-                run_count,
-            )
-        }))?;
-    } else {
-        driver.day2 = None;
+        let extra_fields = &strings_vec[first_time_column..];
+        driver.day1 =
+            swap(driver.runs_day1.map(|run_count| {
+                extract_lap_times(extra_fields, driver.pax_multiplier, run_count)
+            }))?;
+
+        if extra_fields.len() > driver.runs_day1.unwrap_or(0) * 3 {
+            driver.day2 = swap(driver.runs_day2.map(|run_count| {
+                extract_lap_times(
+                    &extra_fields[(driver.runs_day1.unwrap_or(0) * 3)..],
+                    driver.pax_multiplier,
+                    run_count,
+                )
+            }))?;
+        } else {
+            driver.day2 = None;
+        }
     }
 
     Ok(driver)
