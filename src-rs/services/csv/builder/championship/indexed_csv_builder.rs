@@ -5,7 +5,7 @@ use crate::enums::championship_type::ChampionshipType;
 use crate::models::championship_driver::ChampionshipDriver;
 use crate::models::championship_results::IndexedChampionshipResults;
 use crate::services::calculators::tie_calculator::calculate_tie_offset;
-use crate::services::calculators::trophy_calculator::{IndexTrophyCalculator, TrophyCalculator};
+use crate::services::calculators::trophy_calculator::{DefaultTrophyCalculator, TrophyCalculator};
 use crate::utilities::events_to_count;
 
 #[cfg_attr(test, automock)]
@@ -41,6 +41,7 @@ impl IndexedCsvBuilder for DefaultIndexedCsvBuilder {
                 .map(|d| d.event_count(false))
                 .filter(|count| *count >= events_to_count)
                 .count(),
+            Some(championship_type),
         );
 
         let mut rows = vec![
@@ -99,7 +100,7 @@ impl DefaultIndexedCsvBuilder {
     pub fn from(trophy_calculator: Option<Box<dyn TrophyCalculator>>) -> DefaultIndexedCsvBuilder {
         Self {
             trophy_calculator: trophy_calculator
-                .unwrap_or_else(|| Box::new(IndexTrophyCalculator {})),
+                .unwrap_or_else(|| Box::new(DefaultTrophyCalculator {})),
         }
     }
 
@@ -133,7 +134,7 @@ mod test {
     struct MockTrophyCalculator {}
 
     impl TrophyCalculator for MockTrophyCalculator {
-        fn calculate(&self, _: usize) -> usize {
+        fn calculate(&self, _: usize, _: Option<ChampionshipType>) -> usize {
             2
         }
     }

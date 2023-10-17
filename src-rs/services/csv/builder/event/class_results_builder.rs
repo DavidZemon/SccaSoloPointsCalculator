@@ -1,3 +1,4 @@
+use crate::enums::championship_type::ChampionshipType;
 use csv::Writer;
 use wasm_bindgen::JsValue;
 
@@ -7,7 +8,7 @@ use crate::models::event_results::EventResults;
 use crate::services::calculators::championship_points_calculator::{
     ChampionshipPointsCalculator, DefaultChampionshipPointsCalculator,
 };
-use crate::services::calculators::trophy_calculator::{ClassTrophyCalculator, TrophyCalculator};
+use crate::services::calculators::trophy_calculator::{DefaultTrophyCalculator, TrophyCalculator};
 
 /// Build class CSV results for a single event
 pub struct ClassResultsBuilder {
@@ -28,7 +29,7 @@ impl ClassResultsBuilder {
     ) -> Self {
         Self {
             trophy_calculator: trophy_calculator
-                .unwrap_or_else(|| Box::new(ClassTrophyCalculator {})),
+                .unwrap_or_else(|| Box::new(DefaultTrophyCalculator {})),
             points_calculator: points_calculator
                 .unwrap_or_else(|| Box::new(DefaultChampionshipPointsCalculator {})),
         }
@@ -86,7 +87,7 @@ impl ClassResultsBuilder {
         let short_class_name = class_results.car_class.short.name().to_string();
         let trophy_count = self
             .trophy_calculator
-            .calculate(class_results.drivers.len());
+            .calculate(class_results.drivers.len(), Some(ChampionshipType::Class));
 
         let mut csv = Writer::from_writer(vec![]);
 

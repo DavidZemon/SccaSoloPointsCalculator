@@ -245,44 +245,42 @@ mod test {
             Ok(actual) => actual,
             Err(e) => panic!("Parsed failed due to: {}", e),
         };
-
-        assert_eq!(actual.results.len(), 29);
         assert!(actual.results.contains_key(&ShortCarClass::AS));
         assert!(actual.results.contains_key(&ShortCarClass::BS));
         assert!(actual.results.contains_key(&ShortCarClass::CAMC));
         assert!(actual.results.contains_key(&ShortCarClass::CAMS));
         assert!(actual.results.contains_key(&ShortCarClass::CAMT));
         assert!(actual.results.contains_key(&ShortCarClass::CS));
-        assert!(actual.results.contains_key(&ShortCarClass::CSP));
-        assert!(actual.results.contains_key(&ShortCarClass::DP));
+        assert!(actual.results.contains_key(&ShortCarClass::DM));
+        assert!(actual.results.contains_key(&ShortCarClass::DML));
         assert!(actual.results.contains_key(&ShortCarClass::DS));
+        assert!(actual.results.contains_key(&ShortCarClass::DSP));
         assert!(actual.results.contains_key(&ShortCarClass::ES));
-        assert!(actual.results.contains_key(&ShortCarClass::EVX));
+        assert!(actual.results.contains_key(&ShortCarClass::FP));
         assert!(actual.results.contains_key(&ShortCarClass::FS));
-        assert!(actual.results.contains_key(&ShortCarClass::FSAE));
-        assert!(actual.results.contains_key(&ShortCarClass::FSP));
-        assert!(actual.results.contains_key(&ShortCarClass::FUN));
         assert!(actual.results.contains_key(&ShortCarClass::GS));
-        assert!(actual.results.contains_key(&ShortCarClass::GSL));
         assert!(actual.results.contains_key(&ShortCarClass::HS));
-        assert!(actual.results.contains_key(&ShortCarClass::HSL));
         assert!(actual.results.contains_key(&ShortCarClass::SMF));
+        assert!(actual.results.contains_key(&ShortCarClass::SS));
         assert!(actual.results.contains_key(&ShortCarClass::SSC));
+        assert!(actual.results.contains_key(&ShortCarClass::SSL));
+        assert!(actual.results.contains_key(&ShortCarClass::SSM));
         assert!(actual.results.contains_key(&ShortCarClass::STH));
         assert!(actual.results.contains_key(&ShortCarClass::STR));
-        assert!(actual.results.contains_key(&ShortCarClass::STS));
         assert!(actual.results.contains_key(&ShortCarClass::STU));
         assert!(actual.results.contains_key(&ShortCarClass::STX));
-        assert!(actual.results.contains_key(&ShortCarClass::XP));
         assert!(actual.results.contains_key(&ShortCarClass::XA));
         assert!(actual.results.contains_key(&ShortCarClass::XB));
+        assert!(actual.results.contains_key(&ShortCarClass::XP));
+        assert!(actual.results.contains_key(&ShortCarClass::XS));
+        assert_eq!(actual.results.len(), 28);
 
         let a_street = actual.results.get(&ShortCarClass::AS).unwrap();
         assert_eq!(a_street.car_class.short, ShortCarClass::AS);
         assert_eq!(a_street.drivers.len(), 5);
         assert_eq!(
             a_street.get_best_in_class(None),
-            LapTime::new(52.288, 0.821, 0, None)
+            LapTime::new(45.269, 0.823, 0, None)
         );
         assert_eq!(a_street.get_best_in_class(Some(TimeSelection::Day2)), dns());
         assert_eq!(a_street.get_best_in_class(Some(TimeSelection::Day2)), dns());
@@ -299,13 +297,16 @@ mod test {
         assert!(!robert.ladies_championship);
         assert_eq!(robert.position, Some(1));
         assert!(!robert.dsq);
-        assert_eq!(robert.pax_multiplier, 0.821);
+        assert_eq!(robert.pax_multiplier, 0.823);
         assert_eq!(
             robert.day_1_times,
             Some(vec![
-                LapTime::new(52.288, 0.821, 0, None),
-                LapTime::new(53.351, 0.821, 0, None),
-                LapTime::new(0., 0.821, 0, Some(Penalty::DNF)),
+                LapTime::new(48.317, 0.823, 6, None),
+                LapTime::new(47.069, 0.823, 0, None),
+                LapTime::new(46.247, 0.823, 0, None),
+                LapTime::new(45.519, 0.823, 0, None),
+                LapTime::new(45.269, 0.823, 0, None),
+                LapTime::new(45.559, 0.823, 0, None),
             ])
         );
         assert_eq!(robert.day_2_times, None);

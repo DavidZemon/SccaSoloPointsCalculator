@@ -1,3 +1,4 @@
+use crate::enums::championship_type::ChampionshipType;
 use csv::Writer;
 
 use crate::enums::driver_group::DriverGroup;
@@ -8,7 +9,7 @@ use crate::services::calculators::championship_points_calculator::{
     ChampionshipPointsCalculator, DefaultChampionshipPointsCalculator,
 };
 use crate::services::calculators::tie_calculator::calculate_tie_offset;
-use crate::services::calculators::trophy_calculator::{IndexTrophyCalculator, TrophyCalculator};
+use crate::services::calculators::trophy_calculator::{DefaultTrophyCalculator, TrophyCalculator};
 
 /// Build indexed and raw time CSV results for a single event
 pub struct CombinedResultsBuilder {
@@ -46,7 +47,7 @@ impl CombinedResultsBuilder {
     ) -> Self {
         CombinedResultsBuilder {
             trophy_calculator: trophy_calculator
-                .unwrap_or_else(|| Box::new(IndexTrophyCalculator {})),
+                .unwrap_or_else(|| Box::new(DefaultTrophyCalculator {})),
             points_calculator: points_calculator
                 .unwrap_or_else(|| Box::new(DefaultChampionshipPointsCalculator {})),
         }
@@ -82,7 +83,9 @@ impl CombinedResultsBuilder {
         let fastest_of_day = fastest_driver.best_lap(None);
 
         let driver_count = drivers.len();
-        let trophy_count = self.trophy_calculator.calculate(driver_count);
+        let trophy_count = self
+            .trophy_calculator
+            .calculate(driver_count, ChampionshipType::from(driver_group));
 
         let mut csv = Writer::from_writer(vec![]);
         csv.write_record(self.get_combined_header(is_raw_time))

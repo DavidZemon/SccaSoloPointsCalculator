@@ -1,4 +1,5 @@
 use crate::console_log;
+use crate::enums::championship_type::ChampionshipType;
 #[cfg(test)]
 use mockall::automock;
 
@@ -8,7 +9,7 @@ use crate::models::car_class::get_car_class;
 use crate::models::championship_driver::ChampionshipDriver;
 use crate::models::championship_results::ClassChampionshipResults;
 use crate::services::calculators::tie_calculator::calculate_tie_offset;
-use crate::services::calculators::trophy_calculator::{ClassTrophyCalculator, TrophyCalculator};
+use crate::services::calculators::trophy_calculator::{DefaultTrophyCalculator, TrophyCalculator};
 use crate::utilities::events_to_count;
 use crate::utilities::log;
 
@@ -65,9 +66,10 @@ impl ClassCsvBuilder for DefaultClassCsvBuilder {
                 to_display_name(get_car_class(class).unwrap().long)
             ));
 
-            let trophy_count = self
-                .trophy_calculator
-                .calculate(self.get_qualified_driver_count(class, drivers, events_to_count));
+            let trophy_count = self.trophy_calculator.calculate(
+                self.get_qualified_driver_count(class, drivers, events_to_count),
+                Some(ChampionshipType::Class),
+            );
             rows.extend(drivers.iter().enumerate().map(|(index, d)| {
                 let tie_offset = calculate_tie_offset(drivers, index, |d1, d2| {
                     d1.total_points() == d2.total_points()
@@ -105,7 +107,7 @@ impl DefaultClassCsvBuilder {
     pub fn from(trophy_calculator: Option<Box<dyn TrophyCalculator>>) -> DefaultClassCsvBuilder {
         Self {
             trophy_calculator: trophy_calculator
-                .unwrap_or_else(|| Box::new(ClassTrophyCalculator {})),
+                .unwrap_or_else(|| Box::new(DefaultTrophyCalculator {})),
         }
     }
 
