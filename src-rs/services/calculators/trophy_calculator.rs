@@ -8,7 +8,11 @@ pub struct ClassTrophyCalculator {}
 
 impl TrophyCalculator for ClassTrophyCalculator {
     fn calculate(&self, driver_count: usize) -> usize {
-        min(3, max(driver_count, 1) - 1)
+        if driver_count == 1 {
+            1
+        } else {
+            min(3, max(driver_count, 1) - 1)
+        }
     }
 }
 
@@ -31,7 +35,7 @@ mod test {
         let testable = ClassTrophyCalculator {};
 
         assert_eq!(testable.calculate(0), 0);
-        assert_eq!(testable.calculate(1), 0);
+        assert_eq!(testable.calculate(1), 1);
         assert_eq!(testable.calculate(2), 1);
         assert_eq!(testable.calculate(3), 2);
         assert_eq!(testable.calculate(4), 3);
