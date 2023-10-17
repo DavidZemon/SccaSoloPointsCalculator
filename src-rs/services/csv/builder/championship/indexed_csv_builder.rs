@@ -34,7 +34,14 @@ impl IndexedCsvBuilder for DefaultIndexedCsvBuilder {
             .event_count(true);
         let events_to_count = events_to_count(event_count);
         let header = Self::build_header(event_count);
-        let trophy_count = self.trophy_calculator.calculate(results.drivers.len());
+        let trophy_count = self.trophy_calculator.calculate(
+            results
+                .drivers
+                .iter()
+                .map(|d| d.event_count(false))
+                .filter(|count| *count >= events_to_count)
+                .count(),
+        );
 
         let mut rows = vec![
             results.organization.clone(),
