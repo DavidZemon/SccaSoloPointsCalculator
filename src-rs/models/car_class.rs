@@ -373,10 +373,10 @@ lazy_static! {
             ),
         );
         m.insert(
-            ShortCarClass::XS,
+            ShortCarClass::XU,
             CarClass::new(
-                ShortCarClass::XS,
-                LongCarClass::Xtreme_Street_Sport,
+                ShortCarClass::XU,
+                LongCarClass::Xtreme_Street_Ultra,
                 ClassCategory::Xtreme_Street,
             ),
         );
@@ -393,6 +393,22 @@ lazy_static! {
             CarClass::new(
                 ShortCarClass::SSC,
                 LongCarClass::Solo_Spec_Coupe,
+                ClassCategory::Miscellaneous_Category,
+            ),
+        );
+        m.insert(
+            ShortCarClass::CSX,
+            CarClass::new(
+                ShortCarClass::CSX,
+                LongCarClass::Club_Spec_Miata,
+                ClassCategory::Miscellaneous_Category,
+            ),
+        );
+        m.insert(
+            ShortCarClass::CSM,
+            CarClass::new(
+                ShortCarClass::CSM,
+                LongCarClass::Club_Spec_Mustang,
                 ClassCategory::Miscellaneous_Category,
             ),
         );
@@ -733,10 +749,10 @@ lazy_static! {
             ),
         );
         m.insert(
-            ShortCarClass::XSL,
+            ShortCarClass::XUL,
             CarClass::new(
-                ShortCarClass::XSL,
-                LongCarClass::Xtreme_Street_Sport_Ladies,
+                ShortCarClass::XUL,
+                LongCarClass::Xtreme_Street_Ultra_Ladies,
                 ClassCategory::Xtreme_Street,
             ),
         );
@@ -753,6 +769,22 @@ lazy_static! {
             CarClass::new(
                 ShortCarClass::SSCL,
                 LongCarClass::Solo_Spec_Coupe_Ladies,
+                ClassCategory::Miscellaneous_Category,
+            ),
+        );
+        m.insert(
+            ShortCarClass::CSXL,
+            CarClass::new(
+                ShortCarClass::CSXL,
+                LongCarClass::Club_Spec_Miata_Ladies,
+                ClassCategory::Miscellaneous_Category,
+            ),
+        );
+        m.insert(
+            ShortCarClass::CSML,
+            CarClass::new(
+                ShortCarClass::CSML,
+                LongCarClass::Club_Spec_Mustang_Ladies,
                 ClassCategory::Miscellaneous_Category,
             ),
         );
