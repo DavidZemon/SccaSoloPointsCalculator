@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
-use calamine::DataType;
+use calamine::{Data, DataType};
 #[cfg(test)]
 use mockall::automock;
 
@@ -25,7 +25,7 @@ pub trait IndexChampionshipResultsParser {
         &self,
         past_event_count: usize,
         header_map: HashMap<String, usize>,
-        data: calamine::Range<DataType>,
+        data: calamine::Range<Data>,
         event_drivers: HashMap<DriverId, &'a Driver>,
         best_lap_of_day: &LapTime,
     ) -> Result<IndexedChampionshipResults, String>;
@@ -40,7 +40,7 @@ impl IndexChampionshipResultsParser for DefaultIndexChampionshipResultsParser {
         &self,
         past_event_count: usize,
         header_map: HashMap<String, usize>,
-        data: calamine::Range<DataType>,
+        data: calamine::Range<Data>,
         new_event_drivers_by_id: HashMap<DriverId, &Driver>,
         best_lap_of_day: &LapTime,
     ) -> Result<IndexedChampionshipResults, String> {
@@ -93,7 +93,7 @@ impl DefaultIndexChampionshipResultsParser {
     fn parse_sheet(
         &self,
         header_map: HashMap<String, usize>,
-        data: calamine::Range<DataType>,
+        data: calamine::Range<Data>,
     ) -> Result<HashMap<DriverId, ChampionshipDriver>, String> {
         let name_index = *header_map
             .get("Driver")

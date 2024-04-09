@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::io::Cursor;
 use std::rc::Rc;
 
-use calamine::{DataType, Range, Reader, Xls};
+use calamine::{Data, Range, Reader, Xls};
 use regex::Regex;
 
 use crate::console_log;
@@ -106,18 +106,14 @@ impl ChampionshipResultsParser {
         })
     }
 
-    fn extract_sheet(
-        &self,
-        file_name: String,
-        new_results: &[u8],
-    ) -> Result<Range<DataType>, String> {
+    fn extract_sheet(&self, file_name: String, new_results: &[u8]) -> Result<Range<Data>, String> {
         let new_results = Cursor::new(new_results);
         let mut workbook = Xls::new(new_results).map_err(|e| format!("{}", e))?;
         let worksheets = workbook.worksheets();
         let mut sheets = worksheets
             .iter()
             .filter(|(name, _)| name.trim().to_lowercase() != "calculations")
-            .collect::<Vec<&(String, Range<DataType>)>>();
+            .collect::<Vec<&(String, Range<Data>)>>();
         sheets.sort_by(|(lhs_name, ..), (rhs_name, ..)| lhs_name.cmp(rhs_name));
         sheets.reverse();
 
@@ -127,8 +123,8 @@ impl ChampionshipResultsParser {
     fn find_sheet(
         &self,
         file_name: String,
-        sheets: &[&(String, Range<DataType>)],
-    ) -> Result<Range<DataType>, String> {
+        sheets: &[&(String, Range<Data>)],
+    ) -> Result<Range<Data>, String> {
         let (sheet_name, sheet_data) = sheets
             .get(0)
             .ok_or("Unable to find sheet with with name dissimilar to 'calculations'")?;
@@ -148,7 +144,7 @@ impl ChampionshipResultsParser {
         }
     }
 
-    fn get_header_map(&self, data: &Range<DataType>) -> Result<HashMap<String, usize>, String> {
+    fn get_header_map(&self, data: &Range<Data>) -> Result<HashMap<String, usize>, String> {
         let re = Regex::new(r"^\s*best\s+\d+\s+of\s+\d+\s*$").map_err(|e| e.to_string())?;
         Ok(data
             .rows()

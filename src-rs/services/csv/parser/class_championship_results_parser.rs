@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
-use calamine::DataType;
+use calamine::{Data, DataType};
 #[cfg(test)]
 use mockall::automock;
 
@@ -27,7 +27,7 @@ pub trait ClassChampionshipResultsParser {
         &self,
         past_event_count: usize,
         header_map: HashMap<String, usize>,
-        data: calamine::Range<DataType>,
+        data: calamine::Range<Data>,
         event_results: &EventResults,
     ) -> Result<ClassChampionshipResults, String>;
 }
@@ -41,7 +41,7 @@ impl ClassChampionshipResultsParser for DefaultClassChampionshipResultsParser {
         &self,
         past_event_count: usize,
         header_map: HashMap<String, usize>,
-        data: calamine::Range<DataType>,
+        data: calamine::Range<Data>,
         event_results: &EventResults,
     ) -> Result<ClassChampionshipResults, String> {
         let org = data
@@ -84,7 +84,7 @@ impl DefaultClassChampionshipResultsParser {
     fn parse_sheet(
         &self,
         header_map: HashMap<String, usize>,
-        data: calamine::Range<DataType>,
+        data: calamine::Range<Data>,
     ) -> Result<HashMap<ShortCarClass, HashMap<DriverId, ChampionshipDriver>>, String> {
         let mut rows_by_class_and_driver_id: HashMap<
             ShortCarClass,
@@ -138,7 +138,7 @@ impl DefaultClassChampionshipResultsParser {
         current_class: &ShortCarClass,
         name_index: usize,
         total_points_index: usize,
-        r: &[DataType],
+        r: &[Data],
     ) {
         let rows_for_one_class = rows_by_class_and_driver_id
             .get_mut(current_class)
