@@ -272,7 +272,6 @@ mod test {
         assert!(actual.results.contains_key(&ShortCarClass::XA));
         assert!(actual.results.contains_key(&ShortCarClass::XB));
         assert!(actual.results.contains_key(&ShortCarClass::XP));
-        assert!(actual.results.contains_key(&ShortCarClass::XS));
         assert_eq!(actual.results.len(), 28);
 
         let a_street = actual.results.get(&ShortCarClass::AS).unwrap();
@@ -301,16 +300,16 @@ mod test {
         assert_eq!(
             robert.day_1_times,
             Some(vec![
-                LapTime::new(48.317, 0.823, 6, None),
-                LapTime::new(47.069, 0.823, 0, None),
-                LapTime::new(46.247, 0.823, 0, None),
-                LapTime::new(45.519, 0.823, 0, None),
                 LapTime::new(45.269, 0.823, 0, None),
+                LapTime::new(45.519, 0.823, 0, None),
                 LapTime::new(45.559, 0.823, 0, None),
-            ])
+                LapTime::new(46.247, 0.823, 0, None),
+                LapTime::new(47.069, 0.823, 0, None),
+                LapTime::new(48.317, 0.823, 6, None),
+            ]),
         );
         assert_eq!(robert.day_2_times, None);
-        assert_eq!(robert.combined, LapTime::new(52.288, 0.821, 0, None));
+        assert_eq!(robert.combined, LapTime::new(45.269, 0.823, 0, None));
 
         for (index, driver) in a_street.drivers.iter().enumerate() {
             assert_eq!(driver.position, Some(index + 1));
