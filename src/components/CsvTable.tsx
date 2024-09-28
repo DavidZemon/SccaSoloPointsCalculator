@@ -1,4 +1,4 @@
-import { Component, ComponentPropsWithoutRef } from 'react';
+import { Component, ComponentPropsWithoutRef, JSX } from 'react';
 import { parse } from 'csv-parse/lib/sync';
 import { Table } from 'react-bootstrap';
 

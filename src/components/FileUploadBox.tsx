@@ -1,4 +1,4 @@
-import { ChangeEvent, Component, ComponentPropsWithoutRef } from 'react';
+import { ChangeEvent, Component, ComponentPropsWithoutRef, JSX } from 'react';
 import { Form } from 'react-bootstrap';
 
 interface FileUploadBoxProps extends ComponentPropsWithoutRef<any> {
