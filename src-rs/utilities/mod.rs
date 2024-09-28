@@ -8,7 +8,7 @@ extern "C" {
 
 #[macro_export]
 macro_rules! console_log {
-    ($($t:tt)*) => (log(&format_args!($($t)*).to_string()))
+    ($($t:tt)*) => ($crate::utilities::log(&format_args!($($t)*).to_string()))
 }
 
 #[macro_export]
@@ -81,10 +81,7 @@ mod test {
         assert_eq!(ActualEnum::parse("Bogus"), None);
         assert_eq!(ActualEnum::parse("First"), Some(ActualEnum::First));
         assert_eq!(ActualEnum::parse("Second"), Some(ActualEnum::Second));
-        assert_eq!(
-            ActualEnum::parse("Multi_Word"),
-            Some(ActualEnum::Multi_Word)
-        );
+        assert_eq!(ActualEnum::parse("Multi_Word"), Some(ActualEnum::Multi_Word));
     }
 
     #[test]

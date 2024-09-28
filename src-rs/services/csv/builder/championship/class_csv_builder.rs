@@ -11,7 +11,6 @@ use crate::models::championship_results::ClassChampionshipResults;
 use crate::services::calculators::tie_calculator::calculate_tie_offset;
 use crate::services::calculators::trophy_calculator::{DefaultTrophyCalculator, TrophyCalculator};
 use crate::utilities::events_to_count;
-use crate::utilities::log;
 
 #[cfg_attr(test, automock)]
 pub trait ClassCsvBuilder {
