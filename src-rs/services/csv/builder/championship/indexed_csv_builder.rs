@@ -29,7 +29,7 @@ impl IndexedCsvBuilder for DefaultIndexedCsvBuilder {
     ) -> Result<Option<String>, String> {
         let event_count = results
             .drivers
-            .get(0)
+            .first()
             .ok_or("Expected at least one driver")?
             .event_count(true);
         let events_to_count = events_to_count(event_count);
@@ -99,24 +99,15 @@ impl Default for DefaultIndexedCsvBuilder {
 impl DefaultIndexedCsvBuilder {
     pub fn from(trophy_calculator: Option<Box<dyn TrophyCalculator>>) -> DefaultIndexedCsvBuilder {
         Self {
-            trophy_calculator: trophy_calculator
-                .unwrap_or_else(|| Box::new(DefaultTrophyCalculator {})),
+            trophy_calculator: trophy_calculator.unwrap_or_else(|| Box::new(DefaultTrophyCalculator {})),
         }
     }
 
     fn build_header(event_count: usize) -> String {
-        let mut header = vec![
-            "Trophy".to_string(),
-            "Rank".to_string(),
-            "Driver".to_string(),
-        ];
+        let mut header = vec!["Trophy".to_string(), "Rank".to_string(), "Driver".to_string()];
         header.extend((0..event_count).map(|i| format!("Event #{}", i + 1)));
         header.push("Total Points".to_string());
-        header.push(format!(
-            "Best {} of {}",
-            events_to_count(event_count),
-            event_count
-        ));
+        header.push(format!("Best {} of {}", events_to_count(event_count), event_count));
         header.join(",")
     }
 }

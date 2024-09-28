@@ -37,9 +37,7 @@ pub fn parse(file_contents: String, two_day_event: bool) -> Result<EventResults,
         let driver = Driver::from(driver, two_day_event);
         let class = driver.car_class.short;
 
-        results
-            .entry(class)
-            .or_insert_with(|| ClassResults::new(class));
+        results.entry(class).or_insert_with(|| ClassResults::new(class));
 
         if let Some(r) = results.get_mut(&class) {
             r.add_driver(driver)
@@ -94,10 +92,11 @@ fn perform_second_parsing(
         let strings_vec: Vec<&str> = string_record.iter().collect();
 
         let extra_fields = &strings_vec[first_time_column..];
-        driver.day1 =
-            swap(driver.runs_day1.map(|run_count| {
-                extract_lap_times(extra_fields, driver.pax_multiplier, run_count)
-            }))?;
+        driver.day1 = swap(
+            driver
+                .runs_day1
+                .map(|run_count| extract_lap_times(extra_fields, driver.pax_multiplier, run_count)),
+        )?;
 
         if extra_fields.len() > driver.runs_day1.unwrap_or(0) * 3 {
             driver.day2 = swap(driver.runs_day2.map(|run_count| {
@@ -115,14 +114,10 @@ fn perform_second_parsing(
     Ok(driver)
 }
 
-fn extract_lap_times(
-    lap_time_fields: &[&str],
-    pax: PaxMultiplier,
-    run_count: usize,
-) -> Result<Vec<LapTime>, String> {
+fn extract_lap_times(lap_time_fields: &[&str], pax: PaxMultiplier, run_count: usize) -> Result<Vec<LapTime>, String> {
     let mut times = Vec::new();
     for lap_number in 0..run_count {
-        let first_index_of_lap = 3 * lap_number as usize;
+        let first_index_of_lap = 3 * lap_number;
         if lap_time_fields.len() < first_index_of_lap + 3 {
             break;
         }
@@ -134,13 +129,9 @@ fn extract_lap_times(
 
 fn build_lap_time(next_fields: &[&str], pax: PaxMultiplier) -> Result<LapTime, String> {
     Ok(LapTime::new(
-        next_fields[0]
-            .parse()
-            .map_err(|e: ParseFloatError| e.to_string())?,
+        next_fields[0].parse().map_err(|e: ParseFloatError| e.to_string())?,
         pax,
-        next_fields[1]
-            .parse()
-            .map_err(|e: ParseIntError| e.to_string())?,
+        next_fields[1].parse().map_err(|e: ParseIntError| e.to_string())?,
         match next_fields[2] {
             "DNF" => Some(Penalty::DNF),
             "DNS" => Some(Penalty::DNS),
@@ -162,8 +153,7 @@ mod test {
 
     #[test]
     fn parse_2022_e1_event_results() {
-        let sample_contents =
-            fs::read_to_string("./SampleData/2022_Event1-DavidExport.csv").unwrap();
+        let sample_contents = fs::read_to_string("./SampleData/2022_Event1-DavidExport.csv").unwrap();
         let actual = parse(sample_contents, false).unwrap();
 
         assert_eq!(actual.results.len(), 29);
@@ -200,10 +190,7 @@ mod test {
         let a_street = actual.results.get(&ShortCarClass::AS).unwrap();
         assert_eq!(a_street.car_class.short, ShortCarClass::AS);
         assert_eq!(a_street.drivers.len(), 5);
-        assert_eq!(
-            a_street.get_best_in_class(None),
-            LapTime::new(52.288, 0.821, 0, None)
-        );
+        assert_eq!(a_street.get_best_in_class(None), LapTime::new(52.288, 0.821, 0, None));
         assert_eq!(a_street.get_best_in_class(Some(TimeSelection::Day2)), dns());
         assert_eq!(a_street.get_best_in_class(Some(TimeSelection::Day2)), dns());
 
@@ -238,8 +225,7 @@ mod test {
 
     #[test]
     fn parse_2023_e3_event_results() {
-        let sample_contents =
-            fs::read_to_string("./SampleData/2023_Event3-DavidExport.csv").unwrap();
+        let sample_contents = fs::read_to_string("./SampleData/2023_Event3-DavidExport.csv").unwrap();
 
         let actual = match parse(sample_contents, false) {
             Ok(actual) => actual,
@@ -277,10 +263,7 @@ mod test {
         let a_street = actual.results.get(&ShortCarClass::AS).unwrap();
         assert_eq!(a_street.car_class.short, ShortCarClass::AS);
         assert_eq!(a_street.drivers.len(), 5);
-        assert_eq!(
-            a_street.get_best_in_class(None),
-            LapTime::new(45.269, 0.823, 0, None)
-        );
+        assert_eq!(a_street.get_best_in_class(None), LapTime::new(45.269, 0.823, 0, None));
         assert_eq!(a_street.get_best_in_class(Some(TimeSelection::Day2)), dns());
         assert_eq!(a_street.get_best_in_class(Some(TimeSelection::Day2)), dns());
 

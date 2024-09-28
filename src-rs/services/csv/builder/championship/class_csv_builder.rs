@@ -29,7 +29,7 @@ impl ClassCsvBuilder for DefaultClassCsvBuilder {
             .values()
             .next()
             .ok_or("Expected at least one class")?
-            .get(0)
+            .first()
             .ok_or("Expected at least one driver in at least one class")?
             .event_count(true);
         let events_to_count = events_to_count(event_count);
@@ -50,10 +50,7 @@ impl ClassCsvBuilder for DefaultClassCsvBuilder {
             .iter()
             .map(|(k, v)| {
                 let mut v = v.clone();
-                v.sort_by(|lhs, rhs| {
-                    rhs.best_of(events_to_count)
-                        .cmp(&lhs.best_of(events_to_count))
-                });
+                v.sort_by_key(|rhs| std::cmp::Reverse(rhs.best_of(events_to_count)));
                 (*k, v)
             })
             .collect::<Vec<(ShortCarClass, Vec<ChampionshipDriver>)>>();
@@ -71,9 +68,7 @@ impl ClassCsvBuilder for DefaultClassCsvBuilder {
                 Some(ChampionshipType::Class),
             );
             rows.extend(drivers.iter().enumerate().map(|(index, d)| {
-                let tie_offset = calculate_tie_offset(drivers, index, |d1, d2| {
-                    d1.total_points() == d2.total_points()
-                });
+                let tie_offset = calculate_tie_offset(drivers, index, |d1, d2| d1.total_points() == d2.total_points());
 
                 let mut driver_row = vec![
                     if (index - tie_offset) < trophy_count {
@@ -106,17 +101,12 @@ impl Default for DefaultClassCsvBuilder {
 impl DefaultClassCsvBuilder {
     pub fn from(trophy_calculator: Option<Box<dyn TrophyCalculator>>) -> DefaultClassCsvBuilder {
         Self {
-            trophy_calculator: trophy_calculator
-                .unwrap_or_else(|| Box::new(DefaultTrophyCalculator {})),
+            trophy_calculator: trophy_calculator.unwrap_or_else(|| Box::new(DefaultTrophyCalculator {})),
         }
     }
 
     fn build_header(events_to_count: usize, event_count: usize) -> String {
-        let mut header = vec![
-            "Trophy".to_string(),
-            "Rank".to_string(),
-            "Driver".to_string(),
-        ];
+        let mut header = vec!["Trophy".to_string(), "Rank".to_string(), "Driver".to_string()];
         header.extend((0..event_count).map(|i| format!("Event #{}", i + 1)));
         header.push("Total Points".to_string());
         header.push(format!("Best {} of {}", events_to_count, event_count));
@@ -136,11 +126,7 @@ impl DefaultClassCsvBuilder {
             .map(|d| d.event_count(false))
             .filter(|count| *count >= events_to_qualify)
             .count();
-        console_log!(
-            "Counted {} drivers for class {:?}",
-            quali_driver_count,
-            class_name
-        );
+        console_log!("Counted {} drivers for class {:?}", quali_driver_count, class_name);
         quali_driver_count
     }
 }

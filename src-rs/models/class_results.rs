@@ -23,7 +23,7 @@ impl ClassResults {
         // Drivers are sorted as they are added via add_driver(), so just take the first
         // on the list
         self.drivers
-            .get(0)
+            .first()
             .map(|d| d.best_lap(time_selection))
             .unwrap_or_else(dns)
     }
@@ -145,10 +145,7 @@ mod test {
             Some(vec![LapTime::new(500., 0.7, 0, None)]),
         ));
 
-        assert_eq!(
-            testable.get_best_in_class(None),
-            LapTime::new(3., 0.9, 0, None)
-        );
+        assert_eq!(testable.get_best_in_class(None), LapTime::new(3., 0.9, 0, None));
         assert_eq!(
             testable.get_best_in_class(Some(TimeSelection::Day1)),
             LapTime::new(3., 0.9, 0, None)

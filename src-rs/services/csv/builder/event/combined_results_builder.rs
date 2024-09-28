@@ -24,11 +24,7 @@ impl Default for CombinedResultsBuilder {
 }
 
 impl CombinedResultsBuilder {
-    pub fn to_combined_csv(
-        &self,
-        results: &EventResults,
-        driver_group: DriverGroup,
-    ) -> Result<String, String> {
+    pub fn to_combined_csv(&self, results: &EventResults, driver_group: DriverGroup) -> Result<String, String> {
         let is_raw_time = driver_group == DriverGroup::Raw;
 
         let drivers = results.get_drivers(Some(driver_group));
@@ -46,10 +42,8 @@ impl CombinedResultsBuilder {
         points_calculator: Option<Box<dyn ChampionshipPointsCalculator>>,
     ) -> Self {
         CombinedResultsBuilder {
-            trophy_calculator: trophy_calculator
-                .unwrap_or_else(|| Box::new(DefaultTrophyCalculator {})),
-            points_calculator: points_calculator
-                .unwrap_or_else(|| Box::new(DefaultChampionshipPointsCalculator {})),
+            trophy_calculator: trophy_calculator.unwrap_or_else(|| Box::new(DefaultTrophyCalculator {})),
+            points_calculator: points_calculator.unwrap_or_else(|| Box::new(DefaultChampionshipPointsCalculator {})),
         }
     }
 
@@ -79,7 +73,7 @@ impl CombinedResultsBuilder {
         driver_group: DriverGroup,
         is_raw_time: bool,
     ) -> Result<Writer<Vec<u8>>, String> {
-        let fastest_driver = drivers.get(0).unwrap();
+        let fastest_driver = drivers.first().unwrap();
         let fastest_of_day = fastest_driver.best_lap(None);
 
         let driver_count = drivers.len();
@@ -92,14 +86,7 @@ impl CombinedResultsBuilder {
             .map_err(|e| e.to_string())?;
 
         for i in 0..driver_count {
-            let next_row = self.build_record(
-                i,
-                &drivers,
-                driver_group,
-                trophy_count,
-                is_raw_time,
-                fastest_of_day,
-            )?;
+            let next_row = self.build_record(i, &drivers, driver_group, trophy_count, is_raw_time, fastest_of_day)?;
             csv.write_record(next_row).map_err(|e| e.to_string())?;
         }
 
@@ -116,16 +103,11 @@ impl CombinedResultsBuilder {
         fastest_of_day: LapTime,
     ) -> Result<Vec<String>, String> {
         let previous_driver = drivers.get(i - 1);
-        let driver = drivers.get(i).map_or(
-            Err(format!(
-                "expected at least one driver for {}",
-                driver_group.name()
-            )),
-            Ok,
-        )?;
+        let driver = drivers
+            .get(i)
+            .ok_or(format!("expected at least one driver for {}", driver_group.name()))?;
 
-        let tie_offset =
-            calculate_tie_offset(drivers, i, |d1, d2| d1.best_lap(None) == d2.best_lap(None));
+        let tie_offset = calculate_tie_offset(drivers, i, |d1, d2| d1.best_lap(None) == d2.best_lap(None));
 
         let mut next_row = vec![
             if (i - tie_offset) < trophy_count {
@@ -141,7 +123,7 @@ impl CombinedResultsBuilder {
             driver.best_lap(None).to_string(!is_raw_time, false),
             previous_driver
                 .map(|prev| driver.difference(prev.best_lap(None), !is_raw_time, None))
-                .unwrap_or_else(|| "".to_string()),
+                .unwrap_or_default(),
             driver.difference(fastest_of_day, !is_raw_time, None),
         ];
         if !is_raw_time {

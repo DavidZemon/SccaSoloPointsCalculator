@@ -43,24 +43,16 @@ impl Driver {
                 TimeSelection::Day1 => self
                     .day_1_times
                     .clone()
-                    .and_then(|times| times.get(0).copied())
+                    .and_then(|times| times.first().copied())
                     .unwrap_or_else(dns),
                 TimeSelection::Day2 => self
                     .day_2_times
                     .clone()
-                    .and_then(|times| times.get(0).copied())
+                    .and_then(|times| times.first().copied())
                     .unwrap_or_else(dns),
                 TimeSelection::Combined => {
-                    let day_1_empty = self
-                        .day_1_times
-                        .clone()
-                        .map(|times| times.is_empty())
-                        .unwrap_or(true);
-                    let day_2_empty = self
-                        .day_2_times
-                        .clone()
-                        .map(|times| times.is_empty())
-                        .unwrap_or(true);
+                    let day_1_empty = self.day_1_times.clone().map(|times| times.is_empty()).unwrap_or(true);
+                    let day_2_empty = self.day_2_times.clone().map(|times| times.is_empty()).unwrap_or(true);
 
                     if self.two_day_event {
                         if day_1_empty || day_2_empty {
@@ -74,19 +66,17 @@ impl Driver {
                     } else if day_1_empty {
                         self.best_lap(Some(TimeSelection::Day2))
                     } else {
-                        panic!("Asking for combined time for a one-day event but driver {} has times for both days!", self.name)
+                        panic!(
+                            "Asking for combined time for a one-day event but driver {} has times for both days!",
+                            self.name
+                        )
                     }
                 }
             }
         }
     }
 
-    pub fn difference(
-        &self,
-        comparison: LapTime,
-        use_pax: bool,
-        time_selection: Option<TimeSelection>,
-    ) -> String {
+    pub fn difference(&self, comparison: LapTime, use_pax: bool, time_selection: Option<TimeSelection>) -> String {
         let self_best_lap = self.best_lap(time_selection);
         match (self_best_lap.time, comparison.time) {
             (Some(self_best_time), Some(comparison_time)) => {
@@ -96,17 +86,13 @@ impl Driver {
                     } else {
                         format!(
                             "{:.3}",
-                            (comparison.with_pax() * 1000. - self_best_lap.with_pax() * 1000.)
-                                / 1000.
+                            (comparison.with_pax() * 1000. - self_best_lap.with_pax() * 1000.) / 1000.
                         )
                     }
                 } else if comparison_time == self_best_time {
                     "".to_string()
                 } else {
-                    format!(
-                        "{:.3}",
-                        (comparison_time * 1000. - self_best_time * 1000.) / 1000.
-                    )
+                    format!("{:.3}", (comparison_time * 1000. - self_best_time * 1000.) / 1000.)
                 }
             }
             (_, _) => "N/A".to_string(),
@@ -145,9 +131,7 @@ impl Driver {
         let mut driver = Driver {
             error: driver.runs_day1.is_none() && driver.runs_day2.is_none() && !best_run_is_falsy,
             rookie: driver.rookie.map_or(false, |value| value != 0),
-            ladies_championship: driver
-                .ladies
-                .map_or(false, |value| value != "0" && !value.is_empty()),
+            ladies_championship: driver.ladies.map_or(false, |value| value != "0" && !value.is_empty()),
             position: None,
             car_number: driver.car_number,
             car_class,
@@ -157,10 +141,7 @@ impl Driver {
                 "{} {} {}",
                 driver.year.unwrap_or(0),
                 driver.make.clone().unwrap_or_else(|| "Unknown".to_string()),
-                driver
-                    .model
-                    .clone()
-                    .unwrap_or_else(|| "Unknown".to_string())
+                driver.model.clone().unwrap_or_else(|| "Unknown".to_string())
             ),
             region: driver.region.clone().unwrap_or_default(),
             dsq: driver.dsq.map(|dsq| dsq == 1).unwrap_or(false),
@@ -183,9 +164,7 @@ impl Ord for Driver {
 
 impl PartialOrd<Self> for Driver {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        self.combined
-            .with_pax()
-            .partial_cmp(&other.combined.with_pax())
+        self.combined.with_pax().partial_cmp(&other.combined.with_pax())
     }
 }
 
@@ -221,12 +200,7 @@ mod test {
     use crate::models::lap_time::{dns, dsq, LapTime, Penalty};
     use crate::models::type_aliases::{PaxMultiplier, Time};
 
-    fn build_driver(
-        day1: Option<Vec<LapTime>>,
-        day2: Option<Vec<LapTime>>,
-        dsq: bool,
-        two_day: bool,
-    ) -> Driver {
+    fn build_driver(day1: Option<Vec<LapTime>>, day2: Option<Vec<LapTime>>, dsq: bool, two_day: bool) -> Driver {
         Driver::from(
             DriverFromPronto {
                 position: None,
@@ -260,24 +234,15 @@ mod test {
     #[case(None, Some(vec![LapTime::new(2., 0.9, 0, None)]))]
     #[case(Some(vec![LapTime::new(2., 0.9, 0, None)]), None)]
     #[case(Some(vec![LapTime::new(1., 0.9, 0, None)]), Some(vec![LapTime::new(2., 0.9, 0, None)]))]
-    fn best_lap_should_return_dsq_for_dsq(
-        #[case] d1: Option<Vec<LapTime>>,
-        #[case] d2: Option<Vec<LapTime>>,
-    ) {
+    fn best_lap_should_return_dsq_for_dsq(#[case] d1: Option<Vec<LapTime>>, #[case] d2: Option<Vec<LapTime>>) {
         for ts in &[
             None,
             Some(TimeSelection::Day1),
             Some(TimeSelection::Day2),
             Some(TimeSelection::Combined),
         ] {
-            assert_eq!(
-                build_driver(d1.clone(), d2.clone(), true, false).best_lap(*ts),
-                dsq()
-            );
-            assert_eq!(
-                build_driver(d1.clone(), d2.clone(), true, true).best_lap(*ts),
-                dsq()
-            );
+            assert_eq!(build_driver(d1.clone(), d2.clone(), true, false).best_lap(*ts), dsq());
+            assert_eq!(build_driver(d1.clone(), d2.clone(), true, true).best_lap(*ts), dsq());
         }
     }
 
@@ -301,10 +266,7 @@ mod test {
         #[case] d2: Option<Vec<LapTime>>,
         #[case] ts: Option<TimeSelection>,
     ) {
-        assert_eq!(
-            build_driver(d1.clone(), d2.clone(), false, false).best_lap(ts),
-            dns()
-        );
+        assert_eq!(build_driver(d1.clone(), d2.clone(), false, false).best_lap(ts), dns());
         assert_eq!(build_driver(d1, d2, false, true).best_lap(ts), dns());
     }
 
@@ -486,80 +448,20 @@ mod test {
     #[rstest]
     #[case(LapTime::new(6., 0.5, 0, None), true, None, "-2.000")]
     #[case(LapTime::new(3., 0.5, 0, None), false, None, "-7.000")]
-    #[case(
-        LapTime::new(6., 0.5, 0, None),
-        true,
-        Some(TimeSelection::Day1),
-        "-2.000"
-    )]
-    #[case(
-        LapTime::new(3., 0.5, 0, None),
-        false,
-        Some(TimeSelection::Day1),
-        "-7.000"
-    )]
-    #[case(
-        LapTime::new(10., 0.45, 0, None),
-        true,
-        Some(TimeSelection::Day1),
-        "-0.500"
-    )]
-    #[case(
-        LapTime::new(4.5, 0.45, 0, None),
-        false,
-        Some(TimeSelection::Day1),
-        "-5.500"
-    )]
-    #[case(
-        LapTime::new(23.335, 0.1, 0, None),
-        true,
-        Some(TimeSelection::Day1),
-        "-2.666"
-    )]
-    #[case(
-        LapTime::new(2.334, 0.1, 0, None),
-        false,
-        Some(TimeSelection::Day1),
-        "-7.666"
-    )]
-    #[case(
-        LapTime::new(23.334, 0.1, 0, None),
-        true,
-        Some(TimeSelection::Day1),
-        "-2.667"
-    )]
-    #[case(
-        LapTime::new(2.3334, 0.1, 0, None),
-        false,
-        Some(TimeSelection::Day1),
-        "-7.667"
-    )]
+    #[case(LapTime::new(6., 0.5, 0, None), true, Some(TimeSelection::Day1), "-2.000")]
+    #[case(LapTime::new(3., 0.5, 0, None), false, Some(TimeSelection::Day1), "-7.000")]
+    #[case(LapTime::new(10., 0.45, 0, None), true, Some(TimeSelection::Day1), "-0.500")]
+    #[case(LapTime::new(4.5, 0.45, 0, None), false, Some(TimeSelection::Day1), "-5.500")]
+    #[case(LapTime::new(23.335, 0.1, 0, None), true, Some(TimeSelection::Day1), "-2.666")]
+    #[case(LapTime::new(2.334, 0.1, 0, None), false, Some(TimeSelection::Day1), "-7.666")]
+    #[case(LapTime::new(23.334, 0.1, 0, None), true, Some(TimeSelection::Day1), "-2.667")]
+    #[case(LapTime::new(2.3334, 0.1, 0, None), false, Some(TimeSelection::Day1), "-7.667")]
     #[case(LapTime::new(10., 0.5, 0, None), true, Some(TimeSelection::Day1), "")]
     #[case(LapTime::new(10., 0.5, 0, None), false, Some(TimeSelection::Day1), "")]
-    #[case(
-        LapTime::new(16., 0.5, 0, None),
-        true,
-        Some(TimeSelection::Day2),
-        "-2.000"
-    )]
-    #[case(
-        LapTime::new(8., 0.5, 0, None),
-        false,
-        Some(TimeSelection::Day2),
-        "-12.000"
-    )]
-    #[case(
-        LapTime::new(26., 0.5, 0, None),
-        true,
-        Some(TimeSelection::Combined),
-        "-2.000"
-    )]
-    #[case(
-        LapTime::new(13., 0.5, 0, None),
-        false,
-        Some(TimeSelection::Combined),
-        "-17.000"
-    )]
+    #[case(LapTime::new(16., 0.5, 0, None), true, Some(TimeSelection::Day2), "-2.000")]
+    #[case(LapTime::new(8., 0.5, 0, None), false, Some(TimeSelection::Day2), "-12.000")]
+    #[case(LapTime::new(26., 0.5, 0, None), true, Some(TimeSelection::Combined), "-2.000")]
+    #[case(LapTime::new(13., 0.5, 0, None), false, Some(TimeSelection::Combined), "-17.000")]
     fn difference_happy_path(
         #[case] fastest: LapTime,
         #[case] use_pax: bool,
@@ -637,91 +539,44 @@ mod test {
             "N/A".to_string()
         );
         assert_eq!(
-            build_driver(None, d2.clone(), false, false).difference(
-                baseline,
-                true,
-                Some(TimeSelection::Day1)
-            ),
+            build_driver(None, d2.clone(), false, false).difference(baseline, true, Some(TimeSelection::Day1)),
             "N/A".to_string()
         );
         assert_eq!(
-            build_driver(None, d2.clone(), false, false).difference(
-                baseline,
-                false,
-                Some(TimeSelection::Day1)
-            ),
+            build_driver(None, d2.clone(), false, false).difference(baseline, false, Some(TimeSelection::Day1)),
             "N/A".to_string()
         );
         assert_eq!(
-            build_driver(d1.clone(), None, false, false).difference(
-                baseline,
-                true,
-                Some(TimeSelection::Day2)
-            ),
+            build_driver(d1.clone(), None, false, false).difference(baseline, true, Some(TimeSelection::Day2)),
             "N/A".to_string()
         );
         assert_eq!(
-            build_driver(d1.clone(), None, false, false).difference(
-                baseline,
-                false,
-                Some(TimeSelection::Day2)
-            ),
+            build_driver(d1.clone(), None, false, false).difference(baseline, false, Some(TimeSelection::Day2)),
             "N/A".to_string()
         );
         assert_eq!(
-            build_driver(d1.clone(), None, false, true).difference(
-                baseline,
-                true,
-                Some(TimeSelection::Combined)
-            ),
+            build_driver(d1.clone(), None, false, true).difference(baseline, true, Some(TimeSelection::Combined)),
             "N/A".to_string()
         );
         assert_eq!(
-            build_driver(d1, None, false, true).difference(
-                baseline,
-                false,
-                Some(TimeSelection::Combined)
-            ),
+            build_driver(d1, None, false, true).difference(baseline, false, Some(TimeSelection::Combined)),
             "N/A".to_string()
         );
         assert_eq!(
-            build_driver(None, d2.clone(), false, true).difference(
-                baseline,
-                true,
-                Some(TimeSelection::Combined)
-            ),
+            build_driver(None, d2.clone(), false, true).difference(baseline, true, Some(TimeSelection::Combined)),
             "N/A".to_string()
         );
         assert_eq!(
-            build_driver(None, d2, false, true).difference(
-                baseline,
-                false,
-                Some(TimeSelection::Combined)
-            ),
+            build_driver(None, d2, false, true).difference(baseline, false, Some(TimeSelection::Combined)),
             "N/A".to_string()
         );
     }
 
     #[test]
     fn sortable_one_day_event_day1() {
-        let d1 = build_driver(
-            Some(vec![LapTime::new(100., 0.2, 0, None)]),
-            None,
-            false,
-            false,
-        );
-        let d2 = build_driver(
-            Some(vec![LapTime::new(100., 0.3, 0, None)]),
-            None,
-            false,
-            false,
-        );
-        let d3 = build_driver(
-            Some(vec![LapTime::new(100., 0.4, 0, None)]),
-            None,
-            false,
-            false,
-        );
+        let d1 = build_driver(Some(vec![LapTime::new(100., 0.2, 0, None)]), None, false, false);
+        let d2 = build_driver(Some(vec![LapTime::new(100., 0.3, 0, None)]), None, false, false);
+        let d3 = build_driver(Some(vec![LapTime::new(100., 0.4, 0, None)]), None, false, false);
 
         let mut actual = vec![d3.clone(), d1.clone(), d2.clone()];
         actual.sort();

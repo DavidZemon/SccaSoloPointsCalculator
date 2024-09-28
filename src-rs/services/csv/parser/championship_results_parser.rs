@@ -13,12 +13,8 @@ use crate::models::driver::Driver;
 use crate::models::event_results::EventResults;
 use crate::models::lap_time::{dns, LapTime};
 use crate::models::type_aliases::DriverId;
-use crate::services::csv::builder::championship::class_csv_builder::{
-    ClassCsvBuilder, DefaultClassCsvBuilder,
-};
-use crate::services::csv::builder::championship::indexed_csv_builder::{
-    DefaultIndexedCsvBuilder, IndexedCsvBuilder,
-};
+use crate::services::csv::builder::championship::class_csv_builder::{ClassCsvBuilder, DefaultClassCsvBuilder};
+use crate::services::csv::builder::championship::indexed_csv_builder::{DefaultIndexedCsvBuilder, IndexedCsvBuilder};
 use crate::services::csv::parser::class_championship_results_parser::{
     ClassChampionshipResultsParser, DefaultClassChampionshipResultsParser,
 };
@@ -39,12 +35,8 @@ pub struct ChampionshipResultsParser {
 impl ChampionshipResultsParser {
     pub fn new(event_results: EventResults) -> ChampionshipResultsParser {
         ChampionshipResultsParser {
-            class_results_parser: Rc::new(RefCell::new(
-                DefaultClassChampionshipResultsParser::default(),
-            )),
-            index_results_parser: Rc::new(RefCell::new(
-                DefaultIndexChampionshipResultsParser::default(),
-            )),
+            class_results_parser: Rc::new(RefCell::new(DefaultClassChampionshipResultsParser::default())),
+            index_results_parser: Rc::new(RefCell::new(DefaultIndexChampionshipResultsParser::default())),
             class_csv_builder: Rc::new(RefCell::new(DefaultClassCsvBuilder::default())),
             indexed_csv_builder: Rc::new(RefCell::new(DefaultIndexedCsvBuilder::default())),
             event_results,
@@ -89,21 +81,17 @@ impl ChampionshipResultsParser {
                 .map(|(id, d)| (id.clone(), *d))
                 .collect::<HashMap<DriverId, &Driver>>();
             let fastest = Self::compute_fastest(&new_drivers);
-            self.indexed_csv_builder.borrow().create(
-                new_results_type,
-                self.index_results_parser.borrow().parse(
-                    past_event_count,
-                    header_map,
-                    old_data,
-                    new_drivers,
-                    &fastest,
-                )?,
-            )
+            let results = self.index_results_parser.borrow().parse(
+                past_event_count,
+                header_map,
+                old_data,
+                new_drivers,
+                &fastest,
+            )?;
+            self.indexed_csv_builder.borrow().create(new_results_type, results)
         };
 
-        result.map(|csv_option| {
-            csv_option.unwrap_or(format!("No results for {}", new_results_type.name()))
-        })
+        result.map(|csv_option| csv_option.unwrap_or(format!("No results for {}", new_results_type.name())))
     }
 
     fn extract_sheet(&self, file_name: String, new_results: &[u8]) -> Result<Range<Data>, String> {
@@ -117,28 +105,20 @@ impl ChampionshipResultsParser {
         sheets.sort_by(|(lhs_name, ..), (rhs_name, ..)| lhs_name.cmp(rhs_name));
         sheets.reverse();
 
-        self.find_sheet(file_name, sheets.as_slice())
+        Self::find_sheet(file_name, sheets.as_slice())
     }
 
-    fn find_sheet(
-        &self,
-        file_name: String,
-        sheets: &[&(String, Range<Data>)],
-    ) -> Result<Range<Data>, String> {
+    fn find_sheet(file_name: String, sheets: &[&(String, Range<Data>)]) -> Result<Range<Data>, String> {
         let (sheet_name, sheet_data) = sheets
-            .get(0)
+            .first()
             .ok_or("Unable to find sheet with with name dissimilar to 'calculations'")?;
 
         if sheet_data.rows().len() >= 5 {
             console_log!("Found sheet with name {}", sheet_name);
             Ok(sheet_data.clone())
         } else if sheets.len() > 1 {
-            log(format!(
-                "Sheet '{}' doesn't have enough rows, checking next",
-                sheet_name
-            )
-            .as_str());
-            self.find_sheet(file_name, &sheets[1..])
+            log(format!("Sheet '{}' doesn't have enough rows, checking next", sheet_name).as_str());
+            Self::find_sheet(file_name, &sheets[1..])
         } else {
             Err(format!("File {} contains no non-empty sheets", file_name))
         }
@@ -160,20 +140,13 @@ impl ChampionshipResultsParser {
     }
 
     fn get_past_event_count(&self, header_map: &HashMap<String, usize>) -> Result<usize, String> {
-        let re = Regex::new(r"^(Trophy|Rank|Driver|Total\s+Points|Best\s+\d+\s+of\s+\d+)$")
-            .map_err(|e| e.to_string())?;
-        Ok(header_map
-            .keys()
-            .filter(|header| !re.is_match(header))
-            .count())
+        let re =
+            Regex::new(r"^(Trophy|Rank|Driver|Total\s+Points|Best\s+\d+\s+of\s+\d+)$").map_err(|e| e.to_string())?;
+        Ok(header_map.keys().filter(|header| !re.is_match(header)).count())
     }
 
     fn compute_fastest(drivers: &HashMap<DriverId, &Driver>) -> LapTime {
-        drivers
-            .iter()
-            .map(|(_, d)| d.best_lap(None))
-            .min()
-            .unwrap_or_else(dns)
+        drivers.iter().map(|(_, d)| d.best_lap(None)).min().unwrap_or_else(dns)
     }
 }
 
@@ -199,10 +172,8 @@ mod test {
 
     impl Context {
         pub fn new(event_results: EventResults) -> Context {
-            let mock_class_results_parser =
-                Rc::new(RefCell::new(MockClassChampionshipResultsParser::new()));
-            let mock_index_results_parser =
-                Rc::new(RefCell::new(MockIndexChampionshipResultsParser::new()));
+            let mock_class_results_parser = Rc::new(RefCell::new(MockClassChampionshipResultsParser::new()));
+            let mock_index_results_parser = Rc::new(RefCell::new(MockIndexChampionshipResultsParser::new()));
             let mock_class_csv_builder = Rc::new(RefCell::new(MockClassCsvBuilder::new()));
             let mock_indexed_csv_builder = Rc::new(RefCell::new(MockIndexedCsvBuilder::new()));
 
@@ -229,34 +200,16 @@ mod test {
         };
         let context = Context::new(results);
         {
-            context
-                .mock_class_results_parser
-                .borrow_mut()
-                .expect_parse()
-                .never();
-            context
-                .mock_index_results_parser
-                .borrow_mut()
-                .expect_parse()
-                .never();
-            context
-                .mock_class_csv_builder
-                .borrow_mut()
-                .expect_create()
-                .never();
-            context
-                .mock_indexed_csv_builder
-                .borrow_mut()
-                .expect_create()
-                .never();
+            context.mock_class_results_parser.borrow_mut().expect_parse().never();
+            context.mock_index_results_parser.borrow_mut().expect_parse().never();
+            context.mock_class_csv_builder.borrow_mut().expect_create().never();
+            context.mock_indexed_csv_builder.borrow_mut().expect_create().never();
         }
 
         let data = [];
-        let actual = context.testable.process_results(
-            ChampionshipType::Class,
-            &data,
-            "a file.xls".to_string(),
-        );
+        let actual = context
+            .testable
+            .process_results(ChampionshipType::Class, &data, "a file.xls".to_string());
         assert_eq!(
             actual,
             Err("Cfb error: I/O error: failed to fill whole buffer".to_string())

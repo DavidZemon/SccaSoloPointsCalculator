@@ -86,10 +86,8 @@ impl DefaultClassChampionshipResultsParser {
         header_map: HashMap<String, usize>,
         data: calamine::Range<Data>,
     ) -> Result<HashMap<ShortCarClass, HashMap<DriverId, ChampionshipDriver>>, String> {
-        let mut rows_by_class_and_driver_id: HashMap<
-            ShortCarClass,
-            HashMap<DriverId, ChampionshipDriver>,
-        > = HashMap::new();
+        let mut rows_by_class_and_driver_id: HashMap<ShortCarClass, HashMap<DriverId, ChampionshipDriver>> =
+            HashMap::new();
 
         let mut current_class: Option<ShortCarClass> = None;
         let name_index = *header_map
@@ -101,11 +99,7 @@ impl DefaultClassChampionshipResultsParser {
         for r in data.rows() {
             if !r.is_empty() {
                 let cell_str = r[0].to_string();
-                let delimeter = if cell_str.contains(" - ") {
-                    " - "
-                } else {
-                    " – "
-                };
+                let delimeter = if cell_str.contains(" - ") { " - " } else { " – " };
                 let pieces = cell_str.split(delimeter).collect::<Vec<&str>>();
                 if let Some(short_class) = ShortCarClass::parse(pieces.first().unwrap_or(&"")) {
                     current_class = Some(short_class);
@@ -131,40 +125,30 @@ impl DefaultClassChampionshipResultsParser {
     }
 
     fn add_driver(
-        rows_by_class_and_driver_id: &mut HashMap<
-            ShortCarClass,
-            HashMap<DriverId, ChampionshipDriver>,
-        >,
+        rows_by_class_and_driver_id: &mut HashMap<ShortCarClass, HashMap<DriverId, ChampionshipDriver>>,
         current_class: &ShortCarClass,
         name_index: usize,
         total_points_index: usize,
         r: &[Data],
     ) {
-        let rows_for_one_class = rows_by_class_and_driver_id
-            .get_mut(current_class)
-            .unwrap_or_else(|| {
-                panic!(
-                    "Attempted to retrieve driver map for class {:?} but map was not found",
-                    current_class
-                )
-            });
+        let rows_for_one_class = rows_by_class_and_driver_id.get_mut(current_class).unwrap_or_else(|| {
+            panic!(
+                "Attempted to retrieve driver map for class {:?} but map was not found",
+                current_class
+            )
+        });
         let name = r[name_index].to_string();
 
         let mut driver = ChampionshipDriver::new(name.as_str());
 
-        r[name_index + 1..total_points_index]
-            .iter()
-            .for_each(|cell| {
-                driver.add_event(cell.get_int().unwrap_or_default());
-            });
+        r[name_index + 1..total_points_index].iter().for_each(|cell| {
+            driver.add_event(cell.get_int().unwrap_or_default());
+        });
 
         rows_for_one_class.insert(name.to_lowercase(), driver);
     }
 
-    fn get_new_event_drivers(
-        &self,
-        event_results: &EventResults,
-    ) -> HashMap<ShortCarClass, HashMap<DriverId, Driver>> {
+    fn get_new_event_drivers(&self, event_results: &EventResults) -> HashMap<ShortCarClass, HashMap<DriverId, Driver>> {
         event_results
             .results
             .iter()
@@ -183,17 +167,11 @@ impl DefaultClassChampionshipResultsParser {
             .collect()
     }
 
-    fn calculate_results(
-        &self,
-        ctx: &CalculationContext,
-    ) -> HashMap<ShortCarClass, Vec<ChampionshipDriver>> {
-        self.get_all_driver_ids_by_class(
-            &ctx.rows_by_class_and_driver_id,
-            &ctx.new_event_drivers_by_class_and_id,
-        )
-        .iter()
-        .map(|(class, driver_ids)| self.calculate_results_for_class(ctx, class, driver_ids))
-        .collect()
+    fn calculate_results(&self, ctx: &CalculationContext) -> HashMap<ShortCarClass, Vec<ChampionshipDriver>> {
+        self.get_all_driver_ids_by_class(&ctx.rows_by_class_and_driver_id, &ctx.new_event_drivers_by_class_and_id)
+            .iter()
+            .map(|(class, driver_ids)| self.calculate_results_for_class(ctx, class, driver_ids))
+            .collect()
     }
 
     fn calculate_results_for_class(
@@ -252,10 +230,7 @@ impl DefaultClassChampionshipResultsParser {
         match (driver_history_opt, driver_new_results_opt) {
             (Some(driver_history), Some(driver_new_results)) => {
                 let mut driver_history = driver_history.clone();
-                driver_history.add_event(
-                    self.points_calculator
-                        .calculate(best_time_of_day, driver_new_results),
-                );
+                driver_history.add_event(self.points_calculator.calculate(best_time_of_day, driver_new_results));
 
                 driver_history
             }
@@ -269,10 +244,7 @@ impl DefaultClassChampionshipResultsParser {
                 (0..ctx.past_event_count).for_each(|_| {
                     new_driver.add_event(0);
                 });
-                new_driver.add_event(
-                    self.points_calculator
-                        .calculate(best_time_of_day, driver_new_results) as i64,
-                );
+                new_driver.add_event(self.points_calculator.calculate(best_time_of_day, driver_new_results));
                 new_driver
             }
             (None, None) => ChampionshipDriver::new("impossible"),
