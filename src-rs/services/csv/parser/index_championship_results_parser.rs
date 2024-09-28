@@ -105,7 +105,7 @@ impl DefaultIndexChampionshipResultsParser {
 
         Ok(data
             .rows()
-            .filter(|r| !r[0].is_empty() && r[0].is_int())
+            .filter(|r| !r[1].is_empty() && r[1].is_int())
             .map(|r| {
                 let name = r[name_index].to_string();
                 let mut driver = ChampionshipDriver::new(name.as_str());
