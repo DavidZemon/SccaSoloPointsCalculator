@@ -1,9 +1,9 @@
-use std::cmp::Ordering;
-
 use crate::models::car_class::{get_car_class, CarClass};
 use crate::models::driver_from_pronto::DriverFromPronto;
 use crate::models::lap_time::{dns, dsq, LapTime};
-use crate::models::type_aliases::DriverId;
+use crate::models::type_aliases::{DriverId, PaxMultiplier};
+use std::cmp::Ordering;
+use std::str::FromStr;
 
 #[derive(Copy, Clone, Debug)]
 pub enum TimeSelection {
@@ -25,7 +25,7 @@ pub struct Driver {
     pub ladies_championship: bool,
     pub position: Option<usize>,
     pub dsq: bool,
-    pub pax_multiplier: f64,
+    pub pax_multiplier: PaxMultiplier,
     pub day_1_times: Option<Vec<LapTime>>,
     pub day_2_times: Option<Vec<LapTime>>,
     pub combined: LapTime,
@@ -43,12 +43,12 @@ impl Driver {
                 TimeSelection::Day1 => self
                     .day_1_times
                     .clone()
-                    .and_then(|times| times.first().copied())
+                    .and_then(|times| times.first().cloned())
                     .unwrap_or_else(dns),
                 TimeSelection::Day2 => self
                     .day_2_times
                     .clone()
-                    .and_then(|times| times.first().copied())
+                    .and_then(|times| times.first().cloned())
                     .unwrap_or_else(dns),
                 TimeSelection::Combined => {
                     let day_1_empty = self.day_1_times.clone().map(|times| times.is_empty()).unwrap_or(true);
@@ -78,21 +78,23 @@ impl Driver {
 
     pub fn difference(&self, comparison: LapTime, use_pax: bool, time_selection: Option<TimeSelection>) -> String {
         let self_best_lap = self.best_lap(time_selection);
-        match (self_best_lap.time, comparison.time) {
+        match (self_best_lap.time.clone(), comparison.time.clone()) {
             (Some(self_best_time), Some(comparison_time)) => {
                 if use_pax {
                     if self_best_lap == comparison {
                         "".to_string()
                     } else {
-                        format!(
-                            "{:.3}",
-                            (comparison.with_pax() * 1000. - self_best_lap.with_pax() * 1000.) / 1000.
-                        )
+                        match (comparison.with_pax(), self_best_lap.with_pax()) {
+                            (Some(comparison), Some(self_best_lap)) => {
+                                format!("{:.3}", comparison - self_best_lap)
+                            }
+                            _ => "".to_string(),
+                        }
                     }
                 } else if comparison_time == self_best_time {
                     "".to_string()
                 } else {
-                    format!("{:.3}", (comparison_time * 1000. - self_best_time * 1000.) / 1000.)
+                    format!("{:.3}", comparison_time - self_best_time)
                 }
             }
             (_, _) => "N/A".to_string(),
@@ -145,7 +147,7 @@ impl Driver {
             ),
             region: driver.region.clone().unwrap_or_default(),
             dsq: driver.dsq.map(|dsq| dsq == 1).unwrap_or(false),
-            pax_multiplier: driver.pax_multiplier,
+            pax_multiplier: PaxMultiplier::from_str(&driver.pax_multiplier).unwrap(),
             day_1_times,
             day_2_times,
             combined: dns(),
@@ -193,6 +195,7 @@ impl Eq for Driver {}
 #[cfg(test)]
 mod test {
     use rstest::rstest;
+    use std::str::FromStr;
 
     use crate::enums::short_car_class::ShortCarClass;
     use crate::models::driver::{Driver, TimeSelection};
@@ -218,8 +221,8 @@ mod test {
                 dsq: Some(if dsq { 1 } else { 0 }),
                 region: None,
                 best_run: "".to_string(),
-                pax_multiplier: 0.5,
-                pax_time: 0.0,
+                pax_multiplier: "0.5".to_string(),
+                pax_time: "0.0".to_string(),
                 runs_day1: None,
                 runs_day2: None,
                 day1,
@@ -231,10 +234,16 @@ mod test {
 
     #[rstest]
     #[case(None, None)]
-    #[case(None, Some(vec![LapTime::new(2., 0.9, 0, None)]))]
-    #[case(Some(vec![LapTime::new(2., 0.9, 0, None)]), None)]
-    #[case(Some(vec![LapTime::new(1., 0.9, 0, None)]), Some(vec![LapTime::new(2., 0.9, 0, None)]))]
-    fn best_lap_should_return_dsq_for_dsq(#[case] d1: Option<Vec<LapTime>>, #[case] d2: Option<Vec<LapTime>>) {
+    #[case(None, Some(vec![LapTime::new(2.into(), PaxMultiplier::from_str("0.9").unwrap(), 0, None)]))]
+    #[case(Some(vec![LapTime::new(2.into(), PaxMultiplier::from_str("0.9").unwrap(), 0, None)]), None)]
+    #[case(
+        Some(vec![LapTime::new(1.into(), PaxMultiplier::from_str("0.9").unwrap(), 0, None)]),
+        Some(vec![LapTime::new(2.into(), PaxMultiplier::from_str("0.9").unwrap(), 0, None)])
+    )]
+    fn best_lap_should_return_dsq_for_dsq(
+        #[case] d1: Option<Vec<LapTime>>,
+        #[case] d2: Option<Vec<LapTime>>,
+    ) {
         for ts in &[
             None,
             Some(TimeSelection::Day1),
@@ -249,13 +258,13 @@ mod test {
     #[rstest]
     #[case(None, None, None)]
     #[case(None, Some(vec![]), None)]
-    #[case(None, Some(vec![LapTime::new(2., 0.9, 0, None)]), None)]
+    #[case(None, Some(vec![LapTime::new(2.into(), PaxMultiplier::from_str("0.9").unwrap(), 0, None)]), None)]
     #[case(None, None, Some(TimeSelection::Day1))]
     #[case(None, Some(vec![]), Some(TimeSelection::Day1))]
-    #[case(None, Some(vec![LapTime::new(2., 0.9, 0, None)]), Some(TimeSelection::Day1))]
+    #[case(None, Some(vec![LapTime::new(2.into(), PaxMultiplier::from_str("0.9").unwrap(), 0, None)]), Some(TimeSelection::Day1))]
     #[case(None, None, Some(TimeSelection::Day2))]
     #[case(Some(vec![]), None, Some(TimeSelection::Day2))]
-    #[case(Some(vec![LapTime::new(2., 0.9, 0, None)]), None, Some(TimeSelection::Day2))]
+    #[case(Some(vec![LapTime::new(2.into(), PaxMultiplier::from_str("0.9").unwrap(), 0, None)]), None, Some(TimeSelection::Day2))]
     #[case(None, None, Some(TimeSelection::Day2))]
     #[case(Some(vec![]), None, Some(TimeSelection::Day2))]
     #[case(None, Some(vec![]), Some(TimeSelection::Day2))]
@@ -271,10 +280,10 @@ mod test {
     }
 
     #[rstest]
-    #[case(Some(vec![LapTime::new(2., 0.9, 0, None)]), None, Some(TimeSelection::Combined))]
-    #[case(Some(vec![LapTime::new(2., 0.9, 0, None)]), Some(vec![]), Some(TimeSelection::Combined))]
-    #[case(None, Some(vec![LapTime::new(2., 0.9, 0, None)]), Some(TimeSelection::Combined))]
-    #[case(Some(vec![]), Some(vec![LapTime::new(2., 0.9, 0, None)]), Some(TimeSelection::Combined))]
+    #[case(Some(vec![LapTime::new(2.into(), PaxMultiplier::from_str("0.9").unwrap(), 0, None)]), None, Some(TimeSelection::Combined))]
+    #[case(Some(vec![LapTime::new(2.into(), PaxMultiplier::from_str("0.9").unwrap(), 0, None)]), Some(vec![]), Some(TimeSelection::Combined))]
+    #[case(None, Some(vec![LapTime::new(2.into(), PaxMultiplier::from_str("0.9").unwrap(), 0, None)]), Some(TimeSelection::Combined))]
+    #[case(Some(vec![]), Some(vec![LapTime::new(2.into(), PaxMultiplier::from_str("0.9").unwrap(), 0, None)]), Some(TimeSelection::Combined))]
     fn best_lap_should_return_dns_for_special_two_day_event_cases(
         #[case] d1: Option<Vec<LapTime>>,
         #[case] d2: Option<Vec<LapTime>>,
@@ -286,69 +295,69 @@ mod test {
     #[rstest]
     #[case(
         Some(vec![
-            LapTime::new(2., 0.5, 0, Some(Penalty::DNF)),
-            LapTime::new(6., 0.5, 1, None),
-            LapTime::new(9., 0.5, 0, None)
+            LapTime::new(2.into(), PaxMultiplier::from_str("0.5").unwrap(), 0, Some(Penalty::DNF)),
+            LapTime::new(6.into(), PaxMultiplier::from_str("0.5").unwrap(), 1, None),
+            LapTime::new(9.into(), PaxMultiplier::from_str("0.5").unwrap(), 0, None)
         ]),
         None,
         false,
         None,
-        LapTime::new(6., 0.5, 1, None),
+        LapTime::new(6.into(), PaxMultiplier::from_str("0.5").unwrap(), 1, None),
     )]
     #[case(
         Some(vec![
-            LapTime::new(2., 0.5, 0, Some(Penalty::DNF)),
-            LapTime::new(6., 0.5, 1, None),
-            LapTime::new(9., 0.5, 0, None)
+            LapTime::new(2.into(), PaxMultiplier::from_str("0.5").unwrap(), 0, Some(Penalty::DNF)),
+            LapTime::new(6.into(), PaxMultiplier::from_str("0.5").unwrap(), 1, None),
+            LapTime::new(9.into(), PaxMultiplier::from_str("0.5").unwrap(), 0, None)
         ]),
         None,
         false,
         Some(TimeSelection::Day1),
-        LapTime::new(6., 0.5, 1, None),
+        LapTime::new(6.into(), PaxMultiplier::from_str("0.5").unwrap(), 1, None),
     )]
     #[case(
         Some(vec![
-            LapTime::new(2., 0.5, 0, Some(Penalty::DNF)),
-            LapTime::new(6., 0.5, 1, None),
-            LapTime::new(9., 0.5, 0, None)
+            LapTime::new(2.into(), PaxMultiplier::from_str("0.5").unwrap(), 0, Some(Penalty::DNF)),
+            LapTime::new(6.into(), PaxMultiplier::from_str("0.5").unwrap(), 1, None),
+            LapTime::new(9.into(), PaxMultiplier::from_str("0.5").unwrap(), 0, None)
         ]),
         Some(vec![]),
         false,
         Some(TimeSelection::Day1),
-        LapTime::new(6., 0.5, 1, None),
+        LapTime::new(6.into(), PaxMultiplier::from_str("0.5").unwrap(), 1, None),
     )]
     #[case(
         Some(vec![
-            LapTime::new(2., 0.5, 0, Some(Penalty::DNF)),
-            LapTime::new(6., 0.5, 1, None),
-            LapTime::new(9., 0.5, 0, None)
+            LapTime::new(2.into(), PaxMultiplier::from_str("0.5").unwrap(), 0, Some(Penalty::DNF)),
+            LapTime::new(6.into(), PaxMultiplier::from_str("0.5").unwrap(), 1, None),
+            LapTime::new(9.into(), PaxMultiplier::from_str("0.5").unwrap(), 0, None)
         ]),
         None,
         true,
         Some(TimeSelection::Day1),
-        LapTime::new(6., 0.5, 1, None),
+        LapTime::new(6.into(), PaxMultiplier::from_str("0.5").unwrap(), 1, None),
     )]
     #[case(
         Some(vec![
-            LapTime::new(2., 0.5, 0, Some(Penalty::DNF)),
-            LapTime::new(6., 0.5, 1, None),
-            LapTime::new(9., 0.5, 0, None)
+            LapTime::new(2.into(), PaxMultiplier::from_str("0.5").unwrap(), 0, Some(Penalty::DNF)),
+            LapTime::new(6.into(), PaxMultiplier::from_str("0.5").unwrap(), 1, None),
+            LapTime::new(9.into(), PaxMultiplier::from_str("0.5").unwrap(), 0, None)
         ]),
         Some(vec![]),
         true,
         Some(TimeSelection::Day1),
-        LapTime::new(6., 0.5, 1, None),
+        LapTime::new(6.into(), PaxMultiplier::from_str("0.5").unwrap(), 1, None),
     )]
     #[case(
         Some(vec![
-            LapTime::new(2., 0.5, 0, Some(Penalty::DNF)),
-            LapTime::new(6., 0.5, 1, None),
-            LapTime::new(9., 0.5, 0, None)
+            LapTime::new(2.into(), PaxMultiplier::from_str("0.5").unwrap(), 0, Some(Penalty::DNF)),
+            LapTime::new(6.into(), PaxMultiplier::from_str("0.5").unwrap(), 1, None),
+            LapTime::new(9.into(), PaxMultiplier::from_str("0.5").unwrap(), 0, None)
         ]),
-        Some(vec![LapTime::new(1., 0.5, 0, None)]),
+        Some(vec![LapTime::new(1.into(), PaxMultiplier::from_str("0.5").unwrap(), 0, None)]),
         true,
         Some(TimeSelection::Day1),
-        LapTime::new(6., 0.5, 1, None),
+        LapTime::new(6.into(), PaxMultiplier::from_str("0.5").unwrap(), 1, None),
     )]
     fn best_lap_happy_path_day1(
         #[case] d1: Option<Vec<LapTime>>,
@@ -364,52 +373,52 @@ mod test {
     #[case(
         None,
         Some(vec![
-            LapTime::new(2., 0.5, 0, Some(Penalty::DNF)),
-            LapTime::new(6., 0.5, 1, None),
-            LapTime::new(9., 0.5, 0, None)
+            LapTime::new(2.into(), PaxMultiplier::from_str("0.5").unwrap(), 0, Some(Penalty::DNF)),
+            LapTime::new(6.into(), PaxMultiplier::from_str("0.5").unwrap(), 1, None),
+            LapTime::new(9.into(), PaxMultiplier::from_str("0.5").unwrap(), 0, None)
         ]),
         false,
-        LapTime::new(6., 0.5, 1, None),
+        LapTime::new(6.into(), PaxMultiplier::from_str("0.5").unwrap(), 1, None),
     )]
     #[case(
         Some(vec![]),
         Some(vec![
-            LapTime::new(2., 0.5, 0, Some(Penalty::DNF)),
-            LapTime::new(6., 0.5, 1, None),
-            LapTime::new(9., 0.5, 0, None)
+            LapTime::new(2.into(), PaxMultiplier::from_str("0.5").unwrap(), 0, Some(Penalty::DNF)),
+            LapTime::new(6.into(), PaxMultiplier::from_str("0.5").unwrap(), 1, None),
+            LapTime::new(9.into(), PaxMultiplier::from_str("0.5").unwrap(), 0, None)
         ]),
         false,
-        LapTime::new(6., 0.5, 1, None),
+        LapTime::new(6.into(), PaxMultiplier::from_str("0.5").unwrap(), 1, None),
     )]
     #[case(
         None,
         Some(vec![
-            LapTime::new(2., 0.5, 0, Some(Penalty::DNF)),
-            LapTime::new(6., 0.5, 1, None),
-            LapTime::new(9., 0.5, 0, None)
+            LapTime::new(2.into(), PaxMultiplier::from_str("0.5").unwrap(), 0, Some(Penalty::DNF)),
+            LapTime::new(6.into(), PaxMultiplier::from_str("0.5").unwrap(), 1, None),
+            LapTime::new(9.into(), PaxMultiplier::from_str("0.5").unwrap(), 0, None)
         ]),
         true,
-        LapTime::new(6., 0.5, 1, None),
+        LapTime::new(6.into(), PaxMultiplier::from_str("0.5").unwrap(), 1, None),
     )]
     #[case(
         Some(vec![]),
         Some(vec![
-            LapTime::new(2., 0.5, 0, Some(Penalty::DNF)),
-            LapTime::new(6., 0.5, 1, None),
-            LapTime::new(9., 0.5, 0, None)
+            LapTime::new(2.into(), PaxMultiplier::from_str("0.5").unwrap(), 0, Some(Penalty::DNF)),
+            LapTime::new(6.into(), PaxMultiplier::from_str("0.5").unwrap(), 1, None),
+            LapTime::new(9.into(), PaxMultiplier::from_str("0.5").unwrap(), 0, None)
         ]),
         true,
-        LapTime::new(6., 0.5, 1, None),
+        LapTime::new(6.into(), PaxMultiplier::from_str("0.5").unwrap(), 1, None),
     )]
     #[case(
-        Some(vec![LapTime::new(1., 0.5, 0, None)]),
+        Some(vec![LapTime::new(1.into(), PaxMultiplier::from_str("0.5").unwrap(), 0, None)]),
         Some(vec![
-            LapTime::new(2., 0.5, 0, Some(Penalty::DNF)),
-            LapTime::new(6., 0.5, 1, None),
-            LapTime::new(9., 0.5, 0, None)
+            LapTime::new(2.into(), PaxMultiplier::from_str("0.5").unwrap(), 0, Some(Penalty::DNF)),
+            LapTime::new(6.into(), PaxMultiplier::from_str("0.5").unwrap(), 1, None),
+            LapTime::new(9.into(), PaxMultiplier::from_str("0.5").unwrap(), 0, None)
         ]),
         true,
-        LapTime::new(6., 0.5, 1, None),
+        LapTime::new(6.into(), PaxMultiplier::from_str("0.5").unwrap(), 1, None),
     )]
     fn best_lap_happy_path_day2(
         #[case] d1: Option<Vec<LapTime>>,
@@ -428,40 +437,110 @@ mod test {
         assert_eq!(
             build_driver(
                 Some(vec![
-                    LapTime::new(20., 0.5, 0, Some(Penalty::DNF)),
-                    LapTime::new(60., 0.5, 2, None),
-                    LapTime::new(90., 0.5, 0, None)
+                    LapTime::new(
+                        20.into(),
+                        PaxMultiplier::from_str("0.5").unwrap(),
+                        0,
+                        Some(Penalty::DNF)
+                    ),
+                    LapTime::new(60.into(), PaxMultiplier::from_str("0.5").unwrap(), 2, None),
+                    LapTime::new(90.into(), PaxMultiplier::from_str("0.5").unwrap(), 0, None)
                 ]),
                 Some(vec![
-                    LapTime::new(2., 0.5, 0, Some(Penalty::DNF)),
-                    LapTime::new(6., 0.5, 1, None),
-                    LapTime::new(9., 0.5, 0, None)
+                    LapTime::new(
+                        2.into(),
+                        PaxMultiplier::from_str("0.5").unwrap(),
+                        0,
+                        Some(Penalty::DNF)
+                    ),
+                    LapTime::new(6.into(), PaxMultiplier::from_str("0.5").unwrap(), 1, None),
+                    LapTime::new(9.into(), PaxMultiplier::from_str("0.5").unwrap(), 0, None)
                 ]),
                 false,
                 true
             )
             .best_lap(Some(TimeSelection::Combined)),
-            LapTime::new(66., 0.5, 3, None)
+            LapTime::new(66.into(), PaxMultiplier::from_str("0.5").unwrap(), 3, None)
         );
     }
 
     #[rstest]
-    #[case(LapTime::new(6., 0.5, 0, None), true, None, "-2.000")]
-    #[case(LapTime::new(3., 0.5, 0, None), false, None, "-7.000")]
-    #[case(LapTime::new(6., 0.5, 0, None), true, Some(TimeSelection::Day1), "-2.000")]
-    #[case(LapTime::new(3., 0.5, 0, None), false, Some(TimeSelection::Day1), "-7.000")]
-    #[case(LapTime::new(10., 0.45, 0, None), true, Some(TimeSelection::Day1), "-0.500")]
-    #[case(LapTime::new(4.5, 0.45, 0, None), false, Some(TimeSelection::Day1), "-5.500")]
-    #[case(LapTime::new(23.335, 0.1, 0, None), true, Some(TimeSelection::Day1), "-2.666")]
-    #[case(LapTime::new(2.334, 0.1, 0, None), false, Some(TimeSelection::Day1), "-7.666")]
-    #[case(LapTime::new(23.334, 0.1, 0, None), true, Some(TimeSelection::Day1), "-2.667")]
-    #[case(LapTime::new(2.3334, 0.1, 0, None), false, Some(TimeSelection::Day1), "-7.667")]
-    #[case(LapTime::new(10., 0.5, 0, None), true, Some(TimeSelection::Day1), "")]
-    #[case(LapTime::new(10., 0.5, 0, None), false, Some(TimeSelection::Day1), "")]
-    #[case(LapTime::new(16., 0.5, 0, None), true, Some(TimeSelection::Day2), "-2.000")]
-    #[case(LapTime::new(8., 0.5, 0, None), false, Some(TimeSelection::Day2), "-12.000")]
-    #[case(LapTime::new(26., 0.5, 0, None), true, Some(TimeSelection::Combined), "-2.000")]
-    #[case(LapTime::new(13., 0.5, 0, None), false, Some(TimeSelection::Combined), "-17.000")]
+    #[case(LapTime::new(6.into(), PaxMultiplier::from_str("0.5").unwrap(), 0, None), true, None, "-2.000")]
+    #[case(LapTime::new(3.into(), PaxMultiplier::from_str("0.5").unwrap(), 0, None), false, None, "-7.000")]
+    #[case(
+        LapTime::new(6.into(), PaxMultiplier::from_str("0.5").unwrap(), 0, None),
+        true,
+        Some(TimeSelection::Day1),
+        "-2.000"
+    )]
+    #[case(
+        LapTime::new(3.into(), PaxMultiplier::from_str("0.5").unwrap(), 0, None),
+        false,
+        Some(TimeSelection::Day1),
+        "-7.000"
+    )]
+    #[case(
+        LapTime::new(10.into(), PaxMultiplier::from_str("0.45").unwrap(), 0, None),
+        true,
+        Some(TimeSelection::Day1),
+        "-0.500"
+    )]
+    #[case(
+        LapTime::new(Time::from_str("4.5").unwrap(), PaxMultiplier::from_str("0.45").unwrap(), 0, None),
+        false,
+        Some(TimeSelection::Day1),
+        "-5.500"
+    )]
+    #[case(
+        LapTime::new(Time::from_str("23.335").unwrap(), PaxMultiplier::from_str("0.1").unwrap(), 0, None),
+        true,
+        Some(TimeSelection::Day1),
+        "-2.666"
+    )]
+    #[case(
+        LapTime::new(Time::from_str("2.334").unwrap(), PaxMultiplier::from_str("0.1").unwrap(), 0, None),
+        false,
+        Some(TimeSelection::Day1),
+        "-7.666"
+    )]
+    #[case(
+        LapTime::new(Time::from_str("23.334").unwrap(), PaxMultiplier::from_str("0.1").unwrap(), 0, None),
+        true,
+        Some(TimeSelection::Day1),
+        "-2.667"
+    )]
+    #[case(
+        LapTime::new(Time::from_str("2.3334").unwrap(), PaxMultiplier::from_str("0.1").unwrap(), 0, None),
+        false,
+        Some(TimeSelection::Day1),
+        "-7.667"
+    )]
+    #[case(LapTime::new(10.into(), PaxMultiplier::from_str("0.5").unwrap(), 0, None), true, Some(TimeSelection::Day1), "")]
+    #[case(LapTime::new(10.into(), PaxMultiplier::from_str("0.5").unwrap(), 0, None), false, Some(TimeSelection::Day1), "")]
+    #[case(
+        LapTime::new(16.into(), PaxMultiplier::from_str("0.5").unwrap(), 0, None),
+        true,
+        Some(TimeSelection::Day2),
+        "-2.000"
+    )]
+    #[case(
+        LapTime::new(8.into(), PaxMultiplier::from_str("0.5").unwrap(), 0, None),
+        false,
+        Some(TimeSelection::Day2),
+        "-12.000"
+    )]
+    #[case(
+        LapTime::new(26.into(), PaxMultiplier::from_str("0.5").unwrap(), 0, None),
+        true,
+        Some(TimeSelection::Combined),
+        "-2.000"
+    )]
+    #[case(
+        LapTime::new(13.into(), PaxMultiplier::from_str("0.5").unwrap(), 0, None),
+        false,
+        Some(TimeSelection::Combined),
+        "-17.000"
+    )]
     fn difference_happy_path(
         #[case] fastest: LapTime,
         #[case] use_pax: bool,
@@ -469,13 +548,23 @@ mod test {
         #[case] expected: &str,
     ) {
         let testable = build_driver(
-            Some(vec![LapTime::new(10., 0.5, 0, None)]),
-            Some(vec![LapTime::new(20., 0.5, 0, None)]),
+            Some(vec![LapTime::new(
+                10.into(),
+                PaxMultiplier::from_str("0.5").unwrap(),
+                0,
+                None,
+            )]),
+            Some(vec![LapTime::new(
+                20.into(),
+                PaxMultiplier::from_str("0.5").unwrap(),
+                0,
+                None,
+            )]),
             false,
             true,
         );
 
-        let actual = testable.difference(fastest, use_pax, ts);
+        let actual = testable.difference(fastest.clone(), use_pax, ts);
         assert_eq!(
             actual,
             expected.to_string(),
@@ -488,8 +577,8 @@ mod test {
     }
 
     #[rstest]
-    #[case(51.861, 0.821, 50.154, 0.821, "-1.402")]
-    #[case(48.274, 0.819, 48.547, 0.813, "-0.067")]
+    #[case(Time::from_str("51.861").unwrap(), PaxMultiplier::from_str("0.821").unwrap(), Time::from_str("50.154").unwrap(), PaxMultiplier::from_str("0.821").unwrap(), "-1.402")]
+    #[case(Time::from_str("48.274").unwrap(), PaxMultiplier::from_str("0.819").unwrap(), Time::from_str("48.547").unwrap(), PaxMultiplier::from_str("0.813").unwrap(), "-0.067")]
     fn difference_but_barely(
         #[case] driver_time: Time,
         #[case] driver_pax: PaxMultiplier,
@@ -505,7 +594,7 @@ mod test {
         );
         let fastest = LapTime::new(fastest_time, fastest_pax, 0, None);
 
-        let actual = testable.difference(fastest, true, None);
+        let actual = testable.difference(fastest.clone(), true, None);
         assert_eq!(
             actual,
             expected.to_string(),
@@ -519,64 +608,144 @@ mod test {
 
     #[test]
     fn difference_no_best_lap() {
-        let d1 = Some(vec![LapTime::new(1.8, 0.5, 0, None)]);
-        let d2 = Some(vec![LapTime::new(3., 0.5, 0, None)]);
-        let baseline = LapTime::new(1., 0.8, 0, None);
+        let d1 = Some(vec![LapTime::new(
+            Time::from_str("1.8").unwrap(),
+            PaxMultiplier::from_str("0.5").unwrap(),
+            0,
+            None,
+        )]);
+        let d2 = Some(vec![LapTime::new(
+            3.into(),
+            PaxMultiplier::from_str("0.5").unwrap(),
+            0,
+            None,
+        )]);
+        let baseline = LapTime::new(1.into(), PaxMultiplier::from_str("0.8").unwrap(), 0, None);
         assert_eq!(
-            build_driver(d1.clone(), d2.clone(), true, false).difference(baseline, true, None),
+            build_driver(d1.clone(), d2.clone(), true, false).difference(
+                baseline.clone(),
+                true,
+                None
+            ),
             "N/A".to_string()
         );
         assert_eq!(
-            build_driver(d1.clone(), d2.clone(), true, false).difference(baseline, false, None),
+            build_driver(d1.clone(), d2.clone(), true, false).difference(
+                baseline.clone(),
+                false,
+                None
+            ),
             "N/A".to_string()
         );
         assert_eq!(
-            build_driver(None, d2.clone(), false, false).difference(baseline, true, None),
+            build_driver(None, d2.clone(), false, false).difference(baseline.clone(), true, None),
             "N/A".to_string()
         );
         assert_eq!(
-            build_driver(None, d2.clone(), false, false).difference(baseline, false, None),
+            build_driver(None, d2.clone(), false, false).difference(baseline.clone(), false, None),
             "N/A".to_string()
         );
         assert_eq!(
-            build_driver(None, d2.clone(), false, false).difference(baseline, true, Some(TimeSelection::Day1)),
+            build_driver(None, d2.clone(), false, false).difference(
+                baseline.clone(),
+                true,
+                Some(TimeSelection::Day1)
+            ),
             "N/A".to_string()
         );
         assert_eq!(
-            build_driver(None, d2.clone(), false, false).difference(baseline, false, Some(TimeSelection::Day1)),
+            build_driver(None, d2.clone(), false, false).difference(
+                baseline.clone(),
+                false,
+                Some(TimeSelection::Day1)
+            ),
             "N/A".to_string()
         );
         assert_eq!(
-            build_driver(d1.clone(), None, false, false).difference(baseline, true, Some(TimeSelection::Day2)),
+            build_driver(d1.clone(), None, false, false).difference(
+                baseline.clone(),
+                true,
+                Some(TimeSelection::Day2)
+            ),
             "N/A".to_string()
         );
         assert_eq!(
-            build_driver(d1.clone(), None, false, false).difference(baseline, false, Some(TimeSelection::Day2)),
+            build_driver(d1.clone(), None, false, false).difference(
+                baseline.clone(),
+                false,
+                Some(TimeSelection::Day2)
+            ),
             "N/A".to_string()
         );
         assert_eq!(
-            build_driver(d1.clone(), None, false, true).difference(baseline, true, Some(TimeSelection::Combined)),
+            build_driver(d1.clone(), None, false, true).difference(
+                baseline.clone(),
+                true,
+                Some(TimeSelection::Combined)
+            ),
             "N/A".to_string()
         );
         assert_eq!(
-            build_driver(d1, None, false, true).difference(baseline, false, Some(TimeSelection::Combined)),
+            build_driver(d1, None, false, true).difference(
+                baseline.clone(),
+                false,
+                Some(TimeSelection::Combined)
+            ),
             "N/A".to_string()
         );
         assert_eq!(
-            build_driver(None, d2.clone(), false, true).difference(baseline, true, Some(TimeSelection::Combined)),
+            build_driver(None, d2.clone(), false, true).difference(
+                baseline.clone(),
+                true,
+                Some(TimeSelection::Combined)
+            ),
             "N/A".to_string()
         );
         assert_eq!(
-            build_driver(None, d2, false, true).difference(baseline, false, Some(TimeSelection::Combined)),
+            build_driver(None, d2, false, true).difference(
+                baseline.clone(),
+                false,
+                Some(TimeSelection::Combined)
+            ),
             "N/A".to_string()
         );
     }
 
     #[test]
     fn sortable_one_day_event_day1() {
-        let d1 = build_driver(Some(vec![LapTime::new(100., 0.2, 0, None)]), None, false, false);
-        let d2 = build_driver(Some(vec![LapTime::new(100., 0.3, 0, None)]), None, false, false);
-        let d3 = build_driver(Some(vec![LapTime::new(100., 0.4, 0, None)]), None, false, false);
+        let d1 = build_driver(
+            Some(vec![LapTime::new(
+                100.into(),
+                PaxMultiplier::from_str("0.2").unwrap(),
+                0,
+                None,
+            )]),
+            None,
+            false,
+            false,
+        );
+        let d2 = build_driver(
+            Some(vec![LapTime::new(
+                100.into(),
+                PaxMultiplier::from_str("0.3").unwrap(),
+                0,
+                None,
+            )]),
+            None,
+            false,
+            false,
+        );
+        let d3 = build_driver(
+            Some(vec![LapTime::new(
+                100.into(),
+                PaxMultiplier::from_str("0.4").unwrap(),
+                0,
+                None,
+            )]),
+            None,
+            false,
+            false,
+        );
 
         let mut actual = vec![d3.clone(), d1.clone(), d2.clone()];
         actual.sort();
@@ -587,20 +756,50 @@ mod test {
     #[test]
     fn sortable_two_day_event() {
         let d1 = build_driver(
-            Some(vec![LapTime::new(100., 0.10, 0, None)]),
-            Some(vec![LapTime::new(100., 0.11, 0, None)]),
+            Some(vec![LapTime::new(
+                100.into(),
+                PaxMultiplier::from_str("0.10").unwrap(),
+                0,
+                None,
+            )]),
+            Some(vec![LapTime::new(
+                100.into(),
+                PaxMultiplier::from_str("0.11").unwrap(),
+                0,
+                None,
+            )]),
             false,
             true,
         );
         let d2 = build_driver(
-            Some(vec![LapTime::new(100., 0.20, 0, None)]),
-            Some(vec![LapTime::new(100., 0.22, 0, None)]),
+            Some(vec![LapTime::new(
+                100.into(),
+                PaxMultiplier::from_str("0.20").unwrap(),
+                0,
+                None,
+            )]),
+            Some(vec![LapTime::new(
+                100.into(),
+                PaxMultiplier::from_str("0.22").unwrap(),
+                0,
+                None,
+            )]),
             false,
             true,
         );
         let d3 = build_driver(
-            Some(vec![LapTime::new(100., 0.30, 0, None)]),
-            Some(vec![LapTime::new(100., 0.33, 0, None)]),
+            Some(vec![LapTime::new(
+                100.into(),
+                PaxMultiplier::from_str("0.30").unwrap(),
+                0,
+                None,
+            )]),
+            Some(vec![LapTime::new(
+                100.into(),
+                PaxMultiplier::from_str("0.33").unwrap(),
+                0,
+                None,
+            )]),
             false,
             true,
         );

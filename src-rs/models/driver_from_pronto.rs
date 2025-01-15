@@ -1,14 +1,8 @@
 use crate::enums::short_car_class::ShortCarClass;
 use crate::models::lap_time::LapTime;
-use crate::models::type_aliases::{PaxMultiplier, Time};
 use serde::Deserialize;
 
-#[derive(Debug, Deserialize)]
-pub enum BestRun {
-    Time(Time),
-    Penalty(String),
-}
-
+#[allow(unused)]
 #[derive(Debug, Deserialize)]
 pub struct DriverFromPronto {
     #[serde(rename = "Position")]
@@ -42,9 +36,9 @@ pub struct DriverFromPronto {
     #[serde(rename = "Best Run")]
     pub best_run: String,
     #[serde(rename = "Pax Index")]
-    pub pax_multiplier: PaxMultiplier,
+    pub pax_multiplier: String,
     #[serde(rename = "Pax Time")]
-    pub pax_time: Time,
+    pub pax_time: String,
     #[serde(rename = "Runs Day1")]
     pub runs_day1: Option<usize>,
     #[serde(rename = "Runs Day2")]

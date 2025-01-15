@@ -56,6 +56,8 @@ mod test {
     use crate::models::driver::{Driver, TimeSelection};
     use crate::models::driver_from_pronto::DriverFromPronto;
     use crate::models::lap_time::LapTime;
+    use crate::models::type_aliases::PaxMultiplier;
+    use std::str::FromStr;
 
     fn build_driver(day1: Option<Vec<LapTime>>, day2: Option<Vec<LapTime>>) -> Driver {
         Driver::from(
@@ -75,8 +77,8 @@ mod test {
                 dsq: None,
                 region: None,
                 best_run: "".to_string(),
-                pax_multiplier: 0.0,
-                pax_time: 0.0,
+                pax_multiplier: "0.0".to_string(),
+                pax_time: "0.0".to_string(),
                 runs_day1: None,
                 runs_day2: None,
                 day1,
@@ -133,22 +135,55 @@ mod test {
     fn get_best_in_class_day1() {
         let mut testable = ClassResults::new(ShortCarClass::AS);
         testable.add_driver(build_driver(
-            Some(vec![LapTime::new(4., 0.8, 0, None)]),
-            Some(vec![LapTime::new(40., 0.8, 0, None)]),
+            Some(vec![LapTime::new(
+                4.into(),
+                PaxMultiplier::from_str("0.8").unwrap(),
+                0,
+                None,
+            )]),
+            Some(vec![LapTime::new(
+                40.into(),
+                PaxMultiplier::from_str("0.8").unwrap(),
+                0,
+                None,
+            )]),
         ));
         testable.add_driver(build_driver(
-            Some(vec![LapTime::new(3., 0.9, 0, None)]),
-            Some(vec![LapTime::new(30., 0.9, 0, None)]),
+            Some(vec![LapTime::new(
+                3.into(),
+                PaxMultiplier::from_str("0.9").unwrap(),
+                0,
+                None,
+            )]),
+            Some(vec![LapTime::new(
+                30.into(),
+                PaxMultiplier::from_str("0.9").unwrap(),
+                0,
+                None,
+            )]),
         ));
         testable.add_driver(build_driver(
-            Some(vec![LapTime::new(5., 0.7, 0, None)]),
-            Some(vec![LapTime::new(500., 0.7, 0, None)]),
+            Some(vec![LapTime::new(
+                5.into(),
+                PaxMultiplier::from_str("0.7").unwrap(),
+                0,
+                None,
+            )]),
+            Some(vec![LapTime::new(
+                500.into(),
+                PaxMultiplier::from_str("0.7").unwrap(),
+                0,
+                None,
+            )]),
         ));
 
-        assert_eq!(testable.get_best_in_class(None), LapTime::new(3., 0.9, 0, None));
+        assert_eq!(
+            testable.get_best_in_class(None),
+            LapTime::new(3.into(), PaxMultiplier::from_str("0.9").unwrap(), 0, None)
+        );
         assert_eq!(
             testable.get_best_in_class(Some(TimeSelection::Day1)),
-            LapTime::new(3., 0.9, 0, None)
+            LapTime::new(3.into(), PaxMultiplier::from_str("0.9").unwrap(), 0, None)
         );
     }
 
@@ -156,21 +191,51 @@ mod test {
     fn get_best_in_class_day2() {
         let mut testable = ClassResults::new(ShortCarClass::AS);
         testable.add_driver(build_driver(
-            Some(vec![LapTime::new(4., 0.8, 0, None)]),
-            Some(vec![LapTime::new(40., 0.8, 0, None)]),
+            Some(vec![LapTime::new(
+                4.into(),
+                PaxMultiplier::from_str("0.8").unwrap(),
+                0,
+                None,
+            )]),
+            Some(vec![LapTime::new(
+                40.into(),
+                PaxMultiplier::from_str("0.8").unwrap(),
+                0,
+                None,
+            )]),
         ));
         testable.add_driver(build_driver(
-            Some(vec![LapTime::new(3., 0.9, 0, None)]),
-            Some(vec![LapTime::new(30., 0.9, 0, None)]),
+            Some(vec![LapTime::new(
+                3.into(),
+                PaxMultiplier::from_str("0.9").unwrap(),
+                0,
+                None,
+            )]),
+            Some(vec![LapTime::new(
+                30.into(),
+                PaxMultiplier::from_str("0.9").unwrap(),
+                0,
+                None,
+            )]),
         ));
         testable.add_driver(build_driver(
-            Some(vec![LapTime::new(5., 0.7, 0, None)]),
-            Some(vec![LapTime::new(500., 0.7, 0, None)]),
+            Some(vec![LapTime::new(
+                5.into(),
+                PaxMultiplier::from_str("0.7").unwrap(),
+                0,
+                None,
+            )]),
+            Some(vec![LapTime::new(
+                500.into(),
+                PaxMultiplier::from_str("0.7").unwrap(),
+                0,
+                None,
+            )]),
         ));
 
         assert_eq!(
             testable.get_best_in_class(Some(TimeSelection::Day2)),
-            LapTime::new(30., 0.9, 0, None)
+            LapTime::new(30.into(), PaxMultiplier::from_str("0.9").unwrap(), 0, None)
         );
     }
 
@@ -178,21 +243,51 @@ mod test {
     fn get_best_in_class_combined() {
         let mut testable = ClassResults::new(ShortCarClass::AS);
         testable.add_driver(build_driver(
-            Some(vec![LapTime::new(4., 0.8, 0, None)]),
-            Some(vec![LapTime::new(40., 0.8, 0, None)]),
+            Some(vec![LapTime::new(
+                4.into(),
+                PaxMultiplier::from_str("0.8").unwrap(),
+                0,
+                None,
+            )]),
+            Some(vec![LapTime::new(
+                40.into(),
+                PaxMultiplier::from_str("0.8").unwrap(),
+                0,
+                None,
+            )]),
         ));
         testable.add_driver(build_driver(
-            Some(vec![LapTime::new(3., 0.9, 0, None)]),
-            Some(vec![LapTime::new(30., 0.9, 0, None)]),
+            Some(vec![LapTime::new(
+                3.into(),
+                PaxMultiplier::from_str("0.9").unwrap(),
+                0,
+                None,
+            )]),
+            Some(vec![LapTime::new(
+                30.into(),
+                PaxMultiplier::from_str("0.9").unwrap(),
+                0,
+                None,
+            )]),
         ));
         testable.add_driver(build_driver(
-            Some(vec![LapTime::new(5., 0.7, 0, None)]),
-            Some(vec![LapTime::new(500., 0.7, 0, None)]),
+            Some(vec![LapTime::new(
+                5.into(),
+                PaxMultiplier::from_str("0.7").unwrap(),
+                0,
+                None,
+            )]),
+            Some(vec![LapTime::new(
+                500.into(),
+                PaxMultiplier::from_str("0.7").unwrap(),
+                0,
+                None,
+            )]),
         ));
 
         assert_eq!(
             testable.get_best_in_class(Some(TimeSelection::Combined)),
-            LapTime::new(33., 0.9, 0, None)
+            LapTime::new(33.into(), PaxMultiplier::from_str("0.9").unwrap(), 0, None)
         );
     }
 }
