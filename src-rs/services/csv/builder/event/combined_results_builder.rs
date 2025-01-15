@@ -98,7 +98,7 @@ impl CombinedResultsBuilder {
                 driver_group,
                 trophy_count,
                 is_raw_time,
-                fastest_of_day,
+                fastest_of_day.clone(),
             )?;
             csv.write_record(next_row).map_err(|e| e.to_string())?;
         }
@@ -116,13 +116,10 @@ impl CombinedResultsBuilder {
         fastest_of_day: LapTime,
     ) -> Result<Vec<String>, String> {
         let previous_driver = drivers.get(i - 1);
-        let driver = drivers.get(i).map_or(
-            Err(format!(
-                "expected at least one driver for {}",
-                driver_group.name()
-            )),
-            Ok,
-        )?;
+        let driver = drivers.get(i).ok_or(format!(
+            "expected at least one driver for {}",
+            driver_group.name()
+        ))?;
 
         let tie_offset =
             calculate_tie_offset(drivers, i, |d1, d2| d1.best_lap(None) == d2.best_lap(None));
@@ -142,7 +139,7 @@ impl CombinedResultsBuilder {
             previous_driver
                 .map(|prev| driver.difference(prev.best_lap(None), !is_raw_time, None))
                 .unwrap_or_else(|| "".to_string()),
-            driver.difference(fastest_of_day, !is_raw_time, None),
+            driver.difference(fastest_of_day.clone(), !is_raw_time, None),
         ];
         if !is_raw_time {
             next_row.push(format!(

@@ -1,3 +1,5 @@
-pub type Time = f64;
-pub type PaxMultiplier = f64;
+use bigdecimal::BigDecimal;
+
+pub type Time = BigDecimal;
+pub type PaxMultiplier = BigDecimal;
 pub type DriverId = String;

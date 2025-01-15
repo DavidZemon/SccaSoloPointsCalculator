@@ -118,7 +118,7 @@ impl ClassResultsBuilder {
                         None,
                     )
                 },
-                d.difference(best_lap_in_class, true, None),
+                d.difference(best_lap_in_class.clone(), true, None),
                 format!(
                     "{}",
                     self.points_calculator.calculate(&best_lap_in_class, d)
