@@ -11,12 +11,13 @@ enum_str! {
         F_Street,
         G_Street,
         H_Street,
-        Street_Touring_Hatchback,
-        Street_Touring_Ultra,
-        Street_Touring_Xtreme,
-        Street_Touring_Roadster,
-        Street_Touring_Sport,
         Super_Street_Touring,
+        A_Street_Touring,
+        B_Street_Touring,
+        C_Street_Touring,
+        D_Street_Touring,
+        E_Street_Touring,
+        G_Street_Touring,
         Super_Street_Prepared,
         A_Street_Prepared,
         B_Street_Prepared,
@@ -28,6 +29,7 @@ enum_str! {
         Street_Modified,
         Street_Modified_Front_Wheel_Drive,
         X_Prepared,
+        B_Prepared,
         C_Prepared,
         D_Prepared,
         E_Prepared,
@@ -58,12 +60,13 @@ enum_str! {
         F_Street_Ladies,
         G_Street_Ladies,
         H_Street_Ladies,
-        Street_Touring_Hatchback_Ladies,
-        Street_Touring_Ultra_Ladies,
-        Street_Touring_Xtreme_Ladies,
-        Street_Touring_Roadster_Ladies,
-        Street_Touring_Sport_Ladies,
         Super_Street_Touring_Ladies,
+        A_Street_Touring_Ladies,
+        B_Street_Touring_Ladies,
+        C_Street_Touring_Ladies,
+        D_Street_Touring_Ladies,
+        E_Street_Touring_Ladies,
+        G_Street_Touring_Ladies,
         Super_Street_Prepared_Ladies,
         A_Street_Prepared_Ladies,
         B_Street_Prepared_Ladies,
@@ -75,6 +78,7 @@ enum_str! {
         Street_Modified_Ladies,
         Street_Modified_Front_Wheel_Drive_Ladies,
         X_Prepared_Ladies,
+        B_Prepared_Ladies,
         C_Prepared_Ladies,
         D_Prepared_Ladies,
         E_Prepared_Ladies,
@@ -117,14 +121,8 @@ mod test {
 
     #[test]
     fn to_display_name_should_convert_correctly() {
-        assert_eq!(
-            to_display_name(LongCarClass::Super_Street),
-            "Super Street".to_string()
-        );
-        assert_eq!(
-            to_display_name(LongCarClass::Formula_SAE),
-            "Formula SAE".to_string()
-        );
+        assert_eq!(to_display_name(LongCarClass::Super_Street), "Super Street".to_string());
+        assert_eq!(to_display_name(LongCarClass::Formula_SAE), "Formula SAE".to_string());
         assert_eq!(
             to_display_name(LongCarClass::Street_Modified_Front_Wheel_Drive),
             "Street Modified Front-Wheel-Drive".to_string()

@@ -19,11 +19,7 @@ pub struct CarClass {
 
 impl CarClass {
     pub fn new(short: ShortCarClass, long: LongCarClass, category: ClassCategory) -> CarClass {
-        CarClass {
-            short,
-            long,
-            category,
-        }
+        CarClass { short, long, category }
     }
 }
 
@@ -109,50 +105,58 @@ lazy_static! {
             ),
         );
         m.insert(
-            ShortCarClass::STH,
-            CarClass::new(
-                ShortCarClass::STH,
-                LongCarClass::Street_Touring_Hatchback,
-                ClassCategory::Street_Touring_Category,
-            ),
-        );
-        m.insert(
-            ShortCarClass::STU,
-            CarClass::new(
-                ShortCarClass::STU,
-                LongCarClass::Street_Touring_Ultra,
-                ClassCategory::Street_Touring_Category,
-            ),
-        );
-        m.insert(
-            ShortCarClass::STX,
-            CarClass::new(
-                ShortCarClass::STX,
-                LongCarClass::Street_Touring_Xtreme,
-                ClassCategory::Street_Touring_Category,
-            ),
-        );
-        m.insert(
-            ShortCarClass::STR,
-            CarClass::new(
-                ShortCarClass::STR,
-                LongCarClass::Street_Touring_Roadster,
-                ClassCategory::Street_Touring_Category,
-            ),
-        );
-        m.insert(
-            ShortCarClass::STS,
-            CarClass::new(
-                ShortCarClass::STS,
-                LongCarClass::Street_Touring_Sport,
-                ClassCategory::Street_Touring_Category,
-            ),
-        );
-        m.insert(
             ShortCarClass::SST,
             CarClass::new(
                 ShortCarClass::SST,
                 LongCarClass::Super_Street_Touring,
+                ClassCategory::Street_Touring_Category,
+            ),
+        );
+        m.insert(
+            ShortCarClass::AST,
+            CarClass::new(
+                ShortCarClass::AST,
+                LongCarClass::A_Street_Touring,
+                ClassCategory::Street_Touring_Category,
+            ),
+        );
+        m.insert(
+            ShortCarClass::BST,
+            CarClass::new(
+                ShortCarClass::BST,
+                LongCarClass::B_Street_Touring,
+                ClassCategory::Street_Touring_Category,
+            ),
+        );
+        m.insert(
+            ShortCarClass::CST,
+            CarClass::new(
+                ShortCarClass::CST,
+                LongCarClass::C_Street_Touring,
+                ClassCategory::Street_Touring_Category,
+            ),
+        );
+        m.insert(
+            ShortCarClass::DST,
+            CarClass::new(
+                ShortCarClass::DST,
+                LongCarClass::D_Street_Touring,
+                ClassCategory::Street_Touring_Category,
+            ),
+        );
+        m.insert(
+            ShortCarClass::EST,
+            CarClass::new(
+                ShortCarClass::EST,
+                LongCarClass::E_Street_Touring,
+                ClassCategory::Street_Touring_Category,
+            ),
+        );
+        m.insert(
+            ShortCarClass::GST,
+            CarClass::new(
+                ShortCarClass::GST,
+                LongCarClass::G_Street_Touring,
                 ClassCategory::Street_Touring_Category,
             ),
         );
@@ -242,6 +246,14 @@ lazy_static! {
                 ShortCarClass::XP,
                 LongCarClass::X_Prepared,
                 ClassCategory::Modified_Category,
+            ),
+        );
+        m.insert(
+            ShortCarClass::BP,
+            CarClass::new(
+                ShortCarClass::BP,
+                LongCarClass::B_Prepared,
+                ClassCategory::Street_Touring_Category,
             ),
         );
         m.insert(
@@ -485,50 +497,58 @@ lazy_static! {
             ),
         );
         m.insert(
-            ShortCarClass::STHL,
-            CarClass::new(
-                ShortCarClass::STHL,
-                LongCarClass::Street_Touring_Hatchback_Ladies,
-                ClassCategory::Street_Touring_Category,
-            ),
-        );
-        m.insert(
-            ShortCarClass::STUL,
-            CarClass::new(
-                ShortCarClass::STUL,
-                LongCarClass::Street_Touring_Ultra_Ladies,
-                ClassCategory::Street_Touring_Category,
-            ),
-        );
-        m.insert(
-            ShortCarClass::STXL,
-            CarClass::new(
-                ShortCarClass::STXL,
-                LongCarClass::Street_Touring_Xtreme_Ladies,
-                ClassCategory::Street_Touring_Category,
-            ),
-        );
-        m.insert(
-            ShortCarClass::STRL,
-            CarClass::new(
-                ShortCarClass::STRL,
-                LongCarClass::Street_Touring_Roadster_Ladies,
-                ClassCategory::Street_Touring_Category,
-            ),
-        );
-        m.insert(
-            ShortCarClass::STSL,
-            CarClass::new(
-                ShortCarClass::STSL,
-                LongCarClass::Street_Touring_Sport_Ladies,
-                ClassCategory::Street_Touring_Category,
-            ),
-        );
-        m.insert(
             ShortCarClass::SSTL,
             CarClass::new(
                 ShortCarClass::SSTL,
                 LongCarClass::Super_Street_Touring_Ladies,
+                ClassCategory::Street_Touring_Category,
+            ),
+        );
+        m.insert(
+            ShortCarClass::ASTL,
+            CarClass::new(
+                ShortCarClass::ASTL,
+                LongCarClass::A_Street_Touring_Ladies,
+                ClassCategory::Street_Touring_Category,
+            ),
+        );
+        m.insert(
+            ShortCarClass::BSTL,
+            CarClass::new(
+                ShortCarClass::BSTL,
+                LongCarClass::B_Street_Touring_Ladies,
+                ClassCategory::Street_Touring_Category,
+            ),
+        );
+        m.insert(
+            ShortCarClass::CSTL,
+            CarClass::new(
+                ShortCarClass::CSTL,
+                LongCarClass::C_Street_Touring_Ladies,
+                ClassCategory::Street_Touring_Category,
+            ),
+        );
+        m.insert(
+            ShortCarClass::DSTL,
+            CarClass::new(
+                ShortCarClass::DSTL,
+                LongCarClass::D_Street_Touring_Ladies,
+                ClassCategory::Street_Touring_Category,
+            ),
+        );
+        m.insert(
+            ShortCarClass::ESTL,
+            CarClass::new(
+                ShortCarClass::ESTL,
+                LongCarClass::E_Street_Touring_Ladies,
+                ClassCategory::Street_Touring_Category,
+            ),
+        );
+        m.insert(
+            ShortCarClass::GSTL,
+            CarClass::new(
+                ShortCarClass::GSTL,
+                LongCarClass::G_Street_Touring_Ladies,
                 ClassCategory::Street_Touring_Category,
             ),
         );
@@ -618,6 +638,14 @@ lazy_static! {
                 ShortCarClass::XPL,
                 LongCarClass::X_Prepared_Ladies,
                 ClassCategory::Prepared_Category,
+            ),
+        );
+        m.insert(
+            ShortCarClass::BPL,
+            CarClass::new(
+                ShortCarClass::BPL,
+                LongCarClass::B_Prepared_Ladies,
+                ClassCategory::Street_Touring_Category,
             ),
         );
         m.insert(

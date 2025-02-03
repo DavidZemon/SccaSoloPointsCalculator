@@ -93,10 +93,11 @@ fn perform_second_parsing(
         let pax_multiplier = PaxMultiplier::from_str(&driver.pax_multiplier).unwrap();
 
         let extra_fields = &strings_vec[first_time_column..];
-        driver.day1 =
-            swap(driver.runs_day1.map(|run_count| {
-                extract_lap_times(extra_fields, pax_multiplier.clone(), run_count)
-            }))?;
+        driver.day1 = swap(
+            driver
+                .runs_day1
+                .map(|run_count| extract_lap_times(extra_fields, pax_multiplier.clone(), run_count)),
+        )?;
 
         if extra_fields.len() > driver.runs_day1.unwrap_or(0) * 3 {
             driver.day2 = swap(driver.runs_day2.map(|run_count| {
@@ -155,11 +156,10 @@ mod test {
 
     #[test]
     fn parse_2022_e1_event_results() {
-        let sample_contents =
-            fs::read_to_string("./SampleData/2022/2022_Event1-DavidExport.csv").unwrap();
+        let sample_contents = fs::read_to_string("./SampleData/2022/2022_Event1-DavidExport.csv").unwrap();
         let actual = parse(sample_contents, false).unwrap();
 
-        assert_eq!(actual.results.len(), 29);
+        assert_eq!(actual.results.len(), 24);
         assert!(actual.results.contains_key(&ShortCarClass::AS));
         assert!(actual.results.contains_key(&ShortCarClass::BS));
         assert!(actual.results.contains_key(&ShortCarClass::CAMC));
@@ -181,11 +181,6 @@ mod test {
         assert!(actual.results.contains_key(&ShortCarClass::HSL));
         assert!(actual.results.contains_key(&ShortCarClass::SMF));
         assert!(actual.results.contains_key(&ShortCarClass::SSC));
-        assert!(actual.results.contains_key(&ShortCarClass::STH));
-        assert!(actual.results.contains_key(&ShortCarClass::STR));
-        assert!(actual.results.contains_key(&ShortCarClass::STS));
-        assert!(actual.results.contains_key(&ShortCarClass::STU));
-        assert!(actual.results.contains_key(&ShortCarClass::STX));
         assert!(actual.results.contains_key(&ShortCarClass::XP));
         assert!(actual.results.contains_key(&ShortCarClass::XA));
         assert!(actual.results.contains_key(&ShortCarClass::XB));
@@ -217,10 +212,7 @@ mod test {
         assert!(!robert.ladies_championship);
         assert_eq!(robert.position, Some(1));
         assert!(!robert.dsq);
-        assert_eq!(
-            robert.pax_multiplier,
-            PaxMultiplier::from_str("0.821").unwrap()
-        );
+        assert_eq!(robert.pax_multiplier, PaxMultiplier::from_str("0.821").unwrap());
         assert_eq!(
             robert.day_1_times,
             Some(vec![
@@ -262,8 +254,7 @@ mod test {
 
     #[test]
     fn parse_2023_e3_event_results() {
-        let sample_contents =
-            fs::read_to_string("./SampleData/2023/2023_Event3-DavidExport.csv").unwrap();
+        let sample_contents = fs::read_to_string("./SampleData/2023/2023_Event3-DavidExport.csv").unwrap();
 
         let actual = match parse(sample_contents, false) {
             Ok(actual) => actual,
@@ -289,14 +280,10 @@ mod test {
         assert!(actual.results.contains_key(&ShortCarClass::SSC));
         assert!(actual.results.contains_key(&ShortCarClass::SSL));
         assert!(actual.results.contains_key(&ShortCarClass::SSM));
-        assert!(actual.results.contains_key(&ShortCarClass::STH));
-        assert!(actual.results.contains_key(&ShortCarClass::STR));
-        assert!(actual.results.contains_key(&ShortCarClass::STU));
-        assert!(actual.results.contains_key(&ShortCarClass::STX));
         assert!(actual.results.contains_key(&ShortCarClass::XA));
         assert!(actual.results.contains_key(&ShortCarClass::XB));
         assert!(actual.results.contains_key(&ShortCarClass::XP));
-        assert_eq!(actual.results.len(), 28);
+        assert_eq!(actual.results.len(), 24);
 
         let a_street = actual.results.get(&ShortCarClass::AS).unwrap();
         assert_eq!(a_street.car_class.short, ShortCarClass::AS);
@@ -325,10 +312,7 @@ mod test {
         assert!(!robert.ladies_championship);
         assert_eq!(robert.position, Some(1));
         assert!(!robert.dsq);
-        assert_eq!(
-            robert.pax_multiplier,
-            PaxMultiplier::from_str("0.823").unwrap()
-        );
+        assert_eq!(robert.pax_multiplier, PaxMultiplier::from_str("0.823").unwrap());
         assert_eq!(
             robert.day_1_times,
             Some(vec![
