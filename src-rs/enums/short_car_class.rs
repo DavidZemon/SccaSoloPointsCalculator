@@ -2,6 +2,7 @@ use crate::enum_str;
 
 enum_str! {
     enum ShortCarClass {
+        X,
         SS,
         AS,
         BS,

@@ -146,7 +146,11 @@ impl ChampionshipResultsParser {
     }
 
     fn compute_fastest(drivers: &HashMap<DriverId, &Driver>) -> LapTime {
-        drivers.iter().map(|(_, d)| d.best_lap(None)).min().unwrap_or_else(dns)
+        drivers
+            .iter()
+            .map(|(_, d)| d.best_lap(false, None))
+            .min()
+            .unwrap_or_else(dns)
     }
 }
 

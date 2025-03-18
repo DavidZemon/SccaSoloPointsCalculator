@@ -24,16 +24,31 @@ impl ClassResults {
         // on the list
         self.drivers
             .first()
-            .map(|d| d.best_lap(time_selection))
+            .map(|d| {
+                if self.car_class.short == ShortCarClass::X {
+                    d.best_xpert_lap(time_selection)
+                } else {
+                    d.best_standard_lap(time_selection)
+                }
+            })
             .unwrap_or_else(dns)
     }
 
     pub fn add_driver(&mut self, driver: Driver) {
         self.drivers.push(driver);
         self.trophy_count = self.calculate_trophy_count();
-        self.drivers.sort();
+
+        self.drivers.sort_by(|lhs, rhs| match self.car_class.short {
+            ShortCarClass::X => lhs
+                .best_xpert_lap(Some(TimeSelection::Combined))
+                .cmp(&rhs.best_xpert_lap(Some(TimeSelection::Combined))),
+            _ => lhs
+                .best_standard_lap(Some(TimeSelection::Combined))
+                .cmp(&rhs.best_standard_lap(Some(TimeSelection::Combined))),
+        });
+
         for (index, driver) in self.drivers.iter_mut().enumerate() {
-            driver.position = Some(index + 1);
+            driver.set_position(index + 1);
         }
     }
 
@@ -53,7 +68,8 @@ impl ClassResults {
 mod test {
     use crate::enums::short_car_class::ShortCarClass;
     use crate::models::class_results::ClassResults;
-    use crate::models::driver::{Driver, TimeSelection};
+    use crate::models::driver::Driver;
+    use crate::models::driver::TimeSelection;
     use crate::models::driver_from_pronto::DriverFromPronto;
     use crate::models::lap_time::LapTime;
     use crate::models::type_aliases::PaxMultiplier;
@@ -74,6 +90,7 @@ mod test {
                 member_number: None,
                 rookie: None,
                 ladies: None,
+                xpert: None,
                 dsq: None,
                 region: None,
                 best_run: "".to_string(),

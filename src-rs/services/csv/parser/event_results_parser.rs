@@ -1,3 +1,4 @@
+use crate::enums::short_car_class::ShortCarClass;
 use crate::models::class_results::ClassResults;
 use crate::models::driver::Driver;
 use crate::models::driver_from_pronto::DriverFromPronto;
@@ -35,12 +36,16 @@ pub fn parse(file_contents: String, two_day_event: bool) -> Result<EventResults,
 
         let driver = perform_second_parsing(driver, string_rec, final_column_index + 1)?;
         let driver = Driver::from(driver, two_day_event);
-        let class = driver.car_class.short;
+        let class = if driver.xpert {
+            ShortCarClass::X
+        } else {
+            driver.car_class.short
+        };
 
         results.entry(class).or_insert_with(|| ClassResults::new(class));
 
-        if let Some(r) = results.get_mut(&class) {
-            r.add_driver(driver)
+        if let Some(class_results) = results.get_mut(&class) {
+            class_results.add_driver(driver)
         }
     }
 

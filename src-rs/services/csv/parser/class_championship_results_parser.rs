@@ -194,7 +194,7 @@ impl DefaultClassChampionshipResultsParser {
 
         let best_time_of_day = new_event_drivers_by_id
             .values()
-            .map(|d| d.best_lap(None))
+            .map(|d| d.best_lap(*class == ShortCarClass::X, None))
             .filter(|lap| lap.time.is_some())
             .min()
             .unwrap_or_else(dns);
@@ -210,6 +210,7 @@ impl DefaultClassChampionshipResultsParser {
                         id,
                         class_history,
                         new_event_drivers_by_id,
+                        *class == ShortCarClass::X,
                     )
                 })
                 .collect(),
@@ -223,6 +224,7 @@ impl DefaultClassChampionshipResultsParser {
         id: &DriverId,
         class_history: &HashMap<DriverId, ChampionshipDriver>,
         new_event_drivers_by_id: &HashMap<DriverId, Driver>,
+        xpert: bool,
     ) -> ChampionshipDriver {
         let driver_history_opt = class_history.get(id);
         let driver_new_results_opt = new_event_drivers_by_id.get(id);
@@ -230,7 +232,10 @@ impl DefaultClassChampionshipResultsParser {
         match (driver_history_opt, driver_new_results_opt) {
             (Some(driver_history), Some(driver_new_results)) => {
                 let mut driver_history = driver_history.clone();
-                driver_history.add_event(self.points_calculator.calculate(best_time_of_day, driver_new_results));
+                driver_history.add_event(
+                    self.points_calculator
+                        .calculate(best_time_of_day, driver_new_results, xpert),
+                );
 
                 driver_history
             }
@@ -244,7 +249,10 @@ impl DefaultClassChampionshipResultsParser {
                 (0..ctx.past_event_count).for_each(|_| {
                     new_driver.add_event(0);
                 });
-                new_driver.add_event(self.points_calculator.calculate(best_time_of_day, driver_new_results));
+                new_driver.add_event(
+                    self.points_calculator
+                        .calculate(best_time_of_day, driver_new_results, xpert),
+                );
                 new_driver
             }
             (None, None) => ChampionshipDriver::new("impossible"),

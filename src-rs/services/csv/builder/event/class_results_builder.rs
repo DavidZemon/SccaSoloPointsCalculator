@@ -1,7 +1,5 @@
 use crate::enums::championship_type::ChampionshipType;
-use csv::Writer;
-use wasm_bindgen::JsValue;
-
+use crate::enums::short_car_class::ShortCarClass;
 use crate::models::car_class::{get_car_class, CarClass};
 use crate::models::class_results::ClassResults;
 use crate::models::event_results::EventResults;
@@ -9,6 +7,8 @@ use crate::services::calculators::championship_points_calculator::{
     ChampionshipPointsCalculator, DefaultChampionshipPointsCalculator,
 };
 use crate::services::calculators::trophy_calculator::{DefaultTrophyCalculator, TrophyCalculator};
+use csv::Writer;
+use wasm_bindgen::JsValue;
 
 /// Build class CSV results for a single event
 pub struct ClassResultsBuilder {
@@ -28,10 +28,8 @@ impl ClassResultsBuilder {
         points_calculator: Option<Box<dyn ChampionshipPointsCalculator>>,
     ) -> Self {
         Self {
-            trophy_calculator: trophy_calculator
-                .unwrap_or_else(|| Box::new(DefaultTrophyCalculator {})),
-            points_calculator: points_calculator
-                .unwrap_or_else(|| Box::new(DefaultChampionshipPointsCalculator {})),
+            trophy_calculator: trophy_calculator.unwrap_or_else(|| Box::new(DefaultTrophyCalculator {})),
+            points_calculator: points_calculator.unwrap_or_else(|| Box::new(DefaultChampionshipPointsCalculator {})),
         }
     }
 
@@ -41,8 +39,7 @@ impl ClassResultsBuilder {
             .iter()
             .map(|(class, results)| {
                 (
-                    get_car_class(class)
-                        .unwrap_or_else(|| panic!("Missing class {} in class map", class.name())),
+                    get_car_class(class).unwrap_or_else(|| panic!("Missing class {} in class map", class.name())),
                     results,
                 )
             })
@@ -59,9 +56,8 @@ impl ClassResultsBuilder {
         results
             .iter()
             .map(|(class, results)| {
-                serde_wasm_bindgen::to_value(&(class, self.export_class(results))).unwrap_or_else(
-                    |_| panic!("Failed to serialize class CSV for {}", class.long.name()),
-                )
+                serde_wasm_bindgen::to_value(&(class, self.export_class(results)))
+                    .unwrap_or_else(|_| panic!("Failed to serialize class CSV for {}", class.long.name()))
             })
             .collect()
     }
@@ -94,39 +90,43 @@ impl ClassResultsBuilder {
         let best_lap_in_class = class_results.get_best_in_class(None);
 
         class_results.drivers.iter().enumerate().for_each(|(i, d)| {
+            let compare_on_xpert = class_results.car_class.short == ShortCarClass::X;
+            let best_lap = d.best_lap(compare_on_xpert, None);
             csv.write_record(vec![
                 if i < trophy_count {
                     "T".to_string()
                 } else {
                     "".to_string()
                 },
-                d.position
-                    .map(|p| format!("{}", p))
-                    .unwrap_or_else(|| "".to_string()),
+                d.position.map(|p| format!("{}", p)).unwrap_or_else(|| "".to_string()),
                 d.name.clone(),
                 d.car_description.clone(),
                 short_class_name.clone(),
                 format!("{}", d.car_number),
-                d.best_lap(None).to_string(false, false),
-                d.best_lap(None).to_string(true, false),
+                best_lap.to_string(false, false),
+                best_lap.to_string(true, false),
                 if i == 0 {
                     "".to_string()
                 } else {
                     d.difference(
-                        class_results.drivers.get(i - 1).unwrap().best_lap(None),
+                        class_results
+                            .drivers
+                            .get(i - 1)
+                            .unwrap()
+                            .best_lap(compare_on_xpert, None),
                         true,
+                        compare_on_xpert,
                         None,
                     )
                 },
-                d.difference(best_lap_in_class.clone(), true, None),
+                d.difference(best_lap_in_class.clone(), true, compare_on_xpert, None),
                 format!(
                     "{}",
-                    self.points_calculator.calculate(&best_lap_in_class, d)
+                    self.points_calculator
+                        .calculate(&best_lap_in_class, d, compare_on_xpert)
                 ),
             ])
-            .unwrap_or_else(|_| {
-                panic!("Failed to write record for {} to class results CSV", d.name)
-            });
+            .unwrap_or_else(|_| panic!("Failed to write record for {} to class results CSV", d.name));
         });
 
         String::from_utf8(csv.into_inner().unwrap()).unwrap()

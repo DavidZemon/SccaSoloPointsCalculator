@@ -129,7 +129,10 @@ impl DefaultIndexChampionshipResultsParser {
         match (driver_history_opt, driver_new_results_opt) {
             (Some(driver_history), Some(driver_new_results)) => {
                 let mut driver_history = driver_history.clone();
-                driver_history.add_event(self.points_calculator.calculate(best_lap_of_day, driver_new_results));
+                driver_history.add_event(
+                    self.points_calculator
+                        .calculate(best_lap_of_day, driver_new_results, false),
+                );
                 driver_history
             }
             (Some(driver_history), None) => {
@@ -140,7 +143,10 @@ impl DefaultIndexChampionshipResultsParser {
             (None, Some(driver_new_results)) => {
                 let mut new_driver = ChampionshipDriver::new(driver_new_results.name.as_str());
                 (0..ctx.past_event_count).for_each(|_| new_driver.add_event(0));
-                new_driver.add_event(self.points_calculator.calculate(best_lap_of_day, driver_new_results));
+                new_driver.add_event(
+                    self.points_calculator
+                        .calculate(best_lap_of_day, driver_new_results, false),
+                );
                 new_driver
             }
             (None, None) => ChampionshipDriver::new("impossible"),

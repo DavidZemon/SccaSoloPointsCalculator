@@ -74,7 +74,7 @@ impl CombinedResultsBuilder {
         is_raw_time: bool,
     ) -> Result<Writer<Vec<u8>>, String> {
         let fastest_driver = drivers.first().unwrap();
-        let fastest_of_day = fastest_driver.best_lap(None);
+        let fastest_of_day = fastest_driver.best_lap(false, None);
 
         let driver_count = drivers.len();
         let trophy_count = self
@@ -110,12 +110,13 @@ impl CombinedResultsBuilder {
         fastest_of_day: LapTime,
     ) -> Result<Vec<String>, String> {
         let previous_driver = drivers.get(i - 1);
-        let driver = drivers.get(i).ok_or(format!(
-            "expected at least one driver for {}",
-            driver_group.name()
-        ))?;
+        let driver = drivers
+            .get(i)
+            .ok_or(format!("expected at least one driver for {}", driver_group.name()))?;
 
-        let tie_offset = calculate_tie_offset(drivers, i, |d1, d2| d1.best_lap(None) == d2.best_lap(None));
+        let tie_offset = calculate_tie_offset(drivers, i, |d1, d2| {
+            d1.best_lap(false, None) == d2.best_lap(false, None)
+        });
 
         let mut next_row = vec![
             if (i - tie_offset) < trophy_count {
@@ -128,16 +129,16 @@ impl CombinedResultsBuilder {
             driver.car_description.clone(),
             driver.car_class.short.name().to_string(),
             format!("{}", driver.car_number),
-            driver.best_lap(None).to_string(!is_raw_time, false),
+            driver.best_lap(false, None).to_string(!is_raw_time, false),
             previous_driver
-                .map(|prev| driver.difference(prev.best_lap(None), !is_raw_time, None))
+                .map(|prev| driver.difference(prev.best_lap(false, None), !is_raw_time, false, None))
                 .unwrap_or_default(),
-            driver.difference(fastest_of_day.clone(), !is_raw_time, None),
+            driver.difference(fastest_of_day.clone(), !is_raw_time, false, None),
         ];
         if !is_raw_time {
             next_row.push(format!(
                 "{}",
-                self.points_calculator.calculate(&fastest_of_day, driver,)
+                self.points_calculator.calculate(&fastest_of_day, driver, false)
             ))
         }
 

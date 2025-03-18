@@ -10,7 +10,7 @@ use crate::enums::long_car_class::LongCarClass;
 use crate::enums::short_car_class::ShortCarClass;
 
 #[wasm_bindgen]
-#[derive(Copy, Clone, Debug, Serialize)]
+#[derive(Copy, Clone, Debug, Serialize, PartialEq, Eq)]
 pub struct CarClass {
     pub short: ShortCarClass,
     pub long: LongCarClass,
@@ -32,6 +32,14 @@ impl Display for CarClass {
 lazy_static! {
     static ref CLASS_MAP: HashMap<ShortCarClass, CarClass> = {
         let mut m = HashMap::new();
+        m.insert(
+            ShortCarClass::X,
+            CarClass::new(
+                ShortCarClass::X,
+                LongCarClass::Xpert,
+                ClassCategory::Miscellaneous_Category,
+            ),
+        );
         m.insert(
             ShortCarClass::SS,
             CarClass::new(
