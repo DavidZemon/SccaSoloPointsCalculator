@@ -25,8 +25,11 @@ pub fn parse(file_contents: String, two_day_event: bool) -> Result<EventResults,
     let headers = string_reader.headers().map_err(|e| e.to_string())?;
     let header_vec: Vec<&str> = headers.iter().collect();
     let final_column_index = header_vec
-        .binary_search(&"Runs Day2")
-        .map_err(|_| "Unable to find header column `Runs Day2`".to_string())?;
+        .iter()
+        .enumerate()
+        .find(|(_index, header)| **header == "Runs Day2")
+        .map(|(index, _header)| index)
+        .ok_or("Unable to find header column `Runs Day2`".to_string())?;
 
     let mut results = HashMap::new();
 
@@ -36,7 +39,7 @@ pub fn parse(file_contents: String, two_day_event: bool) -> Result<EventResults,
 
         let driver = perform_second_parsing(driver, string_rec, final_column_index + 1)?;
         let driver = Driver::from(driver, two_day_event);
-        let class = if driver.xpert {
+        let class = if driver.expert {
             ShortCarClass::X
         } else {
             driver.car_class.short
@@ -71,7 +74,7 @@ fn validate_row(
                     ),
                     _ => Err(format!("Failed to deserialize row {:?} due to {:?}", string_record, e.to_string())),
                 }
-            },
+            }
             _ => Err(format!("Failed to deserialize row {:?} due to {:?}", string_record, e.to_string())),
         },
     }

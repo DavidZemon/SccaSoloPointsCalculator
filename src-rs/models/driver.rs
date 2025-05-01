@@ -1,3 +1,4 @@
+use crate::console_log;
 use crate::models::car_class::{get_car_class, CarClass};
 use crate::models::driver_from_pronto::DriverFromPronto;
 use crate::models::lap_time::{dns, dsq, LapTime};
@@ -23,7 +24,7 @@ pub struct Driver {
     pub region: String,
     pub rookie: bool,
     pub ladies_championship: bool,
-    pub xpert: bool,
+    pub expert: bool,
     pub position: Option<usize>,
     pub dsq: bool,
     pub pax_multiplier: PaxMultiplier,
@@ -56,20 +57,11 @@ impl Driver {
             None => panic!("Unable to map class for driver {}", driver.car_class.name()),
         };
 
-        let day_1_times = driver.day1.map(|mut times| {
-            times.sort();
-            times
-        });
-        let day_2_times = driver.day2.map(|mut times| {
-            times.sort();
-            times
-        });
-
         let mut driver = Driver {
             error: driver.runs_day1.is_none() && driver.runs_day2.is_none() && !best_run_is_falsy,
             rookie: driver.rookie.map_or(false, |value| value != 0),
             ladies_championship: driver.ladies.map_or(false, |value| value != "0" && !value.is_empty()),
-            xpert: driver.xpert.map_or(false, |value| value != 0),
+            expert: driver.expert.map_or(false, |value| value != 0),
             position: None,
             car_number: driver.car_number,
             car_class,
@@ -84,12 +76,12 @@ impl Driver {
             region: driver.region.clone().unwrap_or_default(),
             dsq: driver.dsq.map(|dsq| dsq == 1).unwrap_or(false),
             pax_multiplier: PaxMultiplier::from_str(&driver.pax_multiplier).unwrap(),
-            day_1_times,
-            day_2_times,
+            day_1_times: driver.day1,
+            day_2_times: driver.day2,
             combined: dns(),
             two_day_event,
         };
-        driver.combined = driver.best_xpert_lap(Some(TimeSelection::Combined));
+        driver.combined = driver.best_expert_lap(Some(TimeSelection::Combined));
         driver
     }
 
@@ -101,13 +93,13 @@ impl Driver {
         self.best_lap_in_range(false, time_selection)
     }
 
-    pub fn best_xpert_lap(&self, time_selection: Option<TimeSelection>) -> LapTime {
+    pub fn best_expert_lap(&self, time_selection: Option<TimeSelection>) -> LapTime {
         self.best_lap_in_range(true, time_selection)
     }
 
-    pub fn best_lap(&self, xpert: bool, time_selection: Option<TimeSelection>) -> LapTime {
-        if xpert {
-            self.best_xpert_lap(time_selection)
+    pub fn best_lap(&self, expert: bool, time_selection: Option<TimeSelection>) -> LapTime {
+        if expert {
+            self.best_expert_lap(time_selection)
         } else {
             self.best_standard_lap(time_selection)
         }
@@ -122,7 +114,7 @@ impl Driver {
                     .day_1_times
                     .as_ref()
                     .and_then(|times| {
-                        let mut times = Self::lap_times_for_range(times, best_of_three);
+                        let mut times = Self::lap_times(times, best_of_three);
                         times.sort();
                         times.first().cloned()
                     })
@@ -131,7 +123,7 @@ impl Driver {
                     .day_2_times
                     .as_ref()
                     .and_then(|times| {
-                        let mut times = Self::lap_times_for_range(times, best_of_three);
+                        let mut times = Self::lap_times(times, best_of_three);
                         times.sort();
                         times.first().cloned()
                     })
@@ -162,7 +154,8 @@ impl Driver {
         }
     }
 
-    fn lap_times_for_range(times: &[LapTime], best_of_three: bool) -> Vec<LapTime> {
+    fn lap_times(times: &[LapTime], best_of_three: bool) -> Vec<LapTime> {
+        console_log!("Giving lap times out now: {times:?}");
         if best_of_three {
             times[..min(times.len(), 3)].to_vec()
         } else {
@@ -178,7 +171,7 @@ impl Driver {
         time_selection: Option<TimeSelection>,
     ) -> String {
         let self_best_lap = if use_xpert {
-            self.best_xpert_lap(time_selection)
+            self.best_expert_lap(time_selection)
         } else {
             self.best_standard_lap(time_selection)
         };
@@ -231,7 +224,7 @@ mod test {
                 member_number: None,
                 rookie: None,
                 ladies: None,
-                xpert: None,
+                expert: None,
                 dsq: Some(if dsq { 1 } else { 0 }),
                 region: None,
                 best_run: "".to_string(),
@@ -474,7 +467,7 @@ mod test {
                 false,
                 true
             )
-            .best_xpert_lap(Some(TimeSelection::Combined)),
+            .best_expert_lap(Some(TimeSelection::Combined)),
             LapTime::new(66.into(), PaxMultiplier::from_str("0.5").unwrap(), 3, None)
         );
     }

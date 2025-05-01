@@ -36,7 +36,7 @@ lazy_static! {
             ShortCarClass::X,
             CarClass::new(
                 ShortCarClass::X,
-                LongCarClass::Xpert,
+                LongCarClass::Expert,
                 ClassCategory::Miscellaneous_Category,
             ),
         );

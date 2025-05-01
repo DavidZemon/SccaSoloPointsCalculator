@@ -224,7 +224,7 @@ impl DefaultClassChampionshipResultsParser {
         id: &DriverId,
         class_history: &HashMap<DriverId, ChampionshipDriver>,
         new_event_drivers_by_id: &HashMap<DriverId, Driver>,
-        xpert: bool,
+        expert: bool,
     ) -> ChampionshipDriver {
         let driver_history_opt = class_history.get(id);
         let driver_new_results_opt = new_event_drivers_by_id.get(id);
@@ -232,10 +232,11 @@ impl DefaultClassChampionshipResultsParser {
         match (driver_history_opt, driver_new_results_opt) {
             (Some(driver_history), Some(driver_new_results)) => {
                 let mut driver_history = driver_history.clone();
-                driver_history.add_event(
-                    self.points_calculator
-                        .calculate(best_time_of_day, driver_new_results, xpert),
-                );
+                driver_history.add_event(self.points_calculator.calculate(
+                    best_time_of_day,
+                    driver_new_results,
+                    expert,
+                ));
 
                 driver_history
             }
@@ -251,7 +252,7 @@ impl DefaultClassChampionshipResultsParser {
                 });
                 new_driver.add_event(
                     self.points_calculator
-                        .calculate(best_time_of_day, driver_new_results, xpert),
+                        .calculate(best_time_of_day, driver_new_results, expert),
                 );
                 new_driver
             }

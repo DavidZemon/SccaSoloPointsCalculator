@@ -26,7 +26,7 @@ impl ClassResults {
             .first()
             .map(|d| {
                 if self.car_class.short == ShortCarClass::X {
-                    d.best_xpert_lap(time_selection)
+                    d.best_expert_lap(time_selection)
                 } else {
                     d.best_standard_lap(time_selection)
                 }
@@ -40,8 +40,8 @@ impl ClassResults {
 
         self.drivers.sort_by(|lhs, rhs| match self.car_class.short {
             ShortCarClass::X => lhs
-                .best_xpert_lap(Some(TimeSelection::Combined))
-                .cmp(&rhs.best_xpert_lap(Some(TimeSelection::Combined))),
+                .best_expert_lap(Some(TimeSelection::Combined))
+                .cmp(&rhs.best_expert_lap(Some(TimeSelection::Combined))),
             _ => lhs
                 .best_standard_lap(Some(TimeSelection::Combined))
                 .cmp(&rhs.best_standard_lap(Some(TimeSelection::Combined))),
@@ -90,7 +90,7 @@ mod test {
                 member_number: None,
                 rookie: None,
                 ladies: None,
-                xpert: None,
+                expert: None,
                 dsq: None,
                 region: None,
                 best_run: "".to_string(),

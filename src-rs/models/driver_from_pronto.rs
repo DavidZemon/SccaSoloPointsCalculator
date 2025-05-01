@@ -29,8 +29,8 @@ pub struct DriverFromPronto {
     pub rookie: Option<u8>,
     #[serde(rename = "Ladies")]
     pub ladies: Option<String>,
-    #[serde(rename = "Xpert")]
-    pub xpert: Option<u8>,
+    #[serde(rename = "Expert")]
+    pub expert: Option<u8>,
     #[serde(rename = "DSQ")]
     pub dsq: Option<u8>,
     #[serde(rename = "Region")]

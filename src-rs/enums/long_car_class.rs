@@ -2,7 +2,7 @@ use crate::enum_str;
 
 enum_str! {
     enum LongCarClass {
-        Xpert,
+        Expert,
         Super_Street,
         A_Street,
         B_Street,
