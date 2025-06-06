@@ -31,6 +31,5 @@ yarn-error.log*
 
 # Rust stuff
 /target
-/Cargo.lock
 /rusty
 /public/*_bg.wasm
