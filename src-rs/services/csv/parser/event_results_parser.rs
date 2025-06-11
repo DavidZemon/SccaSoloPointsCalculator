@@ -5,14 +5,13 @@ use crate::models::driver_from_pronto::DriverFromPronto;
 use crate::models::event_results::EventResults;
 use crate::models::lap_time::{LapTime, Penalty};
 use crate::models::type_aliases::{PaxMultiplier, Time};
-use crate::utilities::swap;
 use bigdecimal::ParseBigDecimalError;
 use csv::{StringRecord, Trim};
 use std::collections::HashMap;
 use std::num::ParseIntError;
 use std::str::FromStr;
 
-pub fn parse(file_contents: String, two_day_event: bool) -> Result<EventResults, String> {
+pub fn parse(file_contents: String) -> Result<EventResults, String> {
     let mut reader1 = csv::ReaderBuilder::new()
         .flexible(true)
         .trim(Trim::Headers)
@@ -38,7 +37,7 @@ pub fn parse(file_contents: String, two_day_event: bool) -> Result<EventResults,
         let (driver, string_rec) = validate_row(deserialized, string_rec)?;
 
         let driver = perform_second_parsing(driver, string_rec, final_column_index + 1)?;
-        let driver = Driver::from(driver, two_day_event);
+        let driver = Driver::from(driver);
         let class = if driver.expert {
             ShortCarClass::X
         } else {
@@ -101,45 +100,40 @@ fn perform_second_parsing(
         let pax_multiplier = PaxMultiplier::from_str(&driver.pax_multiplier).unwrap();
 
         let extra_fields = &strings_vec[first_time_column..];
-        driver.day1 = swap(
-            driver
-                .runs_day1
-                .map(|run_count| extract_lap_times(extra_fields, pax_multiplier.clone(), run_count)),
-        )?;
+        let extra_field_groups = extra_fields.chunks(3);
 
-        if extra_fields.len() > driver.runs_day1.unwrap_or(0) * 3 {
-            driver.day2 = swap(driver.runs_day2.map(|run_count| {
-                extract_lap_times(
-                    &extra_fields[(driver.runs_day1.unwrap_or(0) * 3)..],
-                    pax_multiplier,
-                    run_count,
-                )
-            }))?;
-        } else {
-            driver.day2 = None;
+        let driver_name = format!(
+            "{} {}",
+            driver.first_name.as_ref().unwrap_or(&"".to_string()),
+            driver.last_name.as_ref().unwrap_or(&"".to_string())
+        );
+
+        for run in extra_field_groups {
+            if run.len() != 3 {
+                #[cfg(not(test))]
+                crate::console_log!("Driver {driver_name} has run cell count not divisible by 3");
+            } else {
+                match build_lap_time(run, &pax_multiplier) {
+                    Ok(run) => {
+                        driver.runs.push(run);
+                    }
+                    Err(e) => {
+                        return Err(format!(
+                            "Failed to extract lap time for {driver_name} ({run:?}) due to {e}"
+                        ))
+                    }
+                }
+            }
         }
     }
 
     Ok(driver)
 }
 
-fn extract_lap_times(lap_time_fields: &[&str], pax: PaxMultiplier, run_count: usize) -> Result<Vec<LapTime>, String> {
-    let mut times = Vec::new();
-    for lap_number in 0..run_count {
-        let first_index_of_lap = 3 * lap_number;
-        if lap_time_fields.len() < first_index_of_lap + 3 {
-            break;
-        }
-        let next_fields = &lap_time_fields[first_index_of_lap..(first_index_of_lap + 3)];
-        times.push(build_lap_time(next_fields, pax.clone())?)
-    }
-    Ok(times)
-}
-
-fn build_lap_time(next_fields: &[&str], pax: PaxMultiplier) -> Result<LapTime, String> {
+fn build_lap_time(next_fields: &[&str], pax: &PaxMultiplier) -> Result<LapTime, String> {
     Ok(LapTime::new(
         Time::from_str(next_fields[0]).map_err(|e: ParseBigDecimalError| e.to_string())?,
-        pax,
+        pax.clone(),
         next_fields[1].parse().map_err(|e: ParseIntError| e.to_string())?,
         match next_fields[2] {
             "DNF" => Some(Penalty::DNF),
@@ -154,8 +148,7 @@ fn build_lap_time(next_fields: &[&str], pax: PaxMultiplier) -> Result<LapTime, S
 #[cfg(test)]
 mod test {
     use crate::enums::short_car_class::ShortCarClass;
-    use crate::models::driver::TimeSelection;
-    use crate::models::lap_time::{dns, LapTime, Penalty};
+    use crate::models::lap_time::{LapTime, Penalty};
     use crate::models::type_aliases::{PaxMultiplier, Time};
     use crate::services::csv::parser::event_results_parser::parse;
     use bigdecimal::Zero;
@@ -165,7 +158,7 @@ mod test {
     #[test]
     fn parse_2022_e1_event_results() {
         let sample_contents = fs::read_to_string("./SampleData/2022/2022_Event1-DavidExport.csv").unwrap();
-        let actual = parse(sample_contents, false).unwrap();
+        let actual = parse(sample_contents).unwrap();
 
         assert_eq!(actual.results.len(), 24);
         assert!(actual.results.contains_key(&ShortCarClass::AS));
@@ -197,7 +190,7 @@ mod test {
         assert_eq!(a_street.car_class.short, ShortCarClass::AS);
         assert_eq!(a_street.drivers.len(), 5);
         assert_eq!(
-            a_street.get_best_in_class(None),
+            a_street.get_best_in_class(),
             LapTime::new(
                 Time::from_str("52.288").unwrap(),
                 PaxMultiplier::from_str("0.821").unwrap(),
@@ -205,9 +198,6 @@ mod test {
                 None
             )
         );
-        assert_eq!(a_street.get_best_in_class(Some(TimeSelection::Day2)), dns());
-        assert_eq!(a_street.get_best_in_class(Some(TimeSelection::Day2)), dns());
-
         let robert = a_street.drivers[0].clone();
         assert!(!robert.error);
         assert_eq!(robert.id, "robert fullriede");
@@ -222,14 +212,8 @@ mod test {
         assert!(!robert.dsq);
         assert_eq!(robert.pax_multiplier, PaxMultiplier::from_str("0.821").unwrap());
         assert_eq!(
-            robert.day_1_times,
-            Some(vec![
-                LapTime::new(
-                    Time::from_str("52.288").unwrap(),
-                    PaxMultiplier::from_str("0.821").unwrap(),
-                    0,
-                    None
-                ),
+            robert.times,
+            vec![
                 LapTime::new(
                     Time::from_str("53.351").unwrap(),
                     PaxMultiplier::from_str("0.821").unwrap(),
@@ -242,17 +226,13 @@ mod test {
                     0,
                     Some(Penalty::DNF)
                 ),
-            ])
-        );
-        assert_eq!(robert.day_2_times, None);
-        assert_eq!(
-            robert.combined,
-            LapTime::new(
-                Time::from_str("52.288").unwrap(),
-                PaxMultiplier::from_str("0.821").unwrap(),
-                0,
-                None
-            )
+                LapTime::new(
+                    Time::from_str("52.288").unwrap(),
+                    PaxMultiplier::from_str("0.821").unwrap(),
+                    0,
+                    None
+                ),
+            ]
         );
 
         for (index, driver) in a_street.drivers.iter().enumerate() {
@@ -264,7 +244,7 @@ mod test {
     fn parse_2023_e3_event_results() {
         let sample_contents = fs::read_to_string("./SampleData/2023/2023_Event3-DavidExport.csv").unwrap();
 
-        let actual = match parse(sample_contents, false) {
+        let actual = match parse(sample_contents) {
             Ok(actual) => actual,
             Err(e) => panic!("Parsed failed due to: {}", e),
         };
@@ -297,7 +277,7 @@ mod test {
         assert_eq!(a_street.car_class.short, ShortCarClass::AS);
         assert_eq!(a_street.drivers.len(), 5);
         assert_eq!(
-            a_street.get_best_in_class(None),
+            a_street.get_best_in_class(),
             LapTime::new(
                 Time::from_str("45.269").unwrap(),
                 PaxMultiplier::from_str("0.823").unwrap(),
@@ -305,8 +285,6 @@ mod test {
                 None
             )
         );
-        assert_eq!(a_street.get_best_in_class(Some(TimeSelection::Day2)), dns());
-        assert_eq!(a_street.get_best_in_class(Some(TimeSelection::Day2)), dns());
 
         let robert = a_street.drivers[0].clone();
         assert!(!robert.error);
@@ -322,22 +300,16 @@ mod test {
         assert!(!robert.dsq);
         assert_eq!(robert.pax_multiplier, PaxMultiplier::from_str("0.823").unwrap());
         assert_eq!(
-            robert.day_1_times,
-            Some(vec![
+            robert.times,
+            vec![
                 LapTime::new(
-                    Time::from_str("45.269").unwrap(),
+                    Time::from_str("48.317").unwrap(),
                     PaxMultiplier::from_str("0.823").unwrap(),
-                    0,
+                    6,
                     None
                 ),
                 LapTime::new(
-                    Time::from_str("45.519").unwrap(),
-                    PaxMultiplier::from_str("0.823").unwrap(),
-                    0,
-                    None
-                ),
-                LapTime::new(
-                    Time::from_str("45.559").unwrap(),
+                    Time::from_str("47.069").unwrap(),
                     PaxMultiplier::from_str("0.823").unwrap(),
                     0,
                     None
@@ -349,28 +321,24 @@ mod test {
                     None
                 ),
                 LapTime::new(
-                    Time::from_str("47.069").unwrap(),
+                    Time::from_str("45.519").unwrap(),
                     PaxMultiplier::from_str("0.823").unwrap(),
                     0,
                     None
                 ),
                 LapTime::new(
-                    Time::from_str("48.317").unwrap(),
+                    Time::from_str("45.269").unwrap(),
                     PaxMultiplier::from_str("0.823").unwrap(),
-                    6,
+                    0,
                     None
                 ),
-            ]),
-        );
-        assert_eq!(robert.day_2_times, None);
-        assert_eq!(
-            robert.combined,
-            LapTime::new(
-                Time::from_str("45.269").unwrap(),
-                PaxMultiplier::from_str("0.823").unwrap(),
-                0,
-                None
-            )
+                LapTime::new(
+                    Time::from_str("45.559").unwrap(),
+                    PaxMultiplier::from_str("0.823").unwrap(),
+                    0,
+                    None
+                ),
+            ],
         );
 
         for (index, driver) in a_street.drivers.iter().enumerate() {
@@ -384,7 +352,7 @@ mod test {
 "1","SS","Street","Super Street","78","Sean","Greer","2022","Chevrolet","Challenger Cobra 392","urine","432501","0","","0","STL","41.442","0.83","34.397","6","0","42.429","0","","41.862","0","","41.595","0","","41.537","0","","41.445","0","","41.442","0",""
 "17","CAMT","Other","Classic American Muscle Traditional","88","Charles","Hammelman","1999","Ford","Mustang SVT Cobra","Black","691686","1","","0","","DNF","0.816","999","0","0""#;
 
-        let actual = parse(sample_contents.to_string(), false);
+        let actual = parse(sample_contents.to_string());
 
         assert!(actual.is_err(), "Should fail on empty driver");
         assert_eq!(actual.err().unwrap(), "Encountered an unexpected end of row for a record. One common reason for this is a driver that did not attend the event but remains in Pronto.\n'StringRecord([\"17\", \"CAMT\", \"Other\", \"Classic American Muscle Traditional\", \"88\", \"Charles\", \"Hammelman\", \"1999\", \"Ford\", \"Mustang SVT Cobra\", \"Black\", \"691686\", \"1\", \"\", \"0\", \"\", \"DNF\", \"0.816\", \"999\", \"0\", \"0\"])'");

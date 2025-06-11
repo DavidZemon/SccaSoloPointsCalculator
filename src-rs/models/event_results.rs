@@ -49,8 +49,8 @@ impl EventResults {
             .collect::<Vec<&Driver>>();
 
         drivers.sort_by(|lhs, rhs| {
-            lhs.best_standard_lap(None)
-                .cmp2(&rhs.best_standard_lap(None), filter != DriverGroup::Raw)
+            lhs.best_standard_lap()
+                .cmp2(&rhs.best_standard_lap(), filter != DriverGroup::Raw)
         });
         drivers
     }

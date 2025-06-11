@@ -87,11 +87,11 @@ impl ClassResultsBuilder {
 
         let mut csv = Writer::from_writer(vec![]);
 
-        let best_lap_in_class = class_results.get_best_in_class(None);
+        let best_lap_in_class = class_results.get_best_in_class();
 
         class_results.drivers.iter().enumerate().for_each(|(i, d)| {
             let compare_on_expert = class_results.car_class.short == ShortCarClass::X;
-            let best_lap = d.best_lap(compare_on_expert, None);
+            let best_lap = d.best_lap(compare_on_expert);
             csv.write_record(vec![
                 if i < trophy_count {
                     "T".to_string()
@@ -113,17 +113,12 @@ impl ClassResultsBuilder {
                     "".to_string()
                 } else {
                     d.difference(
-                        class_results
-                            .drivers
-                            .get(i - 1)
-                            .unwrap()
-                            .best_lap(compare_on_expert, None),
+                        class_results.drivers.get(i - 1).unwrap().best_lap(compare_on_expert),
                         true,
                         compare_on_expert,
-                        None,
                     )
                 },
-                d.difference(best_lap_in_class.clone(), true, compare_on_expert, None),
+                d.difference(best_lap_in_class.clone(), true, compare_on_expert),
                 format!(
                     "{}",
                     self.points_calculator

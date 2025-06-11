@@ -64,10 +64,7 @@ class App extends Component<ComponentPropsWithoutRef<any>, AppState> {
                 accept={'.csv'}
                 onFileSelect={async (f) => {
                   try {
-                    const rusty = new SccaSoloPointsEngine(
-                      await f.text(),
-                      false,
-                    );
+                    const rusty = new SccaSoloPointsEngine(await f.text());
                     const driversInError =
                       rusty.js_drivers_in_error() as string[];
                     if (driversInError.length) {

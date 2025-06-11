@@ -74,7 +74,7 @@ impl CombinedResultsBuilder {
         is_raw_time: bool,
     ) -> Result<Writer<Vec<u8>>, String> {
         let fastest_driver = drivers.first().unwrap();
-        let fastest_of_day = fastest_driver.best_lap(false, None);
+        let fastest_of_day = fastest_driver.best_lap(false);
 
         let driver_count = drivers.len();
         let trophy_count = self
@@ -114,9 +114,7 @@ impl CombinedResultsBuilder {
             .get(i)
             .ok_or(format!("expected at least one driver for {}", driver_group.name()))?;
 
-        let tie_offset = calculate_tie_offset(drivers, i, |d1, d2| {
-            d1.best_lap(false, None) == d2.best_lap(false, None)
-        });
+        let tie_offset = calculate_tie_offset(drivers, i, |d1, d2| d1.best_lap(false) == d2.best_lap(false));
 
         let mut next_row = vec![
             if (i - tie_offset) < trophy_count {
@@ -129,11 +127,11 @@ impl CombinedResultsBuilder {
             driver.car_description.clone(),
             driver.car_class.short.name().to_string(),
             format!("{}", driver.car_number),
-            driver.best_lap(false, None).to_string(!is_raw_time, false),
+            driver.best_lap(false).to_string(!is_raw_time, false),
             previous_driver
-                .map(|prev| driver.difference(prev.best_lap(false, None), !is_raw_time, false, None))
+                .map(|prev| driver.difference(prev.best_lap(false), !is_raw_time, false))
                 .unwrap_or_default(),
-            driver.difference(fastest_of_day.clone(), !is_raw_time, false, None),
+            driver.difference(fastest_of_day.clone(), !is_raw_time, false),
         ];
         if !is_raw_time {
             next_row.push(format!(

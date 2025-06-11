@@ -194,7 +194,7 @@ impl DefaultClassChampionshipResultsParser {
 
         let best_time_of_day = new_event_drivers_by_id
             .values()
-            .map(|d| d.best_lap(*class == ShortCarClass::X, None))
+            .map(|d| d.best_lap(*class == ShortCarClass::X))
             .filter(|lap| lap.time.is_some())
             .min()
             .unwrap_or_else(dns);

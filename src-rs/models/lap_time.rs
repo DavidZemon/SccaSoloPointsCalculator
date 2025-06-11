@@ -16,6 +16,8 @@ pub enum Penalty {
 
 #[derive(Clone)]
 pub struct LapTime {
+    // Even though this isn't used, it can be helpful in debugging
+    #[allow(unused)]
     pub raw: Option<Time>,
     pub time: Option<Time>,
     pub pax: PaxMultiplier,
@@ -46,21 +48,6 @@ impl LapTime {
             } else {
                 time_string
             }
-        }
-    }
-
-    pub fn add(&self, rhs: LapTime) -> LapTime {
-        if self.dnf || self.rerun || self.dsq || self.dns {
-            self.clone()
-        } else if rhs.dnf || rhs.rerun || rhs.dsq || rhs.dns {
-            rhs
-        } else {
-            LapTime::new(
-                self.raw.clone().unwrap() + rhs.raw.unwrap(),
-                self.pax.clone(),
-                self.cones + rhs.cones,
-                None,
-            )
         }
     }
 
@@ -507,69 +494,5 @@ mod test {
         assert_eq!(actual.get(6).unwrap().time, None);
         assert_eq!(actual.get(7).unwrap().time, None);
         assert_eq!(actual.get(8).unwrap().time, None);
-    }
-
-    #[test]
-    fn add_should_add_two_times_without_cones() {
-        let lhs = LapTime::new(3.into(), PaxMultiplier::from_str("0.9").unwrap(), 0, None);
-        let rhs = LapTime::new(5.into(), PaxMultiplier::from_str("0.9").unwrap(), 0, None);
-        assert_eq!(lhs.add(rhs).to_string(false, true), "8.000");
-    }
-
-    #[test]
-    fn add_should_add_two_times_with_cones() {
-        let lhs = LapTime::new(3.into(), PaxMultiplier::from_str("0.9").unwrap(), 1, None);
-        let rhs = LapTime::new(5.into(), PaxMultiplier::from_str("0.9").unwrap(), 0, None);
-        assert_eq!(lhs.add(rhs).to_string(false, true), "10.000 (1)");
-
-        let lhs = LapTime::new(3.into(), PaxMultiplier::from_str("0.9").unwrap(), 0, None);
-        let rhs = LapTime::new(5.into(), PaxMultiplier::from_str("0.9").unwrap(), 2, None);
-        assert_eq!(lhs.add(rhs).to_string(false, true), "12.000 (2)");
-
-        let lhs = LapTime::new(3.into(), PaxMultiplier::from_str("0.9").unwrap(), 1, None);
-        let rhs = LapTime::new(5.into(), PaxMultiplier::from_str("0.9").unwrap(), 2, None);
-        assert_eq!(lhs.add(rhs).to_string(false, true), "14.000 (3)");
-    }
-
-    #[test]
-    fn add_should_add_two_times_with_penalties() {
-        let lhs = LapTime::new(3.into(), PaxMultiplier::from_str("0.9").unwrap(), 1, Some(Penalty::DNF));
-        let rhs = LapTime::new(5.into(), PaxMultiplier::from_str("0.9").unwrap(), 0, None);
-        assert_eq!(lhs.add(rhs).to_string(false, true), "DNF");
-        let lhs = LapTime::new(3.into(), PaxMultiplier::from_str("0.9").unwrap(), 1, Some(Penalty::DNS));
-        let rhs = LapTime::new(5.into(), PaxMultiplier::from_str("0.9").unwrap(), 0, None);
-        assert_eq!(lhs.add(rhs).to_string(false, true), "DNS");
-        let lhs = LapTime::new(3.into(), PaxMultiplier::from_str("0.9").unwrap(), 1, Some(Penalty::DSQ));
-        let rhs = LapTime::new(5.into(), PaxMultiplier::from_str("0.9").unwrap(), 0, None);
-        assert_eq!(lhs.add(rhs).to_string(false, true), "DSQ");
-        let lhs = LapTime::new(3.into(), PaxMultiplier::from_str("0.9").unwrap(), 1, Some(Penalty::RRN));
-        let rhs = LapTime::new(5.into(), PaxMultiplier::from_str("0.9").unwrap(), 0, None);
-        assert_eq!(lhs.add(rhs).to_string(false, true), "Re-run");
-
-        let lhs = LapTime::new(3.into(), PaxMultiplier::from_str("0.9").unwrap(), 1, None);
-        let rhs = LapTime::new(5.into(), PaxMultiplier::from_str("0.9").unwrap(), 0, Some(Penalty::DNF));
-        assert_eq!(lhs.add(rhs).to_string(false, true), "DNF");
-        let lhs = LapTime::new(3.into(), PaxMultiplier::from_str("0.9").unwrap(), 1, None);
-        let rhs = LapTime::new(5.into(), PaxMultiplier::from_str("0.9").unwrap(), 0, Some(Penalty::DNS));
-        assert_eq!(lhs.add(rhs).to_string(false, true), "DNS");
-        let lhs = LapTime::new(3.into(), PaxMultiplier::from_str("0.9").unwrap(), 1, None);
-        let rhs = LapTime::new(5.into(), PaxMultiplier::from_str("0.9").unwrap(), 0, Some(Penalty::DSQ));
-        assert_eq!(lhs.add(rhs).to_string(false, true), "DSQ");
-        let lhs = LapTime::new(3.into(), PaxMultiplier::from_str("0.9").unwrap(), 1, None);
-        let rhs = LapTime::new(5.into(), PaxMultiplier::from_str("0.9").unwrap(), 0, Some(Penalty::RRN));
-        assert_eq!(lhs.add(rhs).to_string(false, true), "Re-run");
-
-        let lhs = LapTime::new(3.into(), PaxMultiplier::from_str("0.9").unwrap(), 1, Some(Penalty::DNS));
-        let rhs = LapTime::new(5.into(), PaxMultiplier::from_str("0.9").unwrap(), 0, Some(Penalty::DNF));
-        assert_eq!(lhs.add(rhs).to_string(false, true), "DNS");
-        let lhs = LapTime::new(3.into(), PaxMultiplier::from_str("0.9").unwrap(), 1, Some(Penalty::DSQ));
-        let rhs = LapTime::new(5.into(), PaxMultiplier::from_str("0.9").unwrap(), 0, Some(Penalty::DNS));
-        assert_eq!(lhs.add(rhs).to_string(false, true), "DSQ");
-        let lhs = LapTime::new(3.into(), PaxMultiplier::from_str("0.9").unwrap(), 1, Some(Penalty::RRN));
-        let rhs = LapTime::new(5.into(), PaxMultiplier::from_str("0.9").unwrap(), 0, Some(Penalty::DSQ));
-        assert_eq!(lhs.add(rhs).to_string(false, true), "Re-run");
-        let lhs = LapTime::new(3.into(), PaxMultiplier::from_str("0.9").unwrap(), 1, Some(Penalty::DNF));
-        let rhs = LapTime::new(5.into(), PaxMultiplier::from_str("0.9").unwrap(), 0, Some(Penalty::RRN));
-        assert_eq!(lhs.add(rhs).to_string(false, true), "DNF");
     }
 }

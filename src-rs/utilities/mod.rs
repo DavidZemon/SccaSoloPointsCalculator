@@ -43,16 +43,6 @@ macro_rules! enum_str {
     };
 }
 
-pub fn swap<T, E>(input: Option<Result<T, E>>) -> Result<Option<T>, E> {
-    match input {
-        None => Ok(None),
-        Some(r) => match r {
-            Err(e) => Err(e),
-            Ok(v) => Ok(Some(v)),
-        },
-    }
-}
-
 pub fn events_to_count(event_count: usize) -> usize {
     if event_count < 4 {
         event_count

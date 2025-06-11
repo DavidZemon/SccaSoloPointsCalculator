@@ -41,12 +41,6 @@ pub struct DriverFromPronto {
     pub pax_multiplier: String,
     #[serde(rename = "Pax Time")]
     pub pax_time: String,
-    #[serde(rename = "Runs Day1")]
-    pub runs_day1: Option<usize>,
-    #[serde(rename = "Runs Day2")]
-    pub runs_day2: Option<usize>,
     #[serde(skip)]
-    pub day1: Option<Vec<LapTime>>,
-    #[serde(skip)]
-    pub day2: Option<Vec<LapTime>>,
+    pub runs: Vec<LapTime>,
 }

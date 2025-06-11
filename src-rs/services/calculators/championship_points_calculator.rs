@@ -5,9 +5,9 @@ use bigdecimal::{BigDecimal, ToPrimitive};
 pub trait ChampionshipPointsCalculator {
     fn calculate(&self, fastest: &LapTime, driver: &Driver, expert: bool) -> i64 {
         let actual = if expert {
-            driver.best_expert_lap(None)
+            driver.best_expert_lap()
         } else {
-            driver.best_standard_lap(None)
+            driver.best_standard_lap()
         };
         if fastest == &actual {
             10_000

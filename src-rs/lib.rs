@@ -30,8 +30,8 @@ pub struct SccaSoloPointsEngine {
 #[wasm_bindgen]
 impl SccaSoloPointsEngine {
     #[wasm_bindgen(constructor)]
-    pub fn new(file_contents: String, two_day_event: bool) -> Result<SccaSoloPointsEngine, String> {
-        let event_results = parse(file_contents, two_day_event)?;
+    pub fn new(file_contents: String) -> Result<SccaSoloPointsEngine, String> {
+        let event_results = parse(file_contents)?;
         let champ_parser = ChampionshipResultsParser::new(event_results.clone());
         Ok(SccaSoloPointsEngine {
             event_results,
