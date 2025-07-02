@@ -90,19 +90,19 @@ impl ClassResultsBuilder {
         let best_lap_in_class = class_results.get_best_in_class();
 
         class_results.drivers.iter().enumerate().for_each(|(i, d)| {
-            let compare_on_expert = class_results.car_class.short == ShortCarClass::X;
-            let best_lap = d.best_lap(compare_on_expert);
+            let compare_on_pro = class_results.car_class.short == ShortCarClass::P;
+            let best_lap = d.best_lap(compare_on_pro);
             csv.write_record(vec![
                 if i < trophy_count {
                     "T".to_string()
                 } else {
                     "".to_string()
                 },
-                d.position.map(|p| format!("{}", p)).unwrap_or_else(|| "".to_string()),
+                d.position.map(|p| format!("{p}")).unwrap_or_default(),
                 d.name.clone(),
                 d.car_description.clone(),
-                if compare_on_expert {
-                    d.car_class.short.name().to_string()
+                if compare_on_pro {
+                    d.pax_class.map(|c| c.short.name()).unwrap_or_default().to_string()
                 } else {
                     short_class_name.clone()
                 },
@@ -113,16 +113,15 @@ impl ClassResultsBuilder {
                     "".to_string()
                 } else {
                     d.difference(
-                        class_results.drivers.get(i - 1).unwrap().best_lap(compare_on_expert),
+                        class_results.drivers.get(i - 1).unwrap().best_lap(compare_on_pro),
                         true,
-                        compare_on_expert,
+                        compare_on_pro,
                     )
                 },
-                d.difference(best_lap_in_class.clone(), true, compare_on_expert),
+                d.difference(best_lap_in_class.clone(), true, compare_on_pro),
                 format!(
                     "{}",
-                    self.points_calculator
-                        .calculate(&best_lap_in_class, d, compare_on_expert)
+                    self.points_calculator.calculate(&best_lap_in_class, d, compare_on_pro)
                 ),
             ])
             .unwrap_or_else(|_| panic!("Failed to write record for {} to class results CSV", d.name));

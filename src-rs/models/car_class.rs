@@ -33,10 +33,10 @@ lazy_static! {
     static ref CLASS_MAP: HashMap<ShortCarClass, CarClass> = {
         let mut m = HashMap::new();
         m.insert(
-            ShortCarClass::X,
+            ShortCarClass::P,
             CarClass::new(
-                ShortCarClass::X,
-                LongCarClass::Expert,
+                ShortCarClass::P,
+                LongCarClass::Pro,
                 ClassCategory::Miscellaneous_Category,
             ),
         );

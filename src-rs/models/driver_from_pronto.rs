@@ -1,5 +1,6 @@
 use crate::enums::short_car_class::ShortCarClass;
 use crate::models::lap_time::LapTime;
+use crate::models::type_aliases::DriverId;
 use serde::Deserialize;
 
 #[allow(unused)]
@@ -23,18 +24,8 @@ pub struct DriverFromPronto {
     pub model: Option<String>,
     #[serde(rename = "Car Color")]
     pub color: Option<String>,
-    #[serde(rename = "Member #")]
-    pub member_number: Option<String>,
-    #[serde(rename = "Rookie")]
-    pub rookie: Option<u8>,
-    #[serde(rename = "Ladies")]
-    pub ladies: Option<String>,
-    #[serde(rename = "Expert")]
-    pub expert: Option<u8>,
     #[serde(rename = "DSQ")]
     pub dsq: Option<u8>,
-    #[serde(rename = "Region")]
-    pub region: Option<String>,
     #[serde(rename = "Best Run")]
     pub best_run: String,
     #[serde(rename = "Pax Index")]
@@ -43,4 +34,16 @@ pub struct DriverFromPronto {
     pub pax_time: String,
     #[serde(skip)]
     pub runs: Vec<LapTime>,
+}
+
+impl DriverFromPronto {
+    pub fn id(&self) -> DriverId {
+        format!(
+            "{} {}",
+            self.first_name.as_ref().unwrap_or(&"".to_string()).to_lowercase(),
+            self.last_name.as_ref().unwrap_or(&"".to_string()).to_lowercase()
+        )
+        .trim()
+        .to_string()
+    }
 }

@@ -25,8 +25,8 @@ impl ClassResults {
         self.drivers
             .first()
             .map(|d| {
-                if self.car_class.short == ShortCarClass::X {
-                    d.best_expert_lap()
+                if self.car_class.short == ShortCarClass::P {
+                    d.best_pro_lap()
                 } else {
                     d.best_standard_lap()
                 }
@@ -39,7 +39,7 @@ impl ClassResults {
         self.trophy_count = self.calculate_trophy_count();
 
         self.drivers.sort_by(|lhs, rhs| match self.car_class.short {
-            ShortCarClass::X => lhs.best_expert_lap().cmp(&rhs.best_expert_lap()),
+            ShortCarClass::P => lhs.best_pro_lap().cmp(&rhs.best_pro_lap()),
             _ => lhs.best_standard_lap().cmp(&rhs.best_standard_lap()),
         });
 
@@ -67,31 +67,41 @@ mod test {
     use crate::models::driver::Driver;
     use crate::models::driver_from_pronto::DriverFromPronto;
     use crate::models::lap_time::LapTime;
+    use crate::models::msr_driver::MsrDriver;
     use crate::models::type_aliases::PaxMultiplier;
     use std::str::FromStr;
 
     fn build_driver(runs: Vec<LapTime>) -> Driver {
-        Driver::from(DriverFromPronto {
-            position: None,
-            car_class: ShortCarClass::SS,
-            car_number: 0,
-            first_name: None,
-            last_name: None,
-            year: None,
-            make: None,
-            model: None,
-            color: None,
-            member_number: None,
-            rookie: None,
-            ladies: None,
-            expert: None,
-            dsq: None,
-            region: None,
-            best_run: "".to_string(),
-            pax_multiplier: "0.0".to_string(),
-            pax_time: "0.0".to_string(),
-            runs,
-        })
+        Driver::from((
+            DriverFromPronto {
+                position: None,
+                car_class: ShortCarClass::SS,
+                car_number: 0,
+                first_name: None,
+                last_name: None,
+                year: None,
+                make: None,
+                model: None,
+                color: None,
+                dsq: None,
+                best_run: "".to_string(),
+                pax_multiplier: "0.0".to_string(),
+                pax_time: "0.0".to_string(),
+                runs,
+            },
+            &MsrDriver {
+                last_name: "".to_string(),
+                first_name: "".to_string(),
+                member_number: "".to_string(),
+                class_and_pax: "SS".to_string(),
+                car_number: 0,
+                car: "".to_string(),
+                region: None,
+                medical: None,
+                novice: Some(0),
+                ladies: Some(0),
+            },
+        ))
     }
 
     #[test]

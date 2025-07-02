@@ -3,9 +3,9 @@ use crate::models::lap_time::LapTime;
 use bigdecimal::{BigDecimal, ToPrimitive};
 
 pub trait ChampionshipPointsCalculator {
-    fn calculate(&self, fastest: &LapTime, driver: &Driver, expert: bool) -> i64 {
-        let actual = if expert {
-            driver.best_expert_lap()
+    fn calculate(&self, fastest: &LapTime, driver: &Driver, pro: bool) -> i64 {
+        let actual = if pro {
+            driver.best_pro_lap()
         } else {
             driver.best_standard_lap()
         };

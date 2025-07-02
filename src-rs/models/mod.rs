@@ -6,4 +6,5 @@ pub mod driver;
 pub mod driver_from_pronto;
 pub mod event_results;
 pub mod lap_time;
+pub mod msr_driver;
 pub mod type_aliases;

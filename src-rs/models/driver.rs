@@ -1,6 +1,8 @@
+use crate::enums::short_car_class::ShortCarClass;
 use crate::models::car_class::{get_car_class, CarClass};
 use crate::models::driver_from_pronto::DriverFromPronto;
 use crate::models::lap_time::{dns, dsq, LapTime};
+use crate::models::msr_driver::MsrDriver;
 use crate::models::type_aliases::{DriverId, PaxMultiplier};
 use std::cmp::min;
 use std::str::FromStr;
@@ -12,19 +14,19 @@ pub struct Driver {
     pub name: String,
     pub car_number: u16,
     pub car_class: CarClass,
+    pub pax_class: Option<CarClass>,
     pub car_description: String,
     pub region: String,
     pub rookie: bool,
     pub ladies_championship: bool,
-    pub expert: bool,
     pub position: Option<usize>,
     pub dsq: bool,
     pub pax_multiplier: PaxMultiplier,
     pub times: Vec<LapTime>,
 }
 
-impl From<DriverFromPronto> for Driver {
-    fn from(driver: DriverFromPronto) -> Self {
+impl From<(DriverFromPronto, &MsrDriver)> for Driver {
+    fn from((driver, msr_driver): (DriverFromPronto, &MsrDriver)) -> Self {
         let best_run_is_falsy = driver
             .best_run
             .parse::<f64>()
@@ -38,29 +40,38 @@ impl From<DriverFromPronto> for Driver {
             .last_name
             .clone()
             .unwrap_or_else(|| "<Missing Last Name>".to_string());
-        let name = format!("{} {}", first_name, last_name);
-        let car_class = match get_car_class(&driver.car_class) {
+
+        let (car_class, pax_class) = if msr_driver.class_and_pax.starts_with("P") {
+            (ShortCarClass::P, ShortCarClass::parse(&msr_driver.class_and_pax[1..]))
+        } else {
+            (
+                ShortCarClass::parse(&msr_driver.class_and_pax).unwrap_or(ShortCarClass::AM),
+                None,
+            )
+        };
+        let car_class = match get_car_class(&car_class) {
             Some(c) => c,
             None => panic!("Unable to map class for driver {}", driver.car_class.name()),
         };
+        let pax_class = pax_class.as_ref().and_then(get_car_class);
 
         Driver {
             error: driver.runs.is_empty() && !best_run_is_falsy,
-            rookie: driver.rookie.map_or(false, |value| value != 0),
-            ladies_championship: driver.ladies.map_or(false, |value| value != "0" && !value.is_empty()),
-            expert: driver.expert.map_or(false, |value| value != 0),
+            rookie: msr_driver.novice.unwrap_or_default() != 0,
+            ladies_championship: msr_driver.ladies.unwrap_or_default() != 0,
             position: None,
             car_number: driver.car_number,
             car_class,
-            name: name.clone(),
-            id: name.to_lowercase().trim().to_string(),
+            pax_class,
+            name: format!("{first_name} {last_name}"),
+            id: driver.id(),
             car_description: format!(
                 "{} {} {}",
                 driver.year.unwrap_or(0),
                 driver.make.clone().unwrap_or_else(|| "Unknown".to_string()),
                 driver.model.clone().unwrap_or_else(|| "Unknown".to_string())
             ),
-            region: driver.region.clone().unwrap_or_default(),
+            region: msr_driver.region.clone().unwrap_or_default(),
             dsq: driver.dsq.map(|dsq| dsq == 1).unwrap_or(false),
             pax_multiplier: PaxMultiplier::from_str(&driver.pax_multiplier).unwrap(),
             times: driver.runs,
@@ -77,13 +88,13 @@ impl Driver {
         self.best_lap_in_range(false)
     }
 
-    pub fn best_expert_lap(&self) -> LapTime {
+    pub fn best_pro_lap(&self) -> LapTime {
         self.best_lap_in_range(true)
     }
 
-    pub fn best_lap(&self, expert: bool) -> LapTime {
-        if expert {
-            self.best_expert_lap()
+    pub fn best_lap(&self, pro: bool) -> LapTime {
+        if pro {
+            self.best_pro_lap()
         } else {
             self.best_standard_lap()
         }
@@ -111,7 +122,7 @@ impl Driver {
 
     pub fn difference(&self, comparison: LapTime, use_pax: bool, use_xpert: bool) -> String {
         let self_best_lap = if use_xpert {
-            self.best_expert_lap()
+            self.best_pro_lap()
         } else {
             self.best_standard_lap()
         };
@@ -145,32 +156,42 @@ mod test {
     use crate::models::driver::Driver;
     use crate::models::driver_from_pronto::DriverFromPronto;
     use crate::models::lap_time::{dns, dsq, LapTime, Penalty};
+    use crate::models::msr_driver::MsrDriver;
     use crate::models::type_aliases::{PaxMultiplier, Time};
     use rstest::rstest;
     use std::str::FromStr;
 
     fn build_driver(runs: Vec<LapTime>, dsq: bool) -> Driver {
-        Driver::from(DriverFromPronto {
-            position: None,
-            car_class: ShortCarClass::SS,
-            car_number: 0,
-            first_name: None,
-            last_name: None,
-            year: None,
-            make: None,
-            model: None,
-            color: None,
-            member_number: None,
-            rookie: None,
-            ladies: None,
-            expert: None,
-            dsq: Some(if dsq { 1 } else { 0 }),
-            region: None,
-            best_run: "".to_string(),
-            pax_multiplier: "0.5".to_string(),
-            pax_time: "0.0".to_string(),
-            runs,
-        })
+        Driver::from((
+            DriverFromPronto {
+                position: None,
+                car_class: ShortCarClass::SS,
+                car_number: 0,
+                first_name: None,
+                last_name: None,
+                year: None,
+                make: None,
+                model: None,
+                color: None,
+                dsq: Some(if dsq { 1 } else { 0 }),
+                best_run: "".to_string(),
+                pax_multiplier: "0.5".to_string(),
+                pax_time: "0.0".to_string(),
+                runs,
+            },
+            &MsrDriver {
+                last_name: "".to_string(),
+                first_name: "".to_string(),
+                member_number: "".to_string(),
+                class_and_pax: "SS".to_string(),
+                car_number: 0,
+                car: "".to_string(),
+                region: None,
+                medical: None,
+                novice: Default::default(),
+                ladies: Default::default(),
+            },
+        ))
     }
 
     #[rstest]
