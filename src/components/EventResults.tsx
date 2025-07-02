@@ -1,4 +1,4 @@
-import { Component, ComponentPropsWithoutRef, JSX } from 'react';
+import { JSX, useCallback, useState } from 'react';
 import { Accordion, Button, Card, Col, Row } from 'react-bootstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faDownload } from '@fortawesome/free-solid-svg-icons';
@@ -20,71 +20,26 @@ type MangledCarClass = Omit<CarClass, 'short' | 'long' | 'category'> & {
   category: keyof typeof ClassCategory;
 };
 
-interface EventResultsProps extends ComponentPropsWithoutRef<any> {
+interface EventResultsProps {
   pointsEngine: SccaSoloPointsEngine;
 }
 
-interface EventResultsState {
-  csvContent?: string;
-  exportFilename?: string;
+function prettyNameBuilder(carClass: MangledCarClass): string {
+  return `${carClass.short} - ${to_display_name(LongCarClass[carClass.long])}`;
 }
 
-export class EventResults extends Component<
-  EventResultsProps,
-  EventResultsState
-> {
-  constructor(props: Readonly<EventResultsProps>) {
-    super(props);
-    this.state = {};
-  }
+export function EventResults({
+  pointsEngine,
+}: EventResultsProps): JSX.Element | null {
+  const [csvContent, setCsvContent] = useState<string | undefined>();
+  const [exportFilename, setExportFilename] = useState<string | undefined>();
 
-  public render() {
-    if (this.props.pointsEngine) {
-      return (
-        <>
-          <Row className={'top-buffer'}>
-            <Col>
-              <h2>Event Results</h2>
-
-              <Accordion>
-                {this.displayClassResults()}
-
-                {this.displayCombinedResults(DriverGroup.PAX)}
-
-                {this.displayCombinedResults(DriverGroup.Raw)}
-
-                {this.displayCombinedResults(DriverGroup.Novice)}
-
-                {this.displayCombinedResults(DriverGroup.Ladies)}
-              </Accordion>
-            </Col>
-          </Row>
-
-          <RamDownload
-            filename={this.state.exportFilename}
-            content={this.state.csvContent}
-            contentType={'text/csv'}
-            downloadComplete={() =>
-              this.setState({
-                csvContent: undefined,
-                exportFilename: undefined,
-              })
-            }
-          />
-        </>
-      );
-    } else {
-      return null;
-    }
-  }
-
-  private displayClassResults(): JSX.Element {
-    const header = this.props.pointsEngine.get_header_for_event_class_results();
-    const classResults =
-      this.props.pointsEngine.get_event_class_results_csvs() as [
-        MangledCarClass,
-        string,
-      ][];
+  const displayClassResults = useCallback(() => {
+    const header = pointsEngine.get_header_for_event_class_results();
+    const classResults = pointsEngine.get_event_class_results_csvs() as [
+      MangledCarClass,
+      string,
+    ][];
     return (
       <Card>
         <Card.Header key={'class'}>
@@ -96,18 +51,18 @@ export class EventResults extends Component<
             <FontAwesomeIcon
               className={'clickable'}
               icon={faDownload}
-              onClick={() =>
-                this.setState({
-                  exportFilename: 'event_class_results.csv',
-                  csvContent: [
+              onClick={() => {
+                setExportFilename('event_class_results.csv');
+                setCsvContent(
+                  [
                     `${header}\n`,
                     ...classResults.map(
                       ([carClass, csv]) =>
-                        `${this.prettyNameBuilder(carClass)}\n${csv}`,
+                        `${prettyNameBuilder(carClass)}\n${csv}`,
                     ),
                   ].join(''),
-                })
-              }
+                );
+              }}
             />
           </Button>
         </Card.Header>
@@ -123,7 +78,7 @@ export class EventResults extends Component<
                       as={Button}
                       variant={'link'}
                     >
-                      {this.prettyNameBuilder(carClass)}
+                      {prettyNameBuilder(carClass)}
                     </Accordion.Toggle>
                   </Card.Header>
 
@@ -146,54 +101,83 @@ export class EventResults extends Component<
         </Accordion.Collapse>
       </Card>
     );
-  }
+  }, [pointsEngine]);
+  const displayCombinedResults = useCallback(
+    (driverGroup: DriverGroup) => {
+      const csvContent = pointsEngine.get_event_combined_csv(driverGroup);
+      return (
+        <Card>
+          <Card.Header key={driverGroup}>
+            <Accordion.Toggle
+              eventKey={DriverGroup[driverGroup]}
+              as={Button}
+              variant={'link'}
+            >
+              {DriverGroup[driverGroup]} Results
+            </Accordion.Toggle>
 
-  private displayCombinedResults(driverGroup: DriverGroup): JSX.Element {
-    const csvContent =
-      this.props.pointsEngine.get_event_combined_csv(driverGroup);
+            <Button
+              variant={'secondary'}
+              onClick={() => {
+                setExportFilename(
+                  `event_${DriverGroup[driverGroup].toLowerCase()}_results.csv`,
+                );
+                setCsvContent(csvContent);
+              }}
+            >
+              <FontAwesomeIcon className={'clickable'} icon={faDownload} />
+            </Button>
+          </Card.Header>
+
+          <Accordion.Collapse eventKey={DriverGroup[driverGroup]}>
+            <Card.Body>
+              <CsvTable
+                csv={csvContent}
+                keyBuilder={(driver) =>
+                  `${DriverGroup[driverGroup]} - ${driver[2]}`
+                }
+              />
+            </Card.Body>
+          </Accordion.Collapse>
+        </Card>
+      );
+    },
+    [pointsEngine],
+  );
+
+  if (pointsEngine) {
     return (
-      <Card>
-        <Card.Header key={driverGroup}>
-          <Accordion.Toggle
-            eventKey={DriverGroup[driverGroup]}
-            as={Button}
-            variant={'link'}
-          >
-            {DriverGroup[driverGroup]} Results
-          </Accordion.Toggle>
+      <>
+        <Row className={'top-buffer'}>
+          <Col>
+            <h2>Event Results</h2>
 
-          <Button
-            variant={'secondary'}
-            onClick={() =>
-              this.setState({
-                exportFilename: `event_${DriverGroup[
-                  driverGroup
-                ].toLowerCase()}_results.csv`,
-                csvContent,
-              })
-            }
-          >
-            <FontAwesomeIcon className={'clickable'} icon={faDownload} />
-          </Button>
-        </Card.Header>
+            <Accordion>
+              {displayClassResults()}
 
-        <Accordion.Collapse eventKey={DriverGroup[driverGroup]}>
-          <Card.Body>
-            <CsvTable
-              csv={csvContent}
-              keyBuilder={(driver) =>
-                `${DriverGroup[driverGroup]} - ${driver[2]}`
-              }
-            />
-          </Card.Body>
-        </Accordion.Collapse>
-      </Card>
+              {displayCombinedResults(DriverGroup.PAX)}
+
+              {displayCombinedResults(DriverGroup.Raw)}
+
+              {displayCombinedResults(DriverGroup.Novice)}
+
+              {displayCombinedResults(DriverGroup.Ladies)}
+            </Accordion>
+          </Col>
+        </Row>
+
+        <RamDownload
+          filename={exportFilename}
+          content={csvContent}
+          contentType={'text/csv'}
+          downloadComplete={() => {
+            setCsvContent(undefined);
+            setExportFilename(undefined);
+          }}
+        />
+      </>
     );
-  }
-
-  private prettyNameBuilder(carClass: MangledCarClass): string {
-    return `${carClass.short} - ${to_display_name(
-      LongCarClass[carClass.long],
-    )}`;
+  } else {
+    return null;
   }
 }

@@ -1,53 +1,45 @@
-import { ChangeEvent, Component, ComponentPropsWithoutRef, JSX } from 'react';
+import { ChangeEvent, JSX, useState } from 'react';
 import { Form } from 'react-bootstrap';
 
-interface FileUploadBoxProps extends ComponentPropsWithoutRef<any> {
+interface FileUploadBoxProps {
   label: string;
   file?: File;
   onFileSelect: ((f: File) => boolean) | ((f: File) => Promise<boolean>);
-  fileSelectedMessage: (f: File) => JSX.Element | JSX.Element[];
+  fileSelectedMessage: (f: File) => JSX.Element;
   accept?: string;
 }
 
-interface FileUploadState {
-  fileAccepted: boolean;
-}
+export function FileUploadBox({
+  label,
+  file,
+  onFileSelect,
+  fileSelectedMessage,
+  accept,
+}: FileUploadBoxProps): JSX.Element {
+  const [fileAccepted, setFileAccepted] = useState(false);
 
-export class FileUploadBox extends Component<
-  FileUploadBoxProps,
-  FileUploadState
-> {
-  constructor(props: Readonly<FileUploadBoxProps> | FileUploadBoxProps) {
-    super(props);
-    this.state = { fileAccepted: false };
-  }
-
-  render() {
-    return this.state.fileAccepted ? (
-      this.props.fileSelectedMessage(this.props.file!)
-    ) : (
-      <Form.File
-        label={this.props.label}
-        custom
-        accept={this.props.accept}
-        onChange={async (event: ChangeEvent<HTMLInputElement>) => {
-          if (
-            event.target.files &&
-            event.target.files.length &&
-            event.target.files[0]
-          ) {
-            let accepted = this.props.onFileSelect(event.target.files[0]);
-            // @ts-expect-error
-            if (accepted.then) {
-              accepted = await accepted;
-            }
-            this.setState({
-              // @ts-expect-error
-              fileAccepted: accepted,
-            });
+  return fileAccepted ? (
+    fileSelectedMessage(file!)
+  ) : (
+    <Form.File
+      label={label}
+      custom
+      accept={accept}
+      onChange={async (event: ChangeEvent<HTMLInputElement>) => {
+        if (
+          event.target.files &&
+          event.target.files.length &&
+          event.target.files[0]
+        ) {
+          let accepted = onFileSelect(event.target.files[0]);
+          // @ts-expect-error
+          if (accepted.then) {
+            accepted = await accepted;
           }
-        }}
-      />
-    );
-  }
+          // @ts-expect-error
+          setFileAccepted(accepted);
+        }
+      }}
+    />
+  );
 }
