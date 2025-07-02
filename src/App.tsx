@@ -13,6 +13,7 @@ import { ChampionshipResults as ChampionshipResultsComponent } from './component
 import { FileUploadBox } from './components/FileUploadBox';
 
 export default function App(): JSX.Element {
+  const [msrExportFile, setMsrExportFile] = useState<File | undefined>();
   const [eventResultsFile, setEventResultsFile] = useState<File | undefined>();
   const [championshipResultsFiles, setChampionshipResultsFiles] = useState<
     Partial<Record<keyof typeof ChampionshipType, File | undefined>>
@@ -89,12 +90,31 @@ export default function App(): JSX.Element {
         <Row>
           <Col>
             <FileUploadBox
+              label={'MotorsportReg Export'}
+              file={msrExportFile}
+              accept={'.csv'}
+              onFileSelect={async (f) => {
+                setMsrExportFile(f);
+                return true;
+              }}
+              fileSelectedMessage={(f) => (
+                <p>
+                  MSR export file <code>{f.name}</code> selected
+                </p>
+              )}
+            />
+
+            <FileUploadBox
+              disabled={!msrExportFile}
               label={'Full Event Results (by class)'}
               file={eventResultsFile}
               accept={'.csv'}
               onFileSelect={async (f) => {
                 try {
-                  const rusty = new SccaSoloPointsEngine(await f.text());
+                  const rusty = new SccaSoloPointsEngine(
+                    await msrExportFile!.text(),
+                    await f.text(),
+                  );
                   const driversInError =
                     rusty.js_drivers_in_error() as string[];
                   if (driversInError.length) {

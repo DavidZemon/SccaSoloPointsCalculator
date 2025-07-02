@@ -2,6 +2,7 @@ import { ChangeEvent, JSX, useState } from 'react';
 import { Form } from 'react-bootstrap';
 
 interface FileUploadBoxProps {
+  disabled?: boolean;
   label: string;
   file?: File;
   onFileSelect: ((f: File) => boolean) | ((f: File) => Promise<boolean>);
@@ -10,6 +11,7 @@ interface FileUploadBoxProps {
 }
 
 export function FileUploadBox({
+  disabled,
   label,
   file,
   onFileSelect,
@@ -22,6 +24,7 @@ export function FileUploadBox({
     fileSelectedMessage(file!)
   ) : (
     <Form.File
+      disabled={disabled}
       label={label}
       custom
       accept={accept}
