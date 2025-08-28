@@ -80,10 +80,10 @@ impl IndexedCsvBuilder for DefaultIndexedCsvBuilder {
             ];
             d.points()
                 .iter()
-                .for_each(|points| driver_row.push(format!("{}", points)));
+                .for_each(|points| driver_row.push(format!("{points}")));
             driver_row.push(format!("{}", d.total_points()));
             driver_row.push(format!("{}", d.best_of(events_to_count)));
-            driver_row.join(",")
+            format!("\"{}\"", driver_row.join("\",\""))
         }));
 
         Ok(Some(rows.join("\n")))

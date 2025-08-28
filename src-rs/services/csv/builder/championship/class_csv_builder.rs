@@ -80,10 +80,10 @@ impl ClassCsvBuilder for DefaultClassCsvBuilder {
                 ];
                 d.points()
                     .iter()
-                    .for_each(|points| driver_row.push(format!("{}", points)));
+                    .for_each(|points| driver_row.push(format!("{points}")));
                 driver_row.push(format!("{}", d.total_points()));
                 driver_row.push(format!("{}", d.best_of(events_to_count)));
-                driver_row.join(",")
+                format!("\"{}\"", driver_row.join("\",\""))
             }))
         });
 
@@ -108,7 +108,7 @@ impl DefaultClassCsvBuilder {
         let mut header = vec!["Trophy".to_string(), "Rank".to_string(), "Driver".to_string()];
         header.extend((0..event_count).map(|i| format!("Event #{}", i + 1)));
         header.push("Total Points".to_string());
-        header.push(format!("Best {} of {}", events_to_count, event_count));
+        header.push(format!("Best {events_to_count} of {event_count}"));
 
         header.join(",")
     }
