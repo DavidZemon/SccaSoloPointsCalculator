@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::io::Cursor;
 use std::rc::Rc;
 
-use calamine::{Data, Range, Reader, Xls};
+use calamine::{Data, Range, Reader, Xls, Xlsx};
 use regex::Regex;
 
 use crate::console_log;
@@ -96,8 +96,19 @@ impl ChampionshipResultsParser {
 
     fn extract_sheet(&self, file_name: String, new_results: &[u8]) -> Result<Range<Data>, String> {
         let new_results = Cursor::new(new_results);
-        let mut workbook = Xls::new(new_results).map_err(|e| format!("{}", e))?;
-        let worksheets = workbook.worksheets();
+        let worksheets = if file_name.to_lowercase().ends_with(".xls") {
+            Xls::new(new_results)
+                .map_err(|e| format!("Failed to open as XLS: {e:?}"))?
+                .worksheets()
+        } else if file_name.to_lowercase().ends_with(".xlsx") {
+            Xlsx::new(new_results)
+                .map_err(|e| format!("Failed to open as XLSX: {e:?}"))?
+                .worksheets()
+        } else {
+            return Err(format!(
+                "Unrecognized file format ({file_name}). Expected .xls or .xlsx"
+            ));
+        };
         let mut sheets = worksheets
             .iter()
             .filter(|(name, _)| name.trim().to_lowercase() != "calculations")

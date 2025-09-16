@@ -1,5 +1,6 @@
 import { ChangeEvent, JSX, useState } from 'react';
 import { Form } from 'react-bootstrap';
+import { toast } from 'react-toastify';
 
 interface FileUploadBoxProps {
   disabled?: boolean;
@@ -29,18 +30,28 @@ export function FileUploadBox({
       custom
       accept={accept}
       onChange={async (event: ChangeEvent<HTMLInputElement>) => {
-        if (
-          event.target.files &&
-          event.target.files.length &&
-          event.target.files[0]
-        ) {
-          let accepted = onFileSelect(event.target.files[0]);
-          // @ts-expect-error
-          if (accepted.then) {
-            accepted = await accepted;
+        try {
+          if (
+            event.target.files &&
+            event.target.files.length &&
+            event.target.files[0]
+          ) {
+            let accepted = onFileSelect(event.target.files[0]);
+            // @ts-expect-error
+            if (accepted.then) {
+              accepted = await accepted;
+            }
+            // @ts-expect-error
+            setFileAccepted(accepted);
           }
-          // @ts-expect-error
-          setFileAccepted(accepted);
+        } catch (e) {
+          console.error(
+            `Failed to handle file ${event?.target?.files?.[0].name}: ${e}`,
+          );
+          if (`${e}`.toLowerCase().includes('ole signature'))
+            toast.error(
+              "File is invalid or corrupt. Please try using 'Save as...' to create a new copy and try again.",
+            );
         }
       }}
     />

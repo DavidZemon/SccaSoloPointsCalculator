@@ -59,7 +59,7 @@ impl IndexChampionshipResultsParser for DefaultIndexChampionshipResultsParser {
             .next()
             .ok_or("Invalid 'year' cell contents for indexed championship input XLS")?
             .parse::<u16>()
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| format!("Failed to parse championship year from cell B0: {e}"))?;
 
         let rows_by_driver_id = self.parse_sheet(header_map, data)?;
         let ctx = CalculationContext {
