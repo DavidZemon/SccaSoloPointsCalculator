@@ -129,15 +129,12 @@ export default function App(): JSX.Element {
 
                   return true;
                 } catch (e) {
-                  if (
-                    typeof e === 'string' &&
-                    e.startsWith('Encountered an unexpected end of row')
-                  ) {
+                  if (typeof e === 'string') {
                     toast.error(e);
                   } else {
                     console.error(e);
                     toast.error(
-                      'File format does not match expected. Please export event results with raw times, grouped by class.',
+                      'Encountered unexpected error. Please submit files to David for review.',
                     );
                   }
                   return false;
