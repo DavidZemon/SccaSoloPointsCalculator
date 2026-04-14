@@ -85,7 +85,7 @@ export function ChampionshipResults({
         <RamDownload
           filename={downloadName}
           content={downloadData}
-          contentType={'application/vnd.ms-excel'}
+          contentType={'text/csv'}
           downloadComplete={() => {
             setDownloadData(undefined);
             setDownloadName(undefined);

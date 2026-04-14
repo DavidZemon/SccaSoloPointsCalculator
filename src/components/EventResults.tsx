@@ -47,23 +47,22 @@ export function EventResults({
             Results by Class
           </Accordion.Toggle>
 
-          <Button variant={'secondary'}>
-            <FontAwesomeIcon
-              className={'clickable'}
-              icon={faDownload}
-              onClick={() => {
-                setExportFilename('event_class_results.csv');
-                setCsvContent(
-                  [
-                    `${header}\n`,
-                    ...classResults.map(
-                      ([carClass, csv]) =>
-                        `${prettyNameBuilder(carClass)}\n${csv}`,
-                    ),
-                  ].join(''),
-                );
-              }}
-            />
+          <Button
+            variant={'secondary'}
+            onClick={() => {
+              setExportFilename('event_class_results.csv');
+              setCsvContent(
+                [
+                  `${header}\n`,
+                  ...classResults.map(
+                    ([carClass, csv]) =>
+                      `${prettyNameBuilder(carClass)}\n${csv}`,
+                  ),
+                ].join(''),
+              );
+            }}
+          >
+            <FontAwesomeIcon className={'clickable'} icon={faDownload} />
           </Button>
         </Card.Header>
 

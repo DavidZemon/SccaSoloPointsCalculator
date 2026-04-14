@@ -157,7 +157,17 @@ export default function App(): JSX.Element {
                         ))}
                       </ul>
                       <p key={'demandRefresh'}>
-                        Please fix the errors and refresh this page.
+                        Please fix the errors and{' '}
+                        <a
+                          href="."
+                          onClick={(e) => {
+                            e.preventDefault();
+                            window.location.reload();
+                          }}
+                        >
+                          refresh this page
+                        </a>
+                        .
                       </p>
                       <p key={'fixInstructions'}>
                         To fix the errors, open TSAnnounce, search for each

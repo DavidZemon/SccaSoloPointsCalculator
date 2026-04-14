@@ -1,5 +1,5 @@
 import { ChangeEvent, JSX, useState } from 'react';
-import { Form } from 'react-bootstrap';
+import { Button, Form } from 'react-bootstrap';
 import { toast } from 'react-toastify';
 
 interface FileUploadBoxProps {
@@ -22,7 +22,16 @@ export function FileUploadBox({
   const [fileAccepted, setFileAccepted] = useState(false);
 
   return fileAccepted ? (
-    fileSelectedMessage(file!)
+    <>
+      {fileSelectedMessage(file!)}
+      <Button
+        variant={'outline-info'}
+        size={'sm'}
+        onClick={() => setFileAccepted(false)}
+      >
+        Change file
+      </Button>
+    </>
   ) : (
     <Form.File
       disabled={disabled}

@@ -38,6 +38,9 @@ export class RamDownload extends Component<RamDownloadProps, RamDownloadState> {
 
       // Once the download URL changes, perform the download by initiating a click
       if (this.state.downloadUrl !== prevState.downloadUrl) {
+        if (prevState.downloadUrl) {
+          URL.revokeObjectURL(prevState.downloadUrl);
+        }
         this.element!.click();
         this.props.downloadComplete?.();
       }
