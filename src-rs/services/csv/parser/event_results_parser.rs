@@ -61,12 +61,12 @@ pub fn parse(msr_export: String, pronto_export: String) -> Result<EventResults, 
 fn parse_msr(msr_export: String) -> Result<HashMap<String, MsrDriver>, String> {
     let mut reader = csv::ReaderBuilder::new()
         .flexible(true)
-        .trim(Trim::Headers)
+        .trim(Trim::All)
         .from_reader(msr_export.as_bytes());
 
     let mut string_reader = csv::ReaderBuilder::new()
         .flexible(true)
-        .trim(Trim::Headers)
+        .trim(Trim::All)
         .from_reader(msr_export.as_bytes());
 
     let records = reader.deserialize().zip(string_reader.records());
