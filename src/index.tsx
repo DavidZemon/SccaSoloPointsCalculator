@@ -4,7 +4,10 @@ import './index.css';
 import App from './App';
 import { default as init } from 'scca_solo_points_engine/scca_solo_points_engine';
 
-init('scca_solo_points_engine_bg.wasm').then(() => {
+init(
+  // Insert cache-busting timestamp to prevent loading stale WASM binary
+  `scca_solo_points_engine_bg.wasm?v=${process.env.REACT_APP_BUILD_TIME || 'dev'}`,
+).then(() => {
   ReactDOM.render(
     <React.StrictMode>
       <App />
