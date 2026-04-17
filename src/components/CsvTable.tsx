@@ -1,4 +1,4 @@
-import { parse } from 'csv-parse/lib/sync';
+import { parse } from 'csv-parse/sync';
 import { Table } from 'react-bootstrap';
 import { JSX } from 'react';
 

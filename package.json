@@ -12,6 +12,7 @@
     "@types/react-dom": "^18.3.0",
     "bootstrap": "^4.6.2",
     "bootswatch": "^4.6.2",
+    "buffer": "^6.0.3",
     "csv-parse": "^5.5.6",
     "react": "^17.0.2",
     "react-bootstrap": "^1.6.8",
@@ -26,14 +27,15 @@
   "devDependencies": {
     "@babel/plugin-proposal-private-property-in-object": "7.21.0-placeholder-for-preset-env.2",
     "prettier": "^3.3.3",
-    "react-scripts": "^4.0.3",
+    "react-app-rewired": "^2.2.1",
+    "react-scripts": "^5.0.1",
     "ts-node": "^10.9.2"
   },
   "scripts": {
     "build-rs": "cargo build --release --target wasm32-unknown-unknown && wasm-bindgen target/wasm32-unknown-unknown/release/scca_solo_points_engine.wasm --target=web --out-dir=rusty --omit-default-module-path && cp rusty/scca_solo_points_engine_bg.wasm public/",
-    "start": "yarn build-rs && env BROWSER=none react-scripts start",
-    "build": "yarn build-rs && env 'PUBLIC_URL=https://david.zemon.name/pronto' REACT_APP_BUILD_TIME=$(date +%s) react-scripts build",
-    "test": "react-scripts test",
+    "start": "yarn build-rs && env BROWSER=none react-app-rewired start",
+    "build": "yarn build-rs && env 'PUBLIC_URL=https://david.zemon.name/pronto' REACT_APP_BUILD_TIME=$(date +%s) react-app-rewired build",
+    "test": "react-app-rewired test",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {
