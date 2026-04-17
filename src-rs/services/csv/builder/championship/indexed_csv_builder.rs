@@ -1,6 +1,8 @@
 #[cfg(test)]
 use mockall::automock;
 
+use anyhow::{anyhow, Result};
+
 use crate::enums::championship_type::ChampionshipType;
 use crate::models::championship_driver::ChampionshipDriver;
 use crate::models::championship_results::IndexedChampionshipResults;
@@ -14,7 +16,7 @@ pub trait IndexedCsvBuilder {
         &self,
         championship_type: ChampionshipType,
         results: IndexedChampionshipResults,
-    ) -> Result<Option<String>, String>;
+    ) -> Result<Option<String>>;
 }
 
 pub struct DefaultIndexedCsvBuilder {
@@ -26,11 +28,11 @@ impl IndexedCsvBuilder for DefaultIndexedCsvBuilder {
         &self,
         championship_type: ChampionshipType,
         results: IndexedChampionshipResults,
-    ) -> Result<Option<String>, String> {
+    ) -> Result<Option<String>> {
         let event_count = results
             .drivers
             .first()
-            .ok_or("Expected at least one driver")?
+            .ok_or(anyhow!("Expected at least one driver"))?
             .event_count(true);
         let events_to_count = events_to_count(event_count);
         let header = Self::build_header(event_count);

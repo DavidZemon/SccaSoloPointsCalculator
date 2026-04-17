@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use std::io::Cursor;
 use std::rc::Rc;
 
+use anyhow::{Context, Result};
 use calamine::{Data, Range, Reader, Xls, Xlsx};
 use regex::Regex;
 
@@ -18,6 +19,7 @@ use crate::services::csv::builder::championship::indexed_csv_builder::{DefaultIn
 use crate::services::csv::parser::class_championship_results_parser::{
     ClassChampionshipResultsParser, DefaultClassChampionshipResultsParser,
 };
+use crate::services::csv::parser::errors::ChampionshipParseError;
 use crate::services::csv::parser::index_championship_results_parser::{
     DefaultIndexChampionshipResultsParser, IndexChampionshipResultsParser,
 };
@@ -48,7 +50,19 @@ impl ChampionshipResultsParser {
         new_results_type: ChampionshipType,
         new_results: &[u8],
         file_name: String,
-    ) -> Result<String, String> {
+    ) -> Result<String> {
+        self.process_results_inner(new_results_type, new_results, file_name.clone())
+            .context(format!(
+                "processing {new_results_type:?} championship from `{file_name}`"
+            ))
+    }
+
+    fn process_results_inner(
+        &self,
+        new_results_type: ChampionshipType,
+        new_results: &[u8],
+        file_name: String,
+    ) -> Result<String> {
         let event_drivers_by_id = self
             .event_results
             .get_drivers(None)
@@ -57,9 +71,13 @@ impl ChampionshipResultsParser {
             .map(|d| (d.id.clone(), *d))
             .collect::<HashMap<DriverId, &Driver>>();
 
-        let old_data = self.extract_sheet(file_name, new_results)?;
-        let header_map = self.get_header_map(&old_data)?;
-        let past_event_count = self.get_past_event_count(&header_map)?;
+        let old_data = self
+            .extract_sheet(file_name.clone(), new_results)
+            .context(format!("reading sheet from `{file_name}`"))?;
+        let header_map = self.get_header_map(&old_data).context("creating the header map")?;
+        let past_event_count = self
+            .get_past_event_count(&header_map)
+            .context("counting prior events")?;
 
         let result = if new_results_type == ChampionshipType::Class {
             self.class_csv_builder
@@ -94,20 +112,18 @@ impl ChampionshipResultsParser {
         result.map(|csv_option| csv_option.unwrap_or(format!("No results for {}", new_results_type.name())))
     }
 
-    fn extract_sheet(&self, file_name: String, new_results: &[u8]) -> Result<Range<Data>, String> {
+    fn extract_sheet(&self, file_name: String, new_results: &[u8]) -> Result<Range<Data>> {
         let new_results = Cursor::new(new_results);
         let worksheets = if file_name.to_lowercase().ends_with(".xls") {
             Xls::new(new_results)
-                .map_err(|e| format!("Failed to open as XLS: {e:?}"))?
+                .context(format!("opening `{file_name}` as XLS"))?
                 .worksheets()
         } else if file_name.to_lowercase().ends_with(".xlsx") {
             Xlsx::new(new_results)
-                .map_err(|e| format!("Failed to open as XLSX: {e:?}"))?
+                .context(format!("opening `{file_name}` as XLSX"))?
                 .worksheets()
         } else {
-            return Err(format!(
-                "Unrecognized file format ({file_name}). Expected .xls or .xlsx"
-            ));
+            return Err(ChampionshipParseError::UnsupportedExtension { file_name }.into());
         };
         let mut sheets = worksheets
             .iter()
@@ -119,10 +135,8 @@ impl ChampionshipResultsParser {
         Self::find_sheet(file_name, sheets.as_slice())
     }
 
-    fn find_sheet(file_name: String, sheets: &[&(String, Range<Data>)]) -> Result<Range<Data>, String> {
-        let (sheet_name, sheet_data) = sheets
-            .first()
-            .ok_or("Unable to find sheet with with name dissimilar to 'calculations'")?;
+    fn find_sheet(file_name: String, sheets: &[&(String, Range<Data>)]) -> Result<Range<Data>> {
+        let (sheet_name, sheet_data) = sheets.first().ok_or(ChampionshipParseError::NoUsableSheet)?;
 
         if sheet_data.rows().len() >= 5 {
             console_log!("Found sheet with name {}", sheet_name);
@@ -131,33 +145,33 @@ impl ChampionshipResultsParser {
             log(format!("Sheet '{}' doesn't have enough rows, checking next", sheet_name).as_str());
             Self::find_sheet(file_name, &sheets[1..])
         } else {
-            Err(format!("File {} contains no non-empty sheets", file_name))
+            Err(ChampionshipParseError::AllSheetsEmpty { file_name }.into())
         }
     }
 
-    fn get_header_map(&self, data: &Range<Data>) -> Result<HashMap<String, usize>, String> {
-        let re = Regex::new(r"^\s*best\s+\d+\s+of\s+\d+\s*$").map_err(|e| e.to_string())?;
+    fn get_header_map(&self, data: &Range<Data>) -> Result<HashMap<String, usize>> {
+        let re = Regex::new(r"^\s*best\s+\d+\s+of\s+\d+\s*$").context("compiling header regex")?;
         Ok(data
             .rows()
             .find(|row| match row.last() {
                 Some(last) => re.is_match(last.to_string().to_lowercase().as_str()),
                 None => false,
             })
-            .ok_or_else(|| "Unable to find header".to_string())?
+            .ok_or(ChampionshipParseError::MissingHeaderRow)?
             .iter()
             .enumerate()
             .map(|(index, header)| (header.to_string(), index))
             .collect())
     }
 
-    fn get_past_event_count(&self, header_map: &HashMap<String, usize>) -> Result<usize, String> {
-        let re =
-            Regex::new(r"^(Trophy|Rank|Driver|Total\s+Points|Best\s+\d+\s+of\s+\d+)$").map_err(|e| e.to_string())?;
+    fn get_past_event_count(&self, header_map: &HashMap<String, usize>) -> Result<usize> {
+        let re = Regex::new(r"^(Trophy|Rank|Driver|Total\s+Points|Best\s+\d+\s+of\s+\d+)$")
+            .context("compiling past-event-count regex")?;
         Ok(header_map.keys().filter(|header| !re.is_match(header)).count())
     }
 
     fn compute_fastest(drivers: &HashMap<DriverId, &Driver>) -> LapTime {
-        drivers.iter().map(|(_, d)| d.best_lap(false)).min().unwrap_or_else(dns)
+        drivers.values().map(|d| d.best_lap(false)).min().unwrap_or_else(dns)
     }
 }
 
@@ -221,9 +235,18 @@ mod test {
         let actual = context
             .testable
             .process_results(ChampionshipType::Class, &data, "a file.xls".to_string());
-        assert_eq!(
-            actual,
-            Err("Cfb error: I/O error: failed to fill whole buffer".to_string())
+        let err = actual.expect_err("expected invalid XLS to yield an error");
+        let rendered = format!("{err:#}");
+        // The anyhow chain now carries our `.context(...)` frames in front of
+        // the underlying calamine error; assert on the substrings we care
+        // about rather than an exact match.
+        assert!(
+            rendered.contains("a file.xls"),
+            "expected chain to mention the file name; got: {rendered}"
+        );
+        assert!(
+            rendered.contains("failed to fill whole buffer"),
+            "expected chain to include the root cause; got: {rendered}"
         );
     }
 }

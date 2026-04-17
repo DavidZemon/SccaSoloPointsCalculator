@@ -1,4 +1,5 @@
 use crate::enums::championship_type::ChampionshipType;
+use anyhow::{anyhow, Context, Result};
 use csv::Writer;
 
 use crate::enums::driver_group::DriverGroup;
@@ -24,16 +25,18 @@ impl Default for CombinedResultsBuilder {
 }
 
 impl CombinedResultsBuilder {
-    pub fn to_combined_csv(&self, results: &EventResults, driver_group: DriverGroup) -> Result<String, String> {
+    pub fn to_combined_csv(&self, results: &EventResults, driver_group: DriverGroup) -> Result<String> {
         let is_raw_time = driver_group == DriverGroup::Raw;
 
         let drivers = results.get_drivers(Some(driver_group));
         if drivers.is_empty() {
             Ok(format!("No drivers for {} group", driver_group.name()))
         } else {
-            let csv = self.build_csv(drivers, driver_group, is_raw_time)?;
-            let csv_byte_array = csv.into_inner().map_err(|e| e.to_string())?;
-            String::from_utf8(csv_byte_array).map_err(|e| e.to_string())
+            let csv = self
+                .build_csv(drivers, driver_group, is_raw_time)
+                .context(format!("building combined CSV for driver group {driver_group:?}"))?;
+            let csv_byte_array = csv.into_inner().context("finalizing CSV writer")?;
+            Ok(String::from_utf8(csv_byte_array).context("converting CSV bytes to UTF-8")?)
         }
     }
 
@@ -72,8 +75,10 @@ impl CombinedResultsBuilder {
         drivers: Vec<&Driver>,
         driver_group: DriverGroup,
         is_raw_time: bool,
-    ) -> Result<Writer<Vec<u8>>, String> {
-        let fastest_driver = drivers.first().unwrap();
+    ) -> Result<Writer<Vec<u8>>> {
+        let fastest_driver = drivers
+            .first()
+            .ok_or_else(|| anyhow!("expected at least one driver for {}", driver_group.name()))?;
         let fastest_of_day = fastest_driver.best_lap(false);
 
         let driver_count = drivers.len();
@@ -83,7 +88,7 @@ impl CombinedResultsBuilder {
 
         let mut csv = Writer::from_writer(vec![]);
         csv.write_record(self.get_combined_header(is_raw_time))
-            .map_err(|e| e.to_string())?;
+            .context("writing CSV header")?;
 
         for i in 0..driver_count {
             let next_row = self.build_record(
@@ -94,7 +99,8 @@ impl CombinedResultsBuilder {
                 is_raw_time,
                 fastest_of_day.clone(),
             )?;
-            csv.write_record(next_row).map_err(|e| e.to_string())?;
+            csv.write_record(next_row)
+                .context(format!("writing record for row {i}"))?;
         }
 
         Ok(csv)
@@ -108,11 +114,11 @@ impl CombinedResultsBuilder {
         trophy_count: usize,
         is_raw_time: bool,
         fastest_of_day: LapTime,
-    ) -> Result<Vec<String>, String> {
+    ) -> Result<Vec<String>> {
         let previous_driver = drivers.get(i - 1);
         let driver = drivers
             .get(i)
-            .ok_or(format!("expected at least one driver for {}", driver_group.name()))?;
+            .ok_or_else(|| anyhow!("expected at least one driver for {}", driver_group.name()))?;
 
         let tie_offset = calculate_tie_offset(drivers, i, |d1, d2| d1.best_lap(false) == d2.best_lap(false));
 

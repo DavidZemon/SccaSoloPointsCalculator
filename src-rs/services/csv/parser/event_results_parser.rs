@@ -5,14 +5,14 @@ use crate::models::event_results::EventResults;
 use crate::models::lap_time::{LapTime, Penalty};
 use crate::models::msr_driver::MsrDriver;
 use crate::models::type_aliases::{PaxMultiplier, Time};
-use bigdecimal::ParseBigDecimalError;
+use crate::services::csv::parser::errors::EventParseError;
+use anyhow::{Context, Result};
 use csv::{StringRecord, Trim};
 use std::collections::HashMap;
-use std::num::ParseIntError;
 use std::str::FromStr;
 
-pub fn parse(msr_export: String, pronto_export: String) -> Result<EventResults, String> {
-    let msr_data = parse_msr(msr_export)?;
+pub fn parse(msr_export: String, pronto_export: String) -> Result<EventResults> {
+    let msr_data = parse_msr(msr_export).context("parsing MSR export")?;
 
     let mut pronto_reader = csv::ReaderBuilder::new()
         .flexible(true)
@@ -24,14 +24,14 @@ pub fn parse(msr_export: String, pronto_export: String) -> Result<EventResults, 
         .trim(Trim::Headers)
         .from_reader(pronto_export.as_bytes());
     let pronto_final_column_index = {
-        let headers = pronto_string_reader.headers().map_err(|e| e.to_string())?;
+        let headers = pronto_string_reader.headers().context("reading Pronto CSV headers")?;
         let header_vec: Vec<&str> = headers.iter().collect();
         header_vec
             .iter()
             .enumerate()
             .find(|(_index, header)| **header == "Runs Day2")
             .map(|(index, _header)| index)
-            .ok_or("Unable to find header column `Runs Day2`".to_string())?
+            .ok_or(EventParseError::MissingHeaderColumn("Runs Day2"))?
     };
 
     let mut results = HashMap::new();
@@ -40,10 +40,12 @@ pub fn parse(msr_export: String, pronto_export: String) -> Result<EventResults, 
     for (deserialized, string_rec) in pronto_records {
         let (driver, string_rec) = validate_row(deserialized, string_rec)?;
 
-        let driver = extract_lap_times(driver, string_rec, pronto_final_column_index + 1)?;
+        let driver_id = driver.id();
+        let driver = extract_lap_times(driver, string_rec, pronto_final_column_index + 1)
+            .context(format!("extracting lap times for Pronto driver `{driver_id}`"))?;
         let msr_driver = msr_data
             .get(&driver.id())
-            .ok_or(format!("Failed to match Pronto driver {} in MSR data", driver.id()))?;
+            .ok_or_else(|| EventParseError::MsrDriverMissing { pronto_id: driver.id() })?;
         let driver = Driver::from((driver, msr_driver));
 
         results
@@ -58,7 +60,7 @@ pub fn parse(msr_export: String, pronto_export: String) -> Result<EventResults, 
     Ok(EventResults { results })
 }
 
-fn parse_msr(msr_export: String) -> Result<HashMap<String, MsrDriver>, String> {
+fn parse_msr(msr_export: String) -> Result<HashMap<String, MsrDriver>> {
     let mut reader = csv::ReaderBuilder::new()
         .flexible(true)
         .trim(Trim::All)
@@ -73,8 +75,11 @@ fn parse_msr(msr_export: String) -> Result<HashMap<String, MsrDriver>, String> {
 
     let mut results = HashMap::new();
     for (record, string_rec) in records {
-        let record: Option<MsrDriver> =
-            record.map_err(|e| format!("Failed to parse MSR driver due to {e:?}:\n\t{string_rec:?}"))?;
+        let row_display = format!("{string_rec:?}");
+        let record: Option<MsrDriver> = record.map_err(|source| EventParseError::MsrDeserialize {
+            row: row_display,
+            source,
+        })?;
         if let Some(driver) = record {
             results.insert(driver.id(), driver);
         }
@@ -85,24 +90,23 @@ fn parse_msr(msr_export: String) -> Result<HashMap<String, MsrDriver>, String> {
 fn validate_row(
     deserialized: csv::Result<DriverFromPronto>,
     string_record: csv::Result<StringRecord>,
-) -> Result<(DriverFromPronto, StringRecord), String> {
-    let string_record = string_record.map_err(|e| e.to_string())?;
+) -> Result<(DriverFromPronto, StringRecord)> {
+    let string_record = string_record.context("reading Pronto row as a raw string record")?;
 
     match deserialized {
         Ok(driver) => Ok((driver, string_record)),
-        Err(e) => match e.kind() {
-            csv::ErrorKind::Deserialize { err: root, .. } => {
-                match root.kind() {
-                    csv::DeserializeErrorKind::UnexpectedEndOfRow => Err(
-                        format!(
-                            "Encountered an unexpected end of row for a record. One common reason for this is a driver that did not attend the event but remains in Pronto.\n'{string_record:?}'",
-                        )
-                    ),
-                    _ => Err(format!("Failed to deserialize row {string_record:?} due to {:?}", e.to_string())),
-                }
+        Err(e) => {
+            let row = format!("{string_record:?}");
+            match e.kind() {
+                csv::ErrorKind::Deserialize { err: root, .. } => match root.kind() {
+                    csv::DeserializeErrorKind::UnexpectedEndOfRow => {
+                        Err(EventParseError::UnexpectedEndOfRow { row }.into())
+                    }
+                    _ => Err(EventParseError::DeserializeRow { row, source: e }.into()),
+                },
+                _ => Err(EventParseError::DeserializeRow { row, source: e }.into()),
             }
-            _ => Err(format!("Failed to deserialize row {string_record:?} due to {:?}", e.to_string())),
-        },
+        }
     }
 }
 
@@ -110,9 +114,13 @@ fn extract_lap_times(
     mut driver: DriverFromPronto,
     string_record: StringRecord,
     first_time_column: usize,
-) -> Result<DriverFromPronto, String> {
+) -> Result<DriverFromPronto> {
     let strings_vec: Vec<&str> = string_record.iter().collect();
-    let pax_multiplier = PaxMultiplier::from_str(&driver.pax_multiplier).unwrap();
+    let pax_multiplier =
+        PaxMultiplier::from_str(&driver.pax_multiplier).map_err(|source| EventParseError::InvalidPaxMultiplier {
+            raw: driver.pax_multiplier.clone(),
+            source,
+        })?;
 
     let extra_fields = &strings_vec[first_time_column..];
     let extra_field_groups = extra_fields.chunks(3);
@@ -128,27 +136,21 @@ fn extract_lap_times(
             #[cfg(not(test))]
             crate::console_log!("Driver {driver_name} has run cell count not divisible by 3");
         } else {
-            match build_lap_time(run, &pax_multiplier) {
-                Ok(run) => {
-                    driver.runs.push(run);
-                }
-                Err(e) => {
-                    return Err(format!(
-                        "Failed to extract lap time for {driver_name} ({run:?}) due to {e}"
-                    ))
-                }
-            }
+            let lap = build_lap_time(run, &pax_multiplier).context(format!("parsing run {run:?} for {driver_name}"))?;
+            driver.runs.push(lap);
         }
     }
 
     Ok(driver)
 }
 
-fn build_lap_time(next_fields: &[&str], pax: &PaxMultiplier) -> Result<LapTime, String> {
+fn build_lap_time(next_fields: &[&str], pax: &PaxMultiplier) -> Result<LapTime> {
     Ok(LapTime::new(
-        Time::from_str(next_fields[0]).map_err(|e: ParseBigDecimalError| e.to_string())?,
+        Time::from_str(next_fields[0]).context(format!("parsing raw time `{}`", next_fields[0]))?,
         pax.clone(),
-        next_fields[1].parse().map_err(|e: ParseIntError| e.to_string())?,
+        next_fields[1]
+            .parse()
+            .context(format!("parsing cone count `{}`", next_fields[1]))?,
         match next_fields[2] {
             "DNF" => Some(Penalty::DNF),
             "DNS" => Some(Penalty::DNS),
@@ -331,6 +333,17 @@ Greer,Sean,5,SS,5,Bug,,,0,0,0"###;
         let actual = parse(MSR_DATA.to_string(), sample_contents.to_string());
 
         assert!(actual.is_err(), "Should fail on empty driver");
-        assert_eq!(actual.err().unwrap(), "Encountered an unexpected end of row for a record. One common reason for this is a driver that did not attend the event but remains in Pronto.\n'StringRecord([\"17\", \"CAMT\", \"Other\", \"Classic American Muscle Traditional\", \"88\", \"Charles\", \"Hammelman\", \"1999\", \"Ford\", \"Mustang SVT Cobra\", \"Black\", \"691686\", \"1\", \"\", \"0\", \"\", \"DNF\", \"0.816\", \"999\", \"0\", \"0\"])'");
+        // The full anyhow chain carries our `.context(...)` frames in addition
+        // to the underlying `EventParseError::UnexpectedEndOfRow` message, so
+        // we assert on a substring rather than the full message.
+        let err = format!("{:#}", actual.err().unwrap());
+        assert!(
+            err.contains("Encountered an unexpected end of row for a record."),
+            "unexpected error: {err}"
+        );
+        assert!(
+            err.contains("Charles") && err.contains("Hammelman"),
+            "error should include the offending row contents; got: {err}"
+        );
     }
 }

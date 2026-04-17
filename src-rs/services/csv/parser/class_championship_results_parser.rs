@@ -1,5 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
+use anyhow::{Context, Result};
 use calamine::{Data, DataType};
 #[cfg(test)]
 use mockall::automock;
@@ -14,6 +15,7 @@ use crate::models::type_aliases::DriverId;
 use crate::services::calculators::championship_points_calculator::{
     ChampionshipPointsCalculator, DefaultChampionshipPointsCalculator,
 };
+use crate::services::csv::parser::errors::ChampionshipParseError;
 
 struct CalculationContext {
     rows_by_class_and_driver_id: HashMap<ShortCarClass, HashMap<DriverId, ChampionshipDriver>>,
@@ -29,7 +31,7 @@ pub trait ClassChampionshipResultsParser {
         header_map: HashMap<String, usize>,
         data: calamine::Range<Data>,
         event_results: &EventResults,
-    ) -> Result<ClassChampionshipResults, String>;
+    ) -> Result<ClassChampionshipResults>;
 }
 
 pub struct DefaultClassChampionshipResultsParser {
@@ -43,22 +45,32 @@ impl ClassChampionshipResultsParser for DefaultClassChampionshipResultsParser {
         header_map: HashMap<String, usize>,
         data: calamine::Range<Data>,
         event_results: &EventResults,
-    ) -> Result<ClassChampionshipResults, String> {
+    ) -> Result<ClassChampionshipResults> {
         let org = data
             .get((0, 0))
-            .ok_or("Empty sheet - no value at 0,0 for class championship input XLS")?
+            .ok_or(ChampionshipParseError::MissingSheetCell {
+                cell_description: "Empty sheet - no value at 0,0",
+                context: "class",
+            })?
             .to_string()
             .trim()
             .to_string();
-        let year = data
+        let year_cell = data
             .get((1, 0))
-            .ok_or("Invalid sheet - no value at 1,0 for class championship input XLS")?
-            .to_string()
+            .ok_or(ChampionshipParseError::MissingSheetCell {
+                cell_description: "Invalid sheet - no value at 1,0",
+                context: "class",
+            })?
+            .to_string();
+        let year = year_cell
             .split(' ')
             .next()
-            .ok_or("Invalid 'year' cell contents for class championship input XLS")?
+            .ok_or(ChampionshipParseError::InvalidCellContent {
+                cell_description: "Invalid 'year' cell contents",
+                context: "class",
+            })?
             .parse::<u16>()
-            .map_err(|e| e.to_string())?;
+            .context(format!("parsing championship year from cell B0 (`{year_cell}`)"))?;
 
         Ok(ClassChampionshipResults::new(
             year,
@@ -85,22 +97,22 @@ impl DefaultClassChampionshipResultsParser {
         &self,
         header_map: HashMap<String, usize>,
         data: calamine::Range<Data>,
-    ) -> Result<HashMap<ShortCarClass, HashMap<DriverId, ChampionshipDriver>>, String> {
+    ) -> Result<HashMap<ShortCarClass, HashMap<DriverId, ChampionshipDriver>>> {
         let mut rows_by_class_and_driver_id: HashMap<ShortCarClass, HashMap<DriverId, ChampionshipDriver>> =
             HashMap::new();
 
         let mut current_class: Option<ShortCarClass> = None;
         let name_index = *header_map
             .get("Driver")
-            .ok_or_else(|| "Missing 'Driver' column".to_string())?;
+            .ok_or(ChampionshipParseError::MissingColumn("Driver"))?;
         let total_points_index = *header_map
             .get("Total\nPoints")
-            .ok_or_else(|| "Missing 'Total Points' column".to_string())?;
+            .ok_or(ChampionshipParseError::MissingColumn("Total Points"))?;
         for r in data.rows() {
             if !r.is_empty() {
                 let cell_str = r[0].to_string();
-                let delimeter = if cell_str.contains(" - ") { " - " } else { " – " };
-                let pieces = cell_str.split(delimeter).collect::<Vec<&str>>();
+                let delimiter = if cell_str.contains(" - ") { " - " } else { " – " };
+                let pieces = cell_str.split(delimiter).collect::<Vec<&str>>();
                 if let Some(short_class) = ShortCarClass::parse(pieces.first().unwrap_or(&"")) {
                     current_class = Some(short_class);
                     rows_by_class_and_driver_id.insert(short_class, HashMap::new());
@@ -115,7 +127,8 @@ impl DefaultClassChampionshipResultsParser {
                             name_index,
                             total_points_index,
                             r,
-                        ),
+                        )
+                        .context(format!("adding driver from class history for `{current_class:?}`"))?,
                     };
                 }
             }
@@ -130,13 +143,13 @@ impl DefaultClassChampionshipResultsParser {
         name_index: usize,
         total_points_index: usize,
         r: &[Data],
-    ) {
-        let rows_for_one_class = rows_by_class_and_driver_id.get_mut(current_class).unwrap_or_else(|| {
-            panic!(
-                "Attempted to retrieve driver map for class {:?} but map was not found",
-                current_class
-            )
-        });
+    ) -> Result<()> {
+        let rows_for_one_class = rows_by_class_and_driver_id
+            .get_mut(current_class)
+            .ok_or(anyhow::anyhow!(
+                "attempted to retrieve driver map for class {current_class:?} but map was not found; \
+                 this indicates a malformed championship XLS (no class header row before driver rows)"
+            ))?;
         let name = r[name_index].to_string();
 
         let mut driver = ChampionshipDriver::new(name.as_str());
@@ -146,6 +159,7 @@ impl DefaultClassChampionshipResultsParser {
         });
 
         rows_for_one_class.insert(name.to_lowercase(), driver);
+        Ok(())
     }
 
     fn get_new_event_drivers(&self, event_results: &EventResults) -> HashMap<ShortCarClass, HashMap<DriverId, Driver>> {

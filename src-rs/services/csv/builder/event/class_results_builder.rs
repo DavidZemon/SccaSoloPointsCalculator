@@ -7,6 +7,7 @@ use crate::services::calculators::championship_points_calculator::{
     ChampionshipPointsCalculator, DefaultChampionshipPointsCalculator,
 };
 use crate::services::calculators::trophy_calculator::{DefaultTrophyCalculator, TrophyCalculator};
+use anyhow::{anyhow, Context, Result};
 use csv::Writer;
 use wasm_bindgen::JsValue;
 
@@ -33,17 +34,15 @@ impl ClassResultsBuilder {
         }
     }
 
-    pub fn to_csvs(&self, results: &EventResults) -> Vec<JsValue> {
+    pub fn to_csvs(&self, results: &EventResults) -> Result<Vec<JsValue>> {
         let mut results = results
             .results
             .iter()
             .map(|(class, results)| {
-                (
-                    get_car_class(class).unwrap_or_else(|| panic!("Missing class {} in class map", class.name())),
-                    results,
-                )
+                let car_class = get_car_class(class).ok_or(anyhow!("Missing class {} in class map", class.name()))?;
+                Ok((car_class, results))
             })
-            .collect::<Vec<(CarClass, &ClassResults)>>();
+            .collect::<Result<Vec<(CarClass, &ClassResults)>>>()?;
 
         results.sort_by(|(lhs, ..), (rhs, ..)| {
             if lhs.category == rhs.category {
@@ -56,14 +55,17 @@ impl ClassResultsBuilder {
         results
             .iter()
             .map(|(class, results)| {
-                serde_wasm_bindgen::to_value(&(class, self.export_class(results)))
-                    .unwrap_or_else(|_| panic!("Failed to serialize class CSV for {}", class.long.name()))
+                let class_csv = self
+                    .export_class(results)
+                    .context(format!("exporting class {}", class.long.name()))?;
+                serde_wasm_bindgen::to_value(&(class, class_csv))
+                    .map_err(|e| anyhow!("Failed to serialize class CSV for {}: {e}", class.long.name()))
             })
             .collect()
     }
 
     pub fn get_header(&self) -> String {
-        vec![
+        [
             "Trophy".to_string(),
             "Pos".to_string(),
             "Name".to_string(),
@@ -79,7 +81,7 @@ impl ClassResultsBuilder {
         .join(",")
     }
 
-    fn export_class(&self, class_results: &ClassResults) -> String {
+    fn export_class(&self, class_results: &ClassResults) -> Result<String> {
         let short_class_name = class_results.car_class.short.name().to_string();
         let trophy_count = self
             .trophy_calculator
@@ -89,7 +91,7 @@ impl ClassResultsBuilder {
 
         let best_lap_in_class = class_results.get_best_in_class();
 
-        class_results.drivers.iter().enumerate().for_each(|(i, d)| {
+        for (i, d) in class_results.drivers.iter().enumerate() {
             let compare_on_pro = class_results.car_class.short == ShortCarClass::P;
             let best_lap = d.best_lap(compare_on_pro);
             csv.write_record(vec![
@@ -113,7 +115,11 @@ impl ClassResultsBuilder {
                     "".to_string()
                 } else {
                     d.difference(
-                        class_results.drivers.get(i - 1).unwrap().best_lap(compare_on_pro),
+                        class_results
+                            .drivers
+                            .get(i - 1)
+                            .ok_or(anyhow!("missing previous driver at index {}", i - 1))?
+                            .best_lap(compare_on_pro),
                         true,
                         compare_on_pro,
                     )
@@ -124,9 +130,10 @@ impl ClassResultsBuilder {
                     self.points_calculator.calculate(&best_lap_in_class, d, compare_on_pro)
                 ),
             ])
-            .unwrap_or_else(|_| panic!("Failed to write record for {} to class results CSV", d.name));
-        });
+            .context(format!("writing record for {}", d.name))?;
+        }
 
-        String::from_utf8(csv.into_inner().unwrap()).unwrap()
+        let bytes = csv.into_inner().context("finalizing CSV writer")?;
+        String::from_utf8(bytes).context("converting class CSV bytes to UTF-8")
     }
 }

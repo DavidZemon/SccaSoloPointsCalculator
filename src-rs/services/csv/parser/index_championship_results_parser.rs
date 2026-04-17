@@ -1,5 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
+use anyhow::{Context, Result};
 use calamine::{Data, DataType};
 #[cfg(test)]
 use mockall::automock;
@@ -12,6 +13,7 @@ use crate::models::type_aliases::DriverId;
 use crate::services::calculators::championship_points_calculator::{
     ChampionshipPointsCalculator, DefaultChampionshipPointsCalculator,
 };
+use crate::services::csv::parser::errors::ChampionshipParseError;
 
 struct CalculationContext<'a> {
     rows_by_driver_id: HashMap<DriverId, ChampionshipDriver>,
@@ -29,7 +31,7 @@ pub trait IndexChampionshipResultsParser {
         data: calamine::Range<Data>,
         event_drivers: HashMap<DriverId, &'a Driver>,
         best_lap_of_day: &LapTime,
-    ) -> Result<IndexedChampionshipResults, String>;
+    ) -> Result<IndexedChampionshipResults>;
 }
 
 pub struct DefaultIndexChampionshipResultsParser {
@@ -44,22 +46,32 @@ impl IndexChampionshipResultsParser for DefaultIndexChampionshipResultsParser {
         data: calamine::Range<Data>,
         new_event_drivers_by_id: HashMap<DriverId, &Driver>,
         best_lap_of_day: &LapTime,
-    ) -> Result<IndexedChampionshipResults, String> {
+    ) -> Result<IndexedChampionshipResults> {
         let org = data
             .get((0, 0))
-            .ok_or("Empty sheet - no value at 0,0 for indexed championship input XLS")?
+            .ok_or(ChampionshipParseError::MissingSheetCell {
+                cell_description: "Empty sheet - no value at 0,0",
+                context: "indexed",
+            })?
             .to_string()
             .trim()
             .to_string();
-        let year = data
+        let year_cell = data
             .get((1, 0))
-            .ok_or("Invalid sheet - no value at 1,0 for indexed championship input XLS")?
-            .to_string()
+            .ok_or(ChampionshipParseError::MissingSheetCell {
+                cell_description: "Invalid sheet - no value at 1,0",
+                context: "indexed",
+            })?
+            .to_string();
+        let year = year_cell
             .split(' ')
             .next()
-            .ok_or("Invalid 'year' cell contents for indexed championship input XLS")?
+            .ok_or(ChampionshipParseError::MissingSheetCell {
+                cell_description: "Invalid 'year' cell contents",
+                context: "indexed",
+            })?
             .parse::<u16>()
-            .map_err(|e| format!("Failed to parse championship year from cell B0: {e}"))?;
+            .context(format!("parsing championship year from cell B0 (`{year_cell}`)"))?;
 
         let rows_by_driver_id = self.parse_sheet(header_map, data)?;
         let ctx = CalculationContext {
@@ -95,13 +107,13 @@ impl DefaultIndexChampionshipResultsParser {
         &self,
         header_map: HashMap<String, usize>,
         data: calamine::Range<Data>,
-    ) -> Result<HashMap<DriverId, ChampionshipDriver>, String> {
+    ) -> Result<HashMap<DriverId, ChampionshipDriver>> {
         let name_index = *header_map
             .get("Driver")
-            .ok_or_else(|| "Missing 'Driver' column".to_string())?;
+            .ok_or(ChampionshipParseError::MissingColumn("Driver"))?;
         let total_points_index = *header_map
             .get("Total\nPoints")
-            .ok_or_else(|| "Missing 'Total Points' column".to_string())?;
+            .ok_or(ChampionshipParseError::MissingColumn("Total Points"))?;
 
         Ok(data
             .rows()

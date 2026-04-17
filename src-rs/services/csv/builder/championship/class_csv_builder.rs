@@ -1,5 +1,6 @@
 use crate::console_log;
 use crate::enums::championship_type::ChampionshipType;
+use anyhow::{anyhow, Result};
 #[cfg(test)]
 use mockall::automock;
 
@@ -14,7 +15,7 @@ use crate::utilities::events_to_count;
 
 #[cfg_attr(test, automock)]
 pub trait ClassCsvBuilder {
-    fn create(&self, class: ClassChampionshipResults) -> Result<Option<String>, String>;
+    fn create(&self, class: ClassChampionshipResults) -> Result<Option<String>>;
 }
 
 pub struct DefaultClassCsvBuilder {
@@ -22,14 +23,14 @@ pub struct DefaultClassCsvBuilder {
 }
 
 impl ClassCsvBuilder for DefaultClassCsvBuilder {
-    fn create(&self, results: ClassChampionshipResults) -> Result<Option<String>, String> {
+    fn create(&self, results: ClassChampionshipResults) -> Result<Option<String>> {
         let event_count = results
             .drivers_by_class
             .values()
             .next()
-            .ok_or("Expected at least one class")?
+            .ok_or(anyhow!("Expected at least one class"))?
             .first()
-            .ok_or("Expected at least one driver in at least one class")?
+            .ok_or(anyhow!("Expected at least one driver in at least one class"))?
             .event_count(true);
         let events_to_count = events_to_count(event_count);
         let header = Self::build_header(events_to_count, event_count);
@@ -55,12 +56,11 @@ impl ClassCsvBuilder for DefaultClassCsvBuilder {
             .collect::<Vec<(ShortCarClass, Vec<ChampionshipDriver>)>>();
         sorted.sort_by(|(lhs, _), (rhs, _)| lhs.cmp(rhs));
 
-        sorted.iter().for_each(|(class, drivers)| {
-            rows.push(format!(
-                "{} - {}",
-                class.name(),
-                to_display_name(get_car_class(class).unwrap().long)
-            ));
+        for (class, drivers) in sorted.iter() {
+            let car_class = get_car_class(class).ok_or(anyhow!(
+                "Missing class mapping for {class:?} while building championship CSV"
+            ))?;
+            rows.push(format!("{} - {}", class.name(), to_display_name(car_class.long)));
 
             let trophy_count = self.trophy_calculator.calculate(
                 self.get_qualified_driver_count(class, drivers, events_to_count),
@@ -84,8 +84,8 @@ impl ClassCsvBuilder for DefaultClassCsvBuilder {
                 driver_row.push(format!("{}", d.total_points()));
                 driver_row.push(format!("{}", d.best_of(events_to_count)));
                 format!("\"{}\"", driver_row.join("\",\""))
-            }))
-        });
+            }));
+        }
 
         Ok(Some(rows.join("\n")))
     }
