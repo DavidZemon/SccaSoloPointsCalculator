@@ -157,13 +157,13 @@ mod test {
 
         assert_eq!(
             unwrapped,
-            "SCCA\n\
-2022 PAX Championship -- Best 1 of 1 Events\n\
-\n\
-Trophy,Rank,Driver,Event #1,Total Points,Best 1 of 1\n\
-T,1,Name 3,100,100,100\n\
-T,2,Name 2,10,10,10\n\
-T,2,Name 1,10,10,10"
+            r#"SCCA
+2022 PAX Championship -- Best 1 of 1 Events
+
+Trophy,Rank,Driver,Event #1,Total Points,Best 1 of 1
+"T","1","Name 3","100","100","100"
+"T","2","Name 2","10","10","10"
+"T","2","Name 1","10","10","10""#
                 .to_string()
         );
     }
