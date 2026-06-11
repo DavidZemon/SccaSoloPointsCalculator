@@ -25,9 +25,19 @@ export function FileUploadBox({
   const [fileAccepted, setFileAccepted] = useState(false);
 
   return fileAccepted ? (
-    <>
+    <div
+      style={{
+        display: 'flex',
+      }}
+    >
       {fileSelectedMessage(file!)}
-      <div style={{ display: 'flex', alignItems: 'center' }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.75rem',
+        }}
+      >
         <Button
           variant={'outline-info'}
           size={'sm'}
@@ -37,10 +47,16 @@ export function FileUploadBox({
         </Button>
         <BetterTooltip label={label} text={help} />
       </div>
-    </>
+    </div>
   ) : (
-    <div style={{ display: 'flex', alignItems: 'center' }}>
-      <div style={{ flex: 1 }}>
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '0.75rem',
+      }}
+    >
+      <div style={{ minWidth: 0, flex: '1 1 auto' }}>
         <Form.File
           disabled={disabled}
           label={label}

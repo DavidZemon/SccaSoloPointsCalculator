@@ -87,8 +87,8 @@ export default function App(): JSX.Element {
         </Row>
 
         {/* File upload boxes */}
-        <Row>
-          <Col>
+        <Row className={'top-buffer'}>
+          <Col xs={12} md={6} xl={4}>
             <FileUploadBox
               label={'MotorsportReg Export'}
               help={
@@ -187,7 +187,7 @@ export default function App(): JSX.Element {
             />
           </Col>
 
-          <Col>
+          <Col xs={12} md={6} xl={4}>
             {Object.keys(championshipResultsFiles).map(
               (champTypeStr, index) => {
                 const championshipType =
