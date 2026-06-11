@@ -92,12 +92,8 @@ mod test {
             &MsrDriver {
                 last_name: "".to_string(),
                 first_name: "".to_string(),
-                member_number: "".to_string(),
                 class_and_pax: "SS".to_string(),
-                car_number: 0,
-                car: "".to_string(),
                 region: None,
-                medical: None,
                 novice: Some(0),
                 ladies: Some(0),
             },

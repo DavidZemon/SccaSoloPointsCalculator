@@ -111,8 +111,8 @@ impl Driver {
     }
 
     fn lap_times(times: &[LapTime], best_of_three: bool) -> Vec<LapTime> {
-        #[cfg(not(test))]
-        crate::console_log!("Giving lap times out now: {times:?}");
+        // #[cfg(not(test))]
+        // crate::console_log!("Giving lap times out now: {times:?}");
         if best_of_three {
             times[..min(times.len(), 3)].to_vec()
         } else {
@@ -182,12 +182,8 @@ mod test {
             &MsrDriver {
                 last_name: "".to_string(),
                 first_name: "".to_string(),
-                member_number: "".to_string(),
                 class_and_pax: "SS".to_string(),
-                car_number: 0,
-                car: "".to_string(),
                 region: None,
-                medical: None,
                 novice: Default::default(),
                 ladies: Default::default(),
             },

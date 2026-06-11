@@ -1,10 +1,5 @@
 use std::collections::{HashMap, HashSet};
 
-use anyhow::{Context, Result};
-use calamine::{Data, DataType};
-#[cfg(test)]
-use mockall::automock;
-
 use crate::enums::short_car_class::ShortCarClass;
 use crate::models::championship_driver::ChampionshipDriver;
 use crate::models::championship_results::ClassChampionshipResults;
@@ -16,6 +11,10 @@ use crate::services::calculators::championship_points_calculator::{
     ChampionshipPointsCalculator, DefaultChampionshipPointsCalculator,
 };
 use crate::services::csv::parser::errors::ChampionshipParseError;
+use anyhow::{Context, Result};
+use calamine::{Data, DataType};
+#[cfg(test)]
+use mockall::automock;
 
 struct CalculationContext {
     rows_by_class_and_driver_id: HashMap<ShortCarClass, HashMap<DriverId, ChampionshipDriver>>,
@@ -103,10 +102,10 @@ impl DefaultClassChampionshipResultsParser {
 
         let mut current_class: Option<ShortCarClass> = None;
         let name_index = *header_map
-            .get("Driver")
+            .get("driver")
             .ok_or(ChampionshipParseError::MissingColumn("Driver"))?;
         let total_points_index = *header_map
-            .get("Total\nPoints")
+            .get("total points")
             .ok_or(ChampionshipParseError::MissingColumn("Total Points"))?;
         for r in data.rows() {
             if !r.is_empty() {

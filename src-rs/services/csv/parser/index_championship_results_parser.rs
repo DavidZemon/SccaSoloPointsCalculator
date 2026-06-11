@@ -1,10 +1,5 @@
 use std::collections::{HashMap, HashSet};
 
-use anyhow::{Context, Result};
-use calamine::{Data, DataType};
-#[cfg(test)]
-use mockall::automock;
-
 use crate::models::championship_driver::ChampionshipDriver;
 use crate::models::championship_results::IndexedChampionshipResults;
 use crate::models::driver::Driver;
@@ -14,6 +9,10 @@ use crate::services::calculators::championship_points_calculator::{
     ChampionshipPointsCalculator, DefaultChampionshipPointsCalculator,
 };
 use crate::services::csv::parser::errors::ChampionshipParseError;
+use anyhow::{Context, Result};
+use calamine::{Data, DataType};
+#[cfg(test)]
+use mockall::automock;
 
 struct CalculationContext<'a> {
     rows_by_driver_id: HashMap<DriverId, ChampionshipDriver>,
@@ -109,10 +108,10 @@ impl DefaultIndexChampionshipResultsParser {
         data: calamine::Range<Data>,
     ) -> Result<HashMap<DriverId, ChampionshipDriver>> {
         let name_index = *header_map
-            .get("Driver")
+            .get("driver")
             .ok_or(ChampionshipParseError::MissingColumn("Driver"))?;
         let total_points_index = *header_map
-            .get("Total\nPoints")
+            .get("total points")
             .ok_or(ChampionshipParseError::MissingColumn("Total Points"))?;
 
         Ok(data

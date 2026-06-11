@@ -150,22 +150,31 @@ impl ChampionshipResultsParser {
     }
 
     fn get_header_map(&self, data: &Range<Data>) -> Result<HashMap<String, usize>> {
-        let re = Regex::new(r"^\s*best\s+\d+\s+of\s+\d+\s*$").context("compiling header regex")?;
+        let header_pattern = Regex::new(r"^\s*best\s+\d+\s+of\s+\d+\s*$").context("compiling header regex")?;
+        let whitespace_pattern = Regex::new(r"\s+").context("Building whitespace regex")?;
         Ok(data
             .rows()
             .find(|row| match row.last() {
-                Some(last) => re.is_match(last.to_string().to_lowercase().as_str()),
+                Some(last) => header_pattern.is_match(last.to_string().to_lowercase().as_str()),
                 None => false,
             })
             .ok_or(ChampionshipParseError::MissingHeaderRow)?
             .iter()
             .enumerate()
-            .map(|(index, header)| (header.to_string(), index))
+            .map(|(index, header)| {
+                (
+                    whitespace_pattern
+                        .replace_all(header.to_string().as_str(), " ")
+                        .trim()
+                        .to_lowercase(),
+                    index,
+                )
+            })
             .collect())
     }
 
     fn get_past_event_count(&self, header_map: &HashMap<String, usize>) -> Result<usize> {
-        let re = Regex::new(r"^(Trophy|Rank|Driver|Total\s+Points|Best\s+\d+\s+of\s+\d+)$")
+        let re = Regex::new(r"^(trophy|rank|driver|total points|best \d+ of \d+)$")
             .context("compiling past-event-count regex")?;
         Ok(header_map.keys().filter(|header| !re.is_match(header)).count())
     }
@@ -248,5 +257,25 @@ mod test {
             rendered.contains("failed to fill whole buffer"),
             "expected chain to include the root cause; got: {rendered}"
         );
+    }
+
+    #[test]
+    fn test_get_past_event_count_ignores_lowercase_championship_headers() {
+        let context = Context::new(EventResults {
+            results: HashMap::new(),
+        });
+
+        let header_map = HashMap::from([
+            ("trophy".to_string(), 0),
+            ("rank".to_string(), 1),
+            ("driver".to_string(), 2),
+            ("event #1".to_string(), 3),
+            ("event #2".to_string(), 4),
+            ("event #3".to_string(), 5),
+            ("total points".to_string(), 6),
+            ("best 3 of 3".to_string(), 7),
+        ]);
+
+        assert_eq!(context.testable.get_past_event_count(&header_map).unwrap(), 3);
     }
 }
