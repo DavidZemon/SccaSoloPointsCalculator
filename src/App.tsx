@@ -91,6 +91,9 @@ export default function App(): JSX.Element {
           <Col>
             <FileUploadBox
               label={'MotorsportReg Export'}
+              help={
+                "This file is only needed to provide supplemental information missing from Pronto's export. Create an export from MSR that has, at a minimum, the following columns: Last Name, First Name, Member #, Class + Modifier/PAX, Region of Record Abbreviation, Novice, and Ladies"
+              }
               file={msrExportFile}
               accept={'.csv'}
               onFileSelect={async (f) => {
@@ -107,6 +110,9 @@ export default function App(): JSX.Element {
             <FileUploadBox
               disabled={!msrExportFile}
               label={'Full Event Results (by class)'}
+              help={
+                'From TSAdmin, find the "David Export" option and supply that here.'
+              }
               file={eventResultsFile}
               accept={'.csv'}
               onFileSelect={async (f) => {
@@ -190,6 +196,7 @@ export default function App(): JSX.Element {
                   <FileUploadBox
                     key={index}
                     label={`${championshipType} Championship Standings`}
+                    help={`Upload the ${championshipType} championship results that were computed at the end of the previous event. Results from "today's" event will be appended to the championship standings supplied here in order to produce the new championship results.`}
                     accept={'.xls,.xlsx'}
                     file={championshipResultsFiles[championshipType]}
                     onFileSelect={async (f) => {
